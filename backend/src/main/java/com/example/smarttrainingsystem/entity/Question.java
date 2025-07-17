@@ -7,13 +7,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
  * 题目实体
  * 用于管理考试题目的内容和配置
- * 
+ *
  * @author Smart Training System
  * @version 1.0
  * @since 2025-07-17
@@ -121,7 +120,7 @@ public class Question {
         MULTIPLE_CHOICE("多选题"),
         TRUE_FALSE("判断题"),
         FILL_BLANK("填空题"),
-        ESSAY("简答题");
+        SHORT_ANSWER("简答题");
 
         private final String description;
 
@@ -140,7 +139,7 @@ public class Question {
     public enum QuestionStatus {
         ACTIVE("启用"),
         INACTIVE("禁用"),
-        DELETED("已删除");
+        DRAFT("草稿");
 
         private final String description;
 
@@ -168,16 +167,25 @@ public class Question {
     }
 
     /**
-     * 删除题目
-     */
-    public void delete() {
-        this.status = QuestionStatus.DELETED;
-    }
-
-    /**
      * 检查题目是否可用
      */
     public boolean isAvailable() {
-        return status == QuestionStatus.ACTIVE;
+        return this.status == QuestionStatus.ACTIVE;
+    }
+
+    /**
+     * 检查是否为选择题
+     */
+    public boolean isChoiceQuestion() {
+        return this.questionType == QuestionType.SINGLE_CHOICE ||
+                this.questionType == QuestionType.MULTIPLE_CHOICE;
+    }
+
+    /**
+     * 检查是否为主观题
+     */
+    public boolean isSubjectiveQuestion() {
+        return this.questionType == QuestionType.FILL_BLANK ||
+                this.questionType == QuestionType.SHORT_ANSWER;
     }
 }

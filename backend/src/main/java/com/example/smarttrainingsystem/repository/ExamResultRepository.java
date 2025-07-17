@@ -46,27 +46,21 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      *
      * @param userId 用户ID
      * @param examId 考试ID
-     * @return 考试结果
+     * @return 考试结果列表
      */
-    Optional<ExamResult> findByUserIdAndExamId(String userId, String examId);
+    List<ExamResult> findByUserIdAndExamId(String userId, String examId);
 
     /**
-     * 根据用户ID和考试ID查询所有考试结果
+     * 根据用户ID和考试ID查询最新考试结果
      *
      * @param userId 用户ID
      * @param examId 考试ID
-     * @return 考试结果列表
+     * @return 最新考试结果
      */
-    List<ExamResult> findAllByUserIdAndExamId(String userId, String examId);
-
-    /**
-     * 根据通过状态查询考试结果
-     *
-     * @param passStatus 通过状态
-     * @param pageable 分页参数
-     * @return 考试结果分页数据
-     */
-    Page<ExamResult> findByPassStatus(ExamResult.PassStatus passStatus, Pageable pageable);
+    @Query("SELECT er FROM ExamResult er WHERE er.userId = :userId AND er.examId = :examId " +
+            "ORDER BY er.createdAt DESC")
+    Optional<ExamResult> findLatestByUserIdAndExamId(@Param("userId") String userId,
+                                                     @Param("examId") String examId);
 
     /**
      * 查询用户的最佳成绩
@@ -76,9 +70,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      * @return 最佳成绩
      */
     @Query("SELECT er FROM ExamResult er WHERE er.userId = :userId AND er.examId = :examId " +
-           "ORDER BY er.score DESC")
-    List<ExamResult> findBestResultByUserIdAndExamId(@Param("userId") String userId, 
-                                                      @Param("examId") String examId);
+            "ORDER BY er.score DESC")
+    List<ExamResult> findBestResultByUserIdAndExamId(@Param("userId") String userId,
+                                                     @Param("examId") String examId);
 
     /**
      * 查询用户的最新成绩
@@ -88,9 +82,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      * @return 最新成绩
      */
     @Query("SELECT er FROM ExamResult er WHERE er.userId = :userId AND er.examId = :examId " +
-           "ORDER BY er.createdAt DESC")
-    List<ExamResult> findLatestResultByUserIdAndExamId(@Param("userId") String userId, 
-                                                        @Param("examId") String examId);
+            "ORDER BY er.createdAt DESC")
+    List<ExamResult> findLatestResultByUserIdAndExamId(@Param("userId") String userId,
+                                                       @Param("examId") String examId);
 
     /**
      * 统计用户参加考试次数
@@ -117,7 +111,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      * @return 通过人数
      */
     @Query("SELECT COUNT(DISTINCT er.userId) FROM ExamResult er WHERE er.examId = :examId " +
-           "AND er.passStatus = 'PASS'")
+            "AND er.passStatus = 'PASS'")
     long countPassedUsersByExamId(@Param("examId") String examId);
 
     /**
@@ -127,7 +121,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      * @return 平均分
      */
     @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.examId = :examId " +
-           "AND er.passStatus IN ('PASS', 'FAIL')")
+            "AND er.passStatus IN ('PASS', 'FAIL')")
     Double calculateAverageScoreByExamId(@Param("examId") String examId);
 
     /**
@@ -138,7 +132,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      * @return 成绩排行榜
      */
     @Query("SELECT er FROM ExamResult er WHERE er.examId = :examId " +
-           "AND er.passStatus IN ('PASS', 'FAIL') ORDER BY er.score DESC, er.duration ASC")
+            "AND er.passStatus IN ('PASS', 'FAIL') ORDER BY er.score DESC, er.duration ASC")
     Page<ExamResult> findRankingByExamId(@Param("examId") String examId, Pageable pageable);
 
     /**
@@ -163,10 +157,11 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
     Page<ExamResult> findByIsCheatingTrue(Pageable pageable);
 
     /**
-     * 查询超时记录
+     * 根据通过状态查询考试结果
      *
+     * @param status 通过状态
      * @param pageable 分页参数
-     * @return 超时记录分页数据
+     * @return 考试结果分页数据
      */
     Page<ExamResult> findByPassStatus(ExamResult.PassStatus status, Pageable pageable);
 
@@ -182,15 +177,77 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
      * @return 考试结果分页数据
      */
     @Query("SELECT er FROM ExamResult er WHERE " +
-           "(:userId IS NULL OR er.userId = :userId) AND " +
-           "(:examId IS NULL OR er.examId = :examId) AND " +
-           "(:passStatus IS NULL OR er.passStatus = :passStatus) AND " +
-           "(:startTime IS NULL OR er.startTime >= :startTime) AND " +
-           "(:endTime IS NULL OR er.endTime <= :endTime)")
+            "(:userId IS NULL OR er.userId = :userId) AND " +
+            "(:examId IS NULL OR er.examId = :examId) AND " +
+            "(:passStatus IS NULL OR er.passStatus = :passStatus) AND " +
+            "(:startTime IS NULL OR er.startTime >= :startTime) AND " +
+            "(:endTime IS NULL OR er.endTime <= :endTime)")
     Page<ExamResult> searchExamResults(@Param("userId") String userId,
                                        @Param("examId") String examId,
                                        @Param("passStatus") ExamResult.PassStatus passStatus,
                                        @Param("startTime") LocalDateTime startTime,
                                        @Param("endTime") LocalDateTime endTime,
                                        Pageable pageable);
+
+    /**
+     * 查询用户的错题记录
+     *
+     * @param userId 用户ID
+     * @return 错题记录列表
+     */
+    @Query("SELECT er FROM ExamResult er WHERE er.userId = :userId AND er.wrongCount > 0")
+    List<ExamResult> findWrongQuestionsByUserId(@Param("userId") String userId);
+
+    /**
+     * 查询考试的最高分
+     *
+     * @param examId 考试ID
+     * @return 最高分
+     */
+    @Query("SELECT MAX(er.score) FROM ExamResult er WHERE er.examId = :examId")
+    Integer findMaxScoreByExamId(@Param("examId") String examId);
+
+    /**
+     * 查询考试的最低分
+     *
+     * @param examId 考试ID
+     * @return 最低分
+     */
+    @Query("SELECT MIN(er.score) FROM ExamResult er WHERE er.examId = :examId")
+    Integer findMinScoreByExamId(@Param("examId") String examId);
+
+    /**
+     * 查询用户最近的考试记录
+     *
+     * @param userId 用户ID
+     * @param limit 限制条数
+     * @return 最近的考试记录
+     */
+    @Query(value = "SELECT * FROM t_exam_result WHERE user_id = :userId " +
+            "ORDER BY created_at DESC LIMIT :limit", nativeQuery = true)
+    List<ExamResult> findRecentByUserId(@Param("userId") String userId, @Param("limit") int limit);
+
+    /**
+     * 统计用户总考试次数
+     *
+     * @param userId 用户ID
+     * @return 总考试次数
+     */
+    long countByUserId(String userId);
+
+    /**
+     * 统计用户通过的考试次数
+     *
+     * @param userId 用户ID
+     * @return 通过的考试次数
+     */
+    long countByUserIdAndPassStatus(String userId, ExamResult.PassStatus passStatus);
+
+    /**
+     * 查询正在进行的考试
+     *
+     * @param userId 用户ID
+     * @return 正在进行的考试列表
+     */
+    List<ExamResult> findByUserIdAndPassStatus(String userId, ExamResult.PassStatus passStatus);
 }
