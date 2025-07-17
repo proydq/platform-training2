@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/v1/debug")
+@RequestMapping("/api/v1/debug")
 public class DebugController {
 
     /**
