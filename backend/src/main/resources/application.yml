@@ -19,11 +19,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: true
+        format_sql: false
 
   # Security配置（暂时禁用，后续开启）
   security:
@@ -31,11 +31,34 @@ spring:
       name: admin
       password: 123456
 
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 200MB
+      max-request-size: 200MB
+
+# JWT配置
+jwt:
+  # JWT签名密钥（生产环境请更换为复杂密钥）
+  secret: smartTrainingSystemSecretKey2025ForJWTToken
+  # JWT过期时间（毫秒）- 7天
+  expiration: 604800000
+
 # 日志配置
 logging:
   level:
-    com.example.smarttrainingsystem: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.example.smarttrainingsystem: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+
+# 应用配置
+app:
+  # 文件上传路径
+  upload:
+    path: ./uploads/
+  # 允许的文件类型
+  allowed-file-types: jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,mp4,avi,mov

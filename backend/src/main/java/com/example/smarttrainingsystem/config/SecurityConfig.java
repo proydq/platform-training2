@@ -1,10 +1,13 @@
 package com.example.smarttrainingsystem.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -12,69 +15,70 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 /**
- * Spring Security 安全配置
- * 
+ * 修复版安全配置（带JWT验证）
+ * 保持宽松权限但启用JWT认证
+ *
  * @author 开发者
  * @version 1.0
- * @since 2025-01-18
+ * @since 2025-07-17
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /**
      * 安全过滤器链配置
-     * 暂时禁用认证，便于开发测试
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 禁用CSRF（开发阶段）
-            .csrf().disable()
-            
-            // 配置CORS
-            .cors().configurationSource(corsConfigurationSource())
-            
-            .and()
-            // 授权配置
-            .authorizeHttpRequests(authz -> authz
-                // 允许所有请求访问（开发阶段）
-                .anyRequest().permitAll()
-            );
+                // 禁用CSRF
+                .csrf().disable()
+
+                // 配置CORS
+                .cors().configurationSource(corsConfigurationSource())
+
+                .and()
+                // 配置会话管理
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+
+                .and()
+                // 宽松的权限配置，但会通过JWT过滤器
+                .authorizeHttpRequests(authz -> authz
+                        // 登录相关接口无需认证
+                        .antMatchers("/api/v1/auth/login").permitAll()
+                        .antMatchers("/api/v1/auth/check-username").permitAll()
+                        .antMatchers("/api/v1/test/**").permitAll()
+                        .antMatchers("/api/v1/debug/public").permitAll()
+
+                        // 其他接口需要认证，但暂时放宽要求
+                        .anyRequest().permitAll()  // 暂时允许所有请求，但JWT过滤器仍会处理
+                )
+
+                // 添加JWT认证过滤器
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * CORS跨域配置
+     * CORS配置
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // 允许的源
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",  // 前端开发服务器
-            "http://127.0.0.1:3000"
-        ));
-        
-        // 允许的HTTP方法
-        configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS"
-        ));
-        
-        // 允许的请求头
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        
-        // 允许携带凭证
         configuration.setAllowCredentials(true);
-        
-        // 预检请求的缓存时间
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
         return source;
     }
 }
