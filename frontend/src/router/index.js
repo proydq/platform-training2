@@ -1,4 +1,4 @@
-// router/index.js - 修复版本，添加完整路由配置
+// router/index.js - 添加课程管理模块
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 组件导入
@@ -6,6 +6,7 @@ const Login = () => import('@/views/Login.vue')
 const Layout = () => import('@/layout/index.vue')
 const Dashboard = () => import('@/views/Dashboard.vue')
 const Courses = () => import('@/views/Courses.vue')
+const CourseManagement = () => import('@/views/CourseManagement.vue') // 新增课程管理组件
 const Exams = () => import('@/views/Exams.vue')
 const StudentManagement = () => import('@/views/StudentManagement.vue')
 const Admin = () => import('@/views/Admin.vue')
@@ -40,6 +41,16 @@ const routes = [
         name: 'Courses',
         component: Courses,
         meta: { title: '我的课程', icon: '📚' }
+      },
+      {
+        path: 'course-management',
+        name: 'CourseManagement',
+        component: CourseManagement,
+        meta: { 
+          title: '课程管理', 
+          icon: '🎓',
+          roles: ['ADMIN', 'TEACHER'] // 仅管理员和讲师可访问
+        }
       },
       {
         path: 'exams',
@@ -87,17 +98,29 @@ const router = createRouter({
   routes
 })
 
-// 生成菜单方法
+// 生成菜单方法 - 更新菜单配置
 export const generateMenus = (userRole) => {
   const allMenus = [
     { path: '/dashboard', title: '仪表板', icon: '📊', hidden: false },
     { path: '/courses', title: '我的课程', icon: '📚', hidden: false },
+    { 
+      path: '/course-management', 
+      title: '课程管理', 
+      icon: '🎓', 
+      hidden: !['ADMIN', 'TEACHER'].includes(userRole) // 仅管理员和讲师可见
+    },
     { path: '/exams', title: '考试中心', icon: '📝', hidden: false },
     { 
       path: '/students', 
       title: '学员管理', 
       icon: '👥', 
       hidden: !['ADMIN', 'TEACHER'].includes(userRole) 
+    },
+    { 
+      path: '/admin', 
+      title: '管理后台', 
+      icon: '⚙️', 
+      hidden: userRole !== 'ADMIN' // 仅管理员可见
     }
   ]
   
