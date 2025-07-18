@@ -1,4 +1,4 @@
-// api/auth.js - 认证相关API
+// api/auth.js - 简化的认证相关API
 import request from '@/utils/request'
 
 // 登录接口
@@ -26,6 +26,14 @@ export function logoutAPI() {
   return request({
     url: '/api/v1/auth/logout',
     method: 'post'
+  })
+}
+
+// 健康检查接口
+export function healthCheckAPI() {
+  return request({
+    url: '/api/v1/health',
+    method: 'get'
   })
 }
 
