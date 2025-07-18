@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -140,7 +141,7 @@ public class StudentManagementController {
     public Result<Void> deleteStudent(@PathVariable String studentId) {
         try {
             studentManagementService.deleteStudent(studentId);
-            return Result.success("删除学员成功");
+            return Result.success("删除学员成功", null);
         } catch (Exception e) {
             log.error("删除学员失败", e);
             return Result.error("删除学员失败: " + e.getMessage());
@@ -239,7 +240,9 @@ public class StudentManagementController {
                                                             @RequestBody Map<String, String> request) {
         try {
             String newPassword = studentManagementService.resetStudentPassword(studentId, request.get("newPassword"));
-            Map<String, String> result = Map.of("newPassword", newPassword);
+            // Java 8兼容写法：使用HashMap而不是Map.of
+            Map<String, String> result = new HashMap<>();
+            result.put("newPassword", newPassword);
             return Result.success("重置密码成功", result);
         } catch (Exception e) {
             log.error("重置密码失败", e);
@@ -262,7 +265,10 @@ public class StudentManagementController {
             Boolean active = (Boolean) request.get("active");
             String reason = (String) request.get("reason");
             studentManagementService.changeStudentStatus(studentId, active, reason);
-            return Result.success(active ? "激活学员成功" : "禁用学员成功");
+
+            String message = active ? "激活学员成功" : "禁用学员成功";
+            return Result.success(message, null);
+
         } catch (Exception e) {
             log.error("更改学员状态失败", e);
             return Result.error("更改学员状态失败: " + e.getMessage());
@@ -283,7 +289,7 @@ public class StudentManagementController {
         try {
             String senderId = SecurityUtils.getCurrentUserId();
             studentManagementService.sendNotificationToStudent(studentId, request, senderId);
-            return Result.success("发送通知成功");
+            return Result.success("发送通知成功", null);
         } catch (Exception e) {
             log.error("发送通知失败", e);
             return Result.error("发送通知失败: " + e.getMessage());
@@ -326,10 +332,10 @@ public class StudentManagementController {
                                                       @RequestParam(required = false) String role) {
         try {
             String fileName = studentManagementService.exportStudents(format, keyword, status, role);
-            Map<String, Object> result = Map.of(
-                    "fileName", fileName,
-                    "downloadUrl", "/api/v1/files/download/" + fileName
-            );
+            // Java 8兼容写法：使用HashMap而不是Map.of
+            Map<String, Object> result = new HashMap<>();
+            result.put("fileName", fileName);
+            result.put("downloadUrl", "/api/v1/files/download/" + fileName);
             return Result.success("导出学员数据成功", result);
         } catch (Exception e) {
             log.error("导出学员数据失败", e);

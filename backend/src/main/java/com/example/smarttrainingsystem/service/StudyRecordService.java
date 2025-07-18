@@ -68,7 +68,7 @@ public class StudyRecordService {
         studyRecord.setCourseId(request.getCourseId());
         studyRecord.setChapterId(request.getChapterId());
         studyRecord.setNotes(request.getNotes());
-        studyRecord.setStudyStatus(StudyRecord.StudyStatus.NOT_STARTED);
+        studyRecord.setStudyStatus(StudyRecord.Status.NOT_STARTED);
 
         StudyRecord savedRecord = studyRecordRepository.save(studyRecord);
 

@@ -2,6 +2,7 @@ package com.example.smarttrainingsystem.repository;
 
 import com.example.smarttrainingsystem.entity.Notification;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -125,14 +126,26 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
     void deleteReadNotificationsBefore(@Param("beforeTime") LocalDateTime beforeTime);
 
     /**
-     * 查询用户最近的通知
+     * 查询用户最近的通知（使用Pageable）
+     *
+     * @param userId 用户ID
+     * @param pageable 分页参数
+     * @return 最近通知列表
+     */
+    @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.status != 'deleted' ORDER BY n.createdAt DESC")
+    List<Notification> findRecentNotifications(@Param("userId") String userId, Pageable pageable);
+
+    /**
+     * 查询用户最近的通知（兼容int limit参数的方法）
      *
      * @param userId 用户ID
      * @param limit 限制数量
      * @return 最近通知列表
      */
-    @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.status != 'deleted' ORDER BY n.createdAt DESC")
-    List<Notification> findRecentNotifications(@Param("userId") String userId, @Param("limit") int limit);
+    default List<Notification> findRecentNotifications(String userId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return findRecentNotifications(userId, pageable);
+    }
 
     /**
      * 复合条件查询通知
@@ -145,15 +158,15 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
      * @return 通知分页数据
      */
     @Query("SELECT n FROM Notification n WHERE n.userId = :userId " +
-           "AND (:type IS NULL OR n.type = :type) " +
-           "AND (:status IS NULL OR n.status = :status) " +
-           "AND (:keyword IS NULL OR n.title LIKE %:keyword% OR n.content LIKE %:keyword%) " +
-           "ORDER BY n.createdAt DESC")
+            "AND (:type IS NULL OR n.type = :type) " +
+            "AND (:status IS NULL OR n.status = :status) " +
+            "AND (:keyword IS NULL OR n.title LIKE %:keyword% OR n.content LIKE %:keyword%) " +
+            "ORDER BY n.createdAt DESC")
     Page<Notification> searchNotifications(@Param("userId") String userId,
-                                          @Param("type") Notification.Type type,
-                                          @Param("status") Notification.Status status,
-                                          @Param("keyword") String keyword,
-                                          Pageable pageable);
+                                           @Param("type") Notification.Type type,
+                                           @Param("status") Notification.Status status,
+                                           @Param("keyword") String keyword,
+                                           Pageable pageable);
 
     /**
      * 获取通知统计信息
@@ -162,9 +175,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
      * @return 统计信息数组 [总数, 未读数, 已读数]
      */
     @Query("SELECT " +
-           "COUNT(*) as total, " +
-           "SUM(CASE WHEN n.status = 'unread' THEN 1 ELSE 0 END) as unread, " +
-           "SUM(CASE WHEN n.status = 'read' THEN 1 ELSE 0 END) as read " +
-           "FROM Notification n WHERE n.userId = :userId AND n.status != 'deleted'")
+            "COUNT(*) as total, " +
+            "SUM(CASE WHEN n.status = 'unread' THEN 1 ELSE 0 END) as unread, " +
+            "SUM(CASE WHEN n.status = 'read' THEN 1 ELSE 0 END) as read " +
+            "FROM Notification n WHERE n.userId = :userId AND n.status != 'deleted'")
     Object[] getNotificationStatistics(@Param("userId") String userId);
 }

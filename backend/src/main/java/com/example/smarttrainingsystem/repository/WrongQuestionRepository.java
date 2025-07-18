@@ -2,6 +2,7 @@ package com.example.smarttrainingsystem.repository;
 
 import com.example.smarttrainingsystem.entity.WrongQuestion;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -75,31 +76,30 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
      * @return 错题数
      */
     @Query("SELECT COUNT(wq) FROM WrongQuestion wq " +
-           "JOIN Question q ON wq.questionId = q.id " +
-           "WHERE wq.userId = :userId AND q.difficulty = :difficulty")
-    long countByUserIdAndDifficulty(@Param("userId") String userId, 
+            "JOIN Question q ON wq.questionId = q.id " +
+            "WHERE wq.userId = :userId AND q.difficulty = :difficulty")
+    long countByUserIdAndDifficulty(@Param("userId") String userId,
                                     @Param("difficulty") Integer difficulty);
 
     /**
-     * 复合条件查询用户错题
+     * 复合条件查询错题记录
      *
      * @param userId 用户ID
-     * @param difficulty 难度等级
-     * @param category 分类
-     * @param status 掌握状态
+     * @param difficulty 难度筛选
+     * @param category 分类筛选
+     * @param status 掌握状态筛选
      * @param pageable 分页参数
      * @return 错题记录分页数据
      */
     @Query("SELECT wq FROM WrongQuestion wq " +
-           "JOIN Question q ON wq.questionId = q.id " +
-           "WHERE wq.userId = :userId " +
-           "AND (:difficulty IS NULL OR q.difficulty = :difficulty) " +
-           "AND (:category IS NULL OR q.category = :category) " +
-           "AND (:status IS NULL OR " +
-           "     (:status = 'mastered' AND wq.mastered = true) OR " +
-           "     (:status = 'unmastered' AND wq.mastered = false) OR " +
-           "     (:status = 'intensive' AND wq.wrongCount > 2 AND " +
-           "      (wq.practiceCount = 0 OR (wq.correctCount * 100.0 / wq.practiceCount) < 60)))")
+            "JOIN Question q ON wq.questionId = q.id " +
+            "WHERE wq.userId = :userId " +
+            "AND (:difficulty IS NULL OR q.difficulty = :difficulty) " +
+            "AND (:category IS NULL OR q.category = :category) " +
+            "AND (:status IS NULL OR " +
+            "     (:status = 'mastered' AND wq.mastered = true) OR " +
+            "     (:status = 'unmastered' AND wq.mastered = false)) " +
+            "ORDER BY wq.lastWrongAt DESC")
     Page<WrongQuestion> findUserWrongQuestions(@Param("userId") String userId,
                                                @Param("difficulty") Integer difficulty,
                                                @Param("category") String category,
@@ -110,18 +110,18 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
      * 查询练习题目
      *
      * @param userId 用户ID
-     * @param difficulty 难度等级
-     * @param category 分类
+     * @param difficulty 难度筛选
+     * @param category 分类筛选
      * @param mastered 是否已掌握
-     * @return 错题记录列表
+     * @return 练习题目列表
      */
     @Query("SELECT wq FROM WrongQuestion wq " +
-           "JOIN Question q ON wq.questionId = q.id " +
-           "WHERE wq.userId = :userId " +
-           "AND (:difficulty IS NULL OR q.difficulty = :difficulty) " +
-           "AND (:category IS NULL OR q.category = :category) " +
-           "AND wq.mastered = :mastered " +
-           "ORDER BY wq.wrongCount DESC, wq.lastWrongAt DESC")
+            "JOIN Question q ON wq.questionId = q.id " +
+            "WHERE wq.userId = :userId " +
+            "AND (:difficulty IS NULL OR q.difficulty = :difficulty) " +
+            "AND (:category IS NULL OR q.category = :category) " +
+            "AND wq.mastered = :mastered " +
+            "ORDER BY wq.wrongCount DESC, wq.lastWrongAt DESC")
     List<WrongQuestion> findPracticeQuestions(@Param("userId") String userId,
                                               @Param("difficulty") Integer difficulty,
                                               @Param("category") String category,
@@ -131,13 +131,13 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
      * 获取用户错题分类统计
      *
      * @param userId 用户ID
-     * @return 分类统计Map
+     * @return 分类统计List
      */
     @Query("SELECT q.category as category, COUNT(wq) as count " +
-           "FROM WrongQuestion wq " +
-           "JOIN Question q ON wq.questionId = q.id " +
-           "WHERE wq.userId = :userId AND q.category IS NOT NULL " +
-           "GROUP BY q.category")
+            "FROM WrongQuestion wq " +
+            "JOIN Question q ON wq.questionId = q.id " +
+            "WHERE wq.userId = :userId AND q.category IS NOT NULL " +
+            "GROUP BY q.category")
     List<Object[]> findWrongQuestionCategoryStats(@Param("userId") String userId);
 
     /**
@@ -149,24 +149,36 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
     default Map<String, Long> getWrongQuestionCategoryStats(String userId) {
         List<Object[]> results = findWrongQuestionCategoryStats(userId);
         return results.stream()
-            .collect(java.util.stream.Collectors.toMap(
-                row -> (String) row[0],
-                row -> (Long) row[1]
-            ));
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> (Long) row[1]
+                ));
     }
 
     /**
-     * 查询用户最近错误的题目
+     * 查询用户最近错误的题目（使用Pageable）
+     *
+     * @param userId 用户ID
+     * @param pageable 分页参数
+     * @return 最近错题列表
+     */
+    @Query("SELECT wq FROM WrongQuestion wq " +
+            "WHERE wq.userId = :userId " +
+            "ORDER BY wq.lastWrongAt DESC")
+    List<WrongQuestion> findRecentWrongQuestions(@Param("userId") String userId,
+                                                 Pageable pageable);
+
+    /**
+     * 查询用户最近错误的题目（兼容int limit参数的方法）
      *
      * @param userId 用户ID
      * @param limit 限制数量
      * @return 最近错题列表
      */
-    @Query("SELECT wq FROM WrongQuestion wq " +
-           "WHERE wq.userId = :userId " +
-           "ORDER BY wq.lastWrongAt DESC")
-    List<WrongQuestion> findRecentWrongQuestions(@Param("userId") String userId, 
-                                                 @Param("limit") int limit);
+    default List<WrongQuestion> findRecentWrongQuestions(String userId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return findRecentWrongQuestions(userId, pageable);
+    }
 
     /**
      * 查询需要重点练习的题目
@@ -176,12 +188,12 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
      * @return 需要重点练习的题目
      */
     @Query("SELECT wq FROM WrongQuestion wq " +
-           "WHERE wq.userId = :userId " +
-           "AND wq.mastered = false " +
-           "AND wq.wrongCount > 2 " +
-           "AND (wq.practiceCount = 0 OR (wq.correctCount * 100.0 / wq.practiceCount) < 60) " +
-           "ORDER BY wq.wrongCount DESC, wq.lastWrongAt DESC")
-    Page<WrongQuestion> findIntensivePracticeQuestions(@Param("userId") String userId, 
+            "WHERE wq.userId = :userId " +
+            "AND wq.mastered = false " +
+            "AND wq.wrongCount > 2 " +
+            "AND (wq.practiceCount = 0 OR (wq.correctCount * 100.0 / wq.practiceCount) < 60) " +
+            "ORDER BY wq.wrongCount DESC, wq.lastWrongAt DESC")
+    Page<WrongQuestion> findIntensivePracticeQuestions(@Param("userId") String userId,
                                                        Pageable pageable);
 
     /**
@@ -213,11 +225,11 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
      * @param userId 用户ID
      * @return 错题趋势数据
      */
-    @Query("SELECT DATE_FORMAT(wq.createdAt, '%Y-%m') as month, COUNT(wq) as count " +
-           "FROM WrongQuestion wq " +
-           "WHERE wq.userId = :userId " +
-           "GROUP BY DATE_FORMAT(wq.createdAt, '%Y-%m') " +
-           "ORDER BY month DESC")
+    @Query("SELECT SUBSTRING(CAST(wq.createdAt AS string), 1, 7) as month, COUNT(wq) as count " +
+            "FROM WrongQuestion wq " +
+            "WHERE wq.userId = :userId " +
+            "GROUP BY SUBSTRING(CAST(wq.createdAt AS string), 1, 7) " +
+            "ORDER BY month DESC")
     List<Object[]> findWrongQuestionTrend(@Param("userId") String userId);
 
     /**
@@ -227,10 +239,10 @@ public interface WrongQuestionRepository extends JpaRepository<WrongQuestion, St
      * @return 掌握率统计
      */
     @Query("SELECT " +
-           "COUNT(CASE WHEN wq.mastered = true THEN 1 END) as masteredCount, " +
-           "COUNT(CASE WHEN wq.mastered = false THEN 1 END) as unmasteredCount, " +
-           "COUNT(*) as totalCount " +
-           "FROM WrongQuestion wq " +
-           "WHERE wq.userId = :userId")
+            "COUNT(CASE WHEN wq.mastered = true THEN 1 END) as masteredCount, " +
+            "COUNT(CASE WHEN wq.mastered = false THEN 1 END) as unmasteredCount, " +
+            "COUNT(*) as totalCount " +
+            "FROM WrongQuestion wq " +
+            "WHERE wq.userId = :userId")
     Object[] findMasteryStatistics(@Param("userId") String userId);
 }

@@ -73,13 +73,13 @@ public class StudyProgressService {
                 .count();
 
         int coursesCompleted = (int) studyRecords.stream()
-                .filter(record -> record.getStudyStatus() == StudyRecord.StudyStatus.COMPLETED)
+                .filter(record -> record.getStudyStatus() == StudyRecord.Status.COMPLETED)
                 .map(StudyRecord::getCourseId)
                 .distinct()
                 .count();
 
         int chaptersCompleted = (int) studyRecords.stream()
-                .filter(record -> record.getStudyStatus() == StudyRecord.StudyStatus.COMPLETED)
+                .filter(record -> record.getStudyStatus() == StudyRecord.Status.COMPLETED)
                 .count();
 
         // 更新统计数据

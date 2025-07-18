@@ -275,13 +275,29 @@ public class StudentManagementService {
         statistics.setTotalExams((int) totalExams);
         statistics.setPassedExams((int) passedExams);
 
-        // 学习时长统计
-        Integer totalStudyMinutes = studyRecordRepository.sumStudyTimeByUserId(studentId);
-        statistics.setTotalStudyHours(totalStudyMinutes != null ? totalStudyMinutes / 60 : 0);
+        // 学习时长统计 - 进行安全的类型转换
+        Long totalStudyMinutesLong = studyRecordRepository.sumStudyTimeByUserId(studentId);
+        int totalStudyMinutes = totalStudyMinutesLong != null ?
+                (totalStudyMinutesLong > Integer.MAX_VALUE ? Integer.MAX_VALUE : totalStudyMinutesLong.intValue()) : 0;
+        statistics.setTotalStudyHours(totalStudyMinutes / 60);
 
         // 平均分
         Double averageScore = examResultRepository.getAverageScoreByUserId(studentId);
         statistics.setAverageScore(averageScore != null ? averageScore : 0.0);
+
+        // 计算完成率
+        if (enrolledCourses > 0) {
+            statistics.setCompletionRate((double) completedCourses / enrolledCourses * 100);
+        } else {
+            statistics.setCompletionRate(0.0);
+        }
+
+        // 计算通过率
+        if (totalExams > 0) {
+            statistics.setPassRate((double) passedExams / totalExams * 100);
+        } else {
+            statistics.setPassRate(0.0);
+        }
 
         return statistics;
     }
@@ -382,7 +398,7 @@ public class StudentManagementService {
         notification.setUserId(studentId);
         notification.setTitle(request.getTitle());
         notification.setContent(request.getContent());
-        notification.setType(request.getType());
+        notification.setType(Notification.Type.valueOf(request.getType()));
         notification.setSenderId(senderId);
         notification.setStatus(Notification.Status.UNREAD);
 
@@ -572,7 +588,7 @@ public class StudentManagementService {
         courseRepository.findById(record.getCourseId())
                 .ifPresent(course -> {
                     progress.setCourseTitle(course.getTitle());
-                    progress.setCourseCover(course.getCoverImage());
+                    progress.setCourseCover(course.getCoverImageUrl());
                 });
 
         return progress;

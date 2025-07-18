@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,18 +53,18 @@ public class WrongQuestionsController {
             @RequestParam(required = false) Integer difficulty,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String status) {
-        
+
         try {
             String userId = SecurityUtils.getCurrentUserId();
-            
+
             // 构建分页参数
-            Sort.Direction direction = "desc".equalsIgnoreCase(order) ? 
-                Sort.Direction.DESC : Sort.Direction.ASC;
+            Sort.Direction direction = "desc".equalsIgnoreCase(order) ?
+                    Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
-            
+
             Page<WrongQuestionDTO.ListItem> result = wrongQuestionsService.getUserWrongQuestions(
-                userId, difficulty, category, status, pageable);
-            
+                    userId, difficulty, category, status, pageable);
+
             return Result.success("获取错题列表成功", result);
         } catch (Exception e) {
             log.error("获取错题列表失败", e);
@@ -100,7 +101,7 @@ public class WrongQuestionsController {
         try {
             String userId = SecurityUtils.getCurrentUserId();
             wrongQuestionsService.markQuestionAsMastered(userId, questionId);
-            return Result.success("标记成功");
+            return Result.success("标记成功", null);
         } catch (Exception e) {
             log.error("标记题目为已掌握失败", e);
             return Result.error("标记失败: " + e.getMessage());
@@ -115,13 +116,13 @@ public class WrongQuestionsController {
      * @return 操作结果
      */
     @PostMapping("/{questionId}/note")
-    public Result<Void> addNote(@PathVariable String questionId, 
-                               @RequestBody Map<String, String> noteRequest) {
+    public Result<Void> addNote(@PathVariable String questionId,
+                                @RequestBody Map<String, String> noteRequest) {
         try {
             String userId = SecurityUtils.getCurrentUserId();
             String note = noteRequest.get("note");
             wrongQuestionsService.addQuestionNote(userId, questionId, note);
-            return Result.success("添加笔记成功");
+            return Result.success("添加笔记成功", null);
         } catch (Exception e) {
             log.error("添加笔记失败", e);
             return Result.error("添加笔记失败: " + e.getMessage());
@@ -138,8 +139,10 @@ public class WrongQuestionsController {
         try {
             String userId = SecurityUtils.getCurrentUserId();
             int clearedCount = wrongQuestionsService.clearMasteredQuestions(userId);
-            
-            Map<String, Object> result = Map.of("clearedCount", clearedCount);
+
+            // Java 8兼容写法：使用HashMap而不是Map.of
+            Map<String, Object> result = new HashMap<>();
+            result.put("clearedCount", clearedCount);
             return Result.success("清除已掌握题目成功", result);
         } catch (Exception e) {
             log.error("清除已掌握题目失败", e);
@@ -177,12 +180,12 @@ public class WrongQuestionsController {
             @RequestParam(defaultValue = "10") int count,
             @RequestParam(required = false) Integer difficulty,
             @RequestParam(required = false) String category) {
-        
+
         try {
             String userId = SecurityUtils.getCurrentUserId();
             List<WrongQuestionDTO.Practice> questions = wrongQuestionsService.generateWrongQuestionsPractice(
-                userId, count, difficulty, category);
-            
+                    userId, count, difficulty, category);
+
             return Result.success("生成练习题目成功", questions);
         } catch (Exception e) {
             log.error("生成错题练习失败", e);
@@ -199,12 +202,12 @@ public class WrongQuestionsController {
     @PostMapping("/practice/submit")
     public Result<WrongQuestionDTO.PracticeResult> submitPractice(
             @RequestBody Map<String, String> answers) {
-        
+
         try {
             String userId = SecurityUtils.getCurrentUserId();
             WrongQuestionDTO.PracticeResult result = wrongQuestionsService.submitWrongQuestionsPractice(
-                userId, answers);
-            
+                    userId, answers);
+
             return Result.success("提交练习成功", result);
         } catch (Exception e) {
             log.error("提交错题练习失败", e);
@@ -225,17 +228,17 @@ public class WrongQuestionsController {
             @RequestParam(defaultValue = "pdf") String format,
             @RequestParam(required = false) Integer difficulty,
             @RequestParam(required = false) String category) {
-        
+
         try {
             String userId = SecurityUtils.getCurrentUserId();
             String fileName = wrongQuestionsService.exportWrongQuestions(
-                userId, format, difficulty, category);
-            
-            Map<String, Object> result = Map.of(
-                "fileName", fileName,
-                "downloadUrl", "/api/v1/files/download/" + fileName
-            );
-            
+                    userId, format, difficulty, category);
+
+            // Java 8兼容写法：使用HashMap而不是Map.of
+            Map<String, Object> result = new HashMap<>();
+            result.put("fileName", fileName);
+            result.put("downloadUrl", "/api/v1/files/download/" + fileName);
+
             return Result.success("导出错题集成功", result);
         } catch (Exception e) {
             log.error("导出错题集失败", e);
