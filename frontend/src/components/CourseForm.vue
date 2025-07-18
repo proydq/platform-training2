@@ -1,4 +1,3 @@
-<!-- frontend/src/components/CourseForm.vue - 课程表单组件 -->
 <template>
   <div class="course-form-container">
     <el-form
@@ -159,7 +158,7 @@
               </el-button>
             </el-upload>
             <div class="upload-tips">
-              <p>支持 PDF、Word、Excel、PPT、TXT、ZIP 等格式，单个文件不超过 50MB，最多上传 10 个文件</p>
+              <p>支持 PDF、Word、Excel、TXT、ZIP 等格式，单个文件不超过 50MB，最多上传 10 个文件</p>
             </div>
           </div>
         </el-form-item>
@@ -187,41 +186,49 @@
         </div>
         
         <div v-else class="chapters-list">
-          <draggable 
-            v-model="form.chapters" 
-            :animation="200"
-            handle=".chapter-drag-handle"
-            @end="updateChapterOrder"
+          <div
+            v-for="(chapter, index) in sortedChapters"
+            :key="chapter.id"
+            class="chapter-item"
           >
-            <div
-              v-for="(chapter, index) in form.chapters"
-              :key="chapter.id"
-              class="chapter-item"
-            >
-              <div class="chapter-header">
-                <div class="chapter-drag-handle">
-                  <el-icon><Grid /></el-icon>
-                </div>
-                <span class="chapter-number">第{{ index + 1 }}章</span>
-                <span class="chapter-title">{{ chapter.title || '未命名章节' }}</span>
-                <div class="chapter-actions">
-                  <el-button size="small" @click="editChapter(index)">
-                    <el-icon><Edit /></el-icon>
-                    编辑
-                  </el-button>
-                  <el-button size="small" type="danger" @click="removeChapter(index)">
-                    <el-icon><Delete /></el-icon>
-                    删除
-                  </el-button>
-                </div>
+            <div class="chapter-header">
+              <span class="chapter-number">第{{ index + 1 }}章</span>
+              <span class="chapter-title">{{ chapter.title || '未命名章节' }}</span>
+              <div class="chapter-order-controls">
+                <el-button 
+                  size="small" 
+                  :disabled="index === 0"
+                  @click="moveChapterUp(index)"
+                  title="上移"
+                >
+                  <el-icon><ArrowUp /></el-icon>
+                </el-button>
+                <el-button 
+                  size="small" 
+                  :disabled="index === form.chapters.length - 1"
+                  @click="moveChapterDown(index)"
+                  title="下移"
+                >
+                  <el-icon><ArrowDown /></el-icon>
+                </el-button>
               </div>
-              <div class="chapter-meta">
-                <span>时长: {{ chapter.duration || 0 }}分钟</span>
-                <span>顺序: {{ chapter.order || (index + 1) }}</span>
-                <span v-if="chapter.description">{{ chapter.description }}</span>
+              <div class="chapter-actions">
+                <el-button size="small" @click="editChapter(index)">
+                  <el-icon><Edit /></el-icon>
+                  编辑
+                </el-button>
+                <el-button size="small" type="danger" @click="removeChapter(index)">
+                  <el-icon><Delete /></el-icon>
+                  删除
+                </el-button>
               </div>
             </div>
-          </draggable>
+            <div class="chapter-meta">
+              <span>时长: {{ chapter.duration || 0 }}分钟</span>
+              <span>顺序: {{ chapter.order || (index + 1) }}</span>
+              <span v-if="chapter.description">{{ chapter.description }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </el-form>
@@ -256,13 +263,12 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus, Upload, Edit, Delete, Grid } from '@element-plus/icons-vue'
-import draggable from 'vuedraggable'
+import { Plus, Upload, Edit, Delete, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useFileUpload } from '@/composables/useFileUpload'
 import ChapterForm from './ChapterForm.vue'
 
-// ==================== Props & Emits ====================
+// Props & Emits
 const props = defineProps({
   courseData: {
     type: Object,
@@ -276,7 +282,7 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'cancel'])
 
-// ==================== 数据和状态 ====================
+// 数据和状态
 const userStore = useUserStore()
 const formRef = ref()
 const saving = ref(false)
@@ -364,7 +370,7 @@ const rules = {
   ]
 }
 
-// ==================== 计算属性 ====================
+// 计算属性
 const formData = computed(() => {
   return {
     ...form,
@@ -373,24 +379,25 @@ const formData = computed(() => {
   }
 })
 
-// ==================== 监听器 ====================
+const sortedChapters = computed(() => {
+  return [...form.chapters].sort((a, b) => (a.order || 0) - (b.order || 0))
+})
+
+// 监听器
 watch(() => props.courseData, (newData) => {
   if (newData && Object.keys(newData).length > 0) {
     initFormData(newData)
   }
 }, { immediate: true })
 
-// ==================== 生命周期 ====================
+// 生命周期
 onMounted(() => {
-  // 如果是讲师，自动设置讲师ID
   if (userStore.userRole === 'TEACHER' && !props.isEditing) {
     form.instructorId = userStore.userInfo.id || userStore.userInfo.username
   }
 })
 
-// ==================== 方法 ====================
-
-// 初始化表单数据
+// 方法
 const initFormData = (data) => {
   Object.assign(form, {
     id: data.id || '',
@@ -405,7 +412,6 @@ const initFormData = (data) => {
     chapters: data.chapters || []
   })
   
-  // 设置文件列表
   setFileList('cover', data.coverImage ? [{
     name: '课程封面',
     url: data.coverImage,
@@ -419,7 +425,6 @@ const initFormData = (data) => {
   })))
 }
 
-// 获取难度级别文本
 const getDifficultyLevelText = (level) => {
   const levelMap = {
     1: '入门级',
@@ -431,7 +436,6 @@ const getDifficultyLevelText = (level) => {
   return levelMap[level] || '入门级'
 }
 
-// 文件上传前验证
 const beforeCoverUpload = (file) => {
   return validateImageFile(file)
 }
@@ -458,15 +462,65 @@ const addChapter = () => {
 
 const editChapter = (index) => {
   chapterModalTitle.value = '编辑章节'
-  editingChapter.value = { ...form.chapters[index] }
-  editingChapterIndex.value = index
+  const originalIndex = getOriginalIndex(sortedChapters.value[index].id)
+  editingChapter.value = { ...form.chapters[originalIndex] }
+  editingChapterIndex.value = originalIndex
   chapterModalVisible.value = true
 }
 
 const removeChapter = (index) => {
-  form.chapters.splice(index, 1)
+  const originalIndex = getOriginalIndex(sortedChapters.value[index].id)
+  form.chapters.splice(originalIndex, 1)
   updateChapterOrder()
   ElMessage.success('章节删除成功')
+}
+
+const moveChapterUp = (index) => {
+  if (index === 0) return
+  
+  const sortedList = sortedChapters.value
+  const currentChapter = sortedList[index]
+  const prevChapter = sortedList[index - 1]
+  
+  // 交换order值
+  const tempOrder = currentChapter.order
+  currentChapter.order = prevChapter.order
+  prevChapter.order = tempOrder
+  
+  // 在原数组中更新
+  const currentOriginalIndex = getOriginalIndex(currentChapter.id)
+  const prevOriginalIndex = getOriginalIndex(prevChapter.id)
+  
+  form.chapters[currentOriginalIndex].order = currentChapter.order
+  form.chapters[prevOriginalIndex].order = prevChapter.order
+  
+  ElMessage.success('章节顺序调整成功')
+}
+
+const moveChapterDown = (index) => {
+  const sortedList = sortedChapters.value
+  if (index === sortedList.length - 1) return
+  
+  const currentChapter = sortedList[index]
+  const nextChapter = sortedList[index + 1]
+  
+  // 交换order值
+  const tempOrder = currentChapter.order
+  currentChapter.order = nextChapter.order
+  nextChapter.order = tempOrder
+  
+  // 在原数组中更新
+  const currentOriginalIndex = getOriginalIndex(currentChapter.id)
+  const nextOriginalIndex = getOriginalIndex(nextChapter.id)
+  
+  form.chapters[currentOriginalIndex].order = currentChapter.order
+  form.chapters[nextOriginalIndex].order = nextChapter.order
+  
+  ElMessage.success('章节顺序调整成功')
+}
+
+const getOriginalIndex = (chapterId) => {
+  return form.chapters.findIndex(c => c.id === chapterId)
 }
 
 const handleChapterSave = (chapterData) => {
@@ -494,7 +548,9 @@ const closeChapterModal = () => {
 
 const updateChapterOrder = () => {
   form.chapters.forEach((chapter, index) => {
-    chapter.order = index + 1
+    if (!chapter.order) {
+      chapter.order = index + 1
+    }
   })
 }
 
@@ -516,7 +572,7 @@ const handleSave = async () => {
 const handleSaveDraft = async () => {
   try {
     saving.value = true
-    const draftData = { ...formData.value, status: 0 } // 0表示草稿状态
+    const draftData = { ...formData.value, status: 0 }
     emit('save', draftData)
   } catch (error) {
     console.error('保存草稿失败:', error)
@@ -529,28 +585,11 @@ const handleCancel = () => {
   emit('cancel')
 }
 
-// 重置表单
-const resetForm = () => {
-  formRef.value?.resetFields()
-  clearAllFiles()
-  Object.assign(form, {
-    id: '',
-    title: '',
-    description: '',
-    category: '',
-    level: '',
-    duration: 0,
-    instructorId: userStore.userRole === 'TEACHER' ? (userStore.userInfo.id || userStore.userInfo.username) : '',
-    price: 0,
-    isRequired: false,
-    chapters: []
-  })
-}
-
-// 暴露方法给父组件
 defineExpose({
-  resetForm,
-  validate: () => formRef.value?.validate()
+  resetForm: () => {
+    formRef.value?.resetFields()
+    clearAllFiles()
+  }
 })
 </script>
 
@@ -561,18 +600,10 @@ defineExpose({
   padding-right: 8px;
 }
 
-.course-form {
-  padding: 0 16px;
-}
-
 .form-section {
   margin-bottom: 32px;
   padding-bottom: 24px;
   border-bottom: 1px solid #ebeef5;
-}
-
-.form-section:last-child {
-  border-bottom: none;
 }
 
 .form-section h4 {
@@ -580,9 +611,6 @@ defineExpose({
   margin-bottom: 20px;
   font-size: 16px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .section-header {
@@ -596,19 +624,10 @@ defineExpose({
   width: 100%;
 }
 
-.cover-upload {
-  margin-bottom: 8px;
-}
-
-.upload-icon {
-  font-size: 28px;
-  color: #8c939d;
-}
-
 .upload-tips {
   color: #909399;
   font-size: 12px;
-  line-height: 1.4;
+  margin-top: 8px;
 }
 
 .upload-progress {
@@ -616,12 +635,6 @@ defineExpose({
   padding: 16px;
   background: #f5f7fa;
   border-radius: 8px;
-}
-
-.upload-progress p {
-  margin: 8px 0 0 0;
-  color: #606266;
-  font-size: 14px;
 }
 
 .no-chapters {
@@ -636,11 +649,6 @@ defineExpose({
   font-size: 48px;
   margin-bottom: 16px;
   opacity: 0.6;
-}
-
-.no-chapters p {
-  color: #909399;
-  margin: 0;
 }
 
 .chapters-list {
@@ -669,16 +677,6 @@ defineExpose({
   margin-bottom: 8px;
 }
 
-.chapter-drag-handle {
-  cursor: move;
-  color: #909399;
-  padding: 4px;
-}
-
-.chapter-drag-handle:hover {
-  color: #409eff;
-}
-
 .chapter-number {
   font-weight: 600;
   color: #409eff;
@@ -688,7 +686,11 @@ defineExpose({
 .chapter-title {
   flex: 1;
   font-weight: 500;
-  color: #303133;
+}
+
+.chapter-order-controls {
+  display: flex;
+  gap: 4px;
 }
 
 .chapter-actions {
@@ -701,7 +703,6 @@ defineExpose({
   color: #909399;
   display: flex;
   gap: 16px;
-  padding-left: 36px;
 }
 
 .form-footer {
@@ -714,12 +715,12 @@ defineExpose({
   margin: 0 -16px -16px -16px;
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .chapter-header {
     flex-wrap: wrap;
   }
   
+  .chapter-order-controls,
   .chapter-actions {
     width: 100%;
     justify-content: flex-end;
@@ -728,15 +729,9 @@ defineExpose({
   .chapter-meta {
     flex-direction: column;
     gap: 4px;
-    padding-left: 0;
-  }
-  
-  .form-footer {
-    flex-direction: column;
   }
 }
 
-/* 自定义滚动条 */
 .course-form-container::-webkit-scrollbar {
   width: 6px;
 }

@@ -1,4 +1,4 @@
-// frontend/src/api/course.js - 课程管理API接口
+// frontend/src/api/course.js - 完整的课程管理API接口
 import request from '@/utils/request'
 
 /**
@@ -197,7 +197,7 @@ export function uploadCourseCoverAPI(file) {
   formData.append('type', 'cover')
   
   return request({
-    url: '/api/v1/files/upload',
+    url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
@@ -214,7 +214,7 @@ export function uploadCourseMaterialAPI(file) {
   formData.append('type', 'material')
   
   return request({
-    url: '/api/v1/files/upload',
+    url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
@@ -231,13 +231,79 @@ export function uploadCourseVideoAPI(file, onProgress) {
   formData.append('type', 'video')
   
   return request({
-    url: '/api/v1/files/upload',
+    url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
       'Content-Type': 'multipart/form-data'
     },
     onUploadProgress: onProgress
+  })
+}
+
+// 通用文件上传
+export function uploadFileAPI(file, category = 'temp', userId) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('category', category)
+  formData.append('userId', userId)
+  
+  return request({
+    url: '/api/v1/upload',
+    method: 'POST',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+/**
+ * ==================== 搜索和筛选API ====================
+ */
+
+// 搜索课程
+export function searchCoursesAPI(params) {
+  return request({
+    url: '/api/v1/courses/search',
+    method: 'GET',
+    params
+  })
+}
+
+// 获取推荐课程
+export function getRecommendedCoursesAPI(page = 0, size = 10) {
+  return request({
+    url: '/api/v1/courses/recommended',
+    method: 'GET',
+    params: { page, size }
+  })
+}
+
+// 获取热门课程
+export function getPopularCoursesAPI(page = 0, size = 10) {
+  return request({
+    url: '/api/v1/courses/popular',
+    method: 'GET',
+    params: { page, size }
+  })
+}
+
+// 获取我的课程（讲师）
+export function getMyCoursesAPI(page = 0, size = 20) {
+  return request({
+    url: '/api/v1/courses/my',
+    method: 'GET',
+    params: { page, size }
+  })
+}
+
+// 获取管理员课程列表
+export function getAdminCoursesAPI(params = {}) {
+  return request({
+    url: '/api/v1/courses/admin',
+    method: 'GET',
+    params
   })
 }
 
@@ -287,4 +353,30 @@ export function getChapterStatusText(status) {
     2: '已下架'
   }
   return statusMap[status] || '未知'
+}
+
+// 格式化文件大小
+export function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 格式化时长（秒转换为时分秒）
+export function formatDuration(seconds) {
+  if (!seconds) return '0分钟'
+  
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+  
+  if (hours > 0) {
+    return `${hours}小时${minutes}分钟`
+  } else if (minutes > 0) {
+    return `${minutes}分钟`
+  } else {
+    return `${secs}秒`
+  }
 }

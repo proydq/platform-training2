@@ -10,7 +10,7 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:mysql://127.0.0.1:12100/smart_training?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:12100/smart_training?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&zeroDateTimeBehavior=convertToNull
     username: bunny
     password: bunny
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -1,4 +1,4 @@
-// stores/user.js - 修复版本，避免无限请求和调试信息
+// frontend/src/stores/user.js - 删除测试数据版本
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -7,64 +7,48 @@ export const useUserStore = defineStore('user', () => {
   // 状态
   const token = ref(localStorage.getItem('token') || '')
   const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
-  const backendStatus = ref('offline') // 默认离线，避免初始请求
+  const backendStatus = ref('online') // 默认在线
   
   // 计算属性
   const isLoggedIn = computed(() => !!token.value && Object.keys(userInfo.value).length > 0)
-  const userName = computed(() => userInfo.value.name || userInfo.value.username || '用户')
+  const userName = computed(() => userInfo.value.realName || userInfo.value.name || userInfo.value.username || '用户')
   const userAvatar = computed(() => userName.value.charAt(0).toUpperCase())
-  const userRole = computed(() => userInfo.value.role || 'STUDENT')
-  
-  // 测试用户数据
-  const testUsers = {
-    admin: {
-      username: 'admin',
-      name: '系统管理员',
-      role: 'ADMIN'
-    },
-    teacher01: {
-      username: 'teacher01', 
-      name: '张老师',
-      role: 'TEACHER'
-    },
-    student01: {
-      username: 'student01',
-      name: '李同学', 
-      role: 'STUDENT'
+  const userRole = computed(() => {
+    // 优先使用role字段
+    if (userInfo.value.role) {
+      return userInfo.value.role
     }
-  }
-  
-  // 检查后端状态 - 添加防抖机制
-  let checkingBackend = false
-  const checkBackendStatus = async () => {
-    if (checkingBackend) return backendStatus.value === 'online'
     
-    checkingBackend = true
+    // 从roles数组中提取第一个角色的roleCode
+    if (userInfo.value.roles && userInfo.value.roles.length > 0) {
+      return userInfo.value.roles[0].roleCode
+    }
+    
+    // 默认为学员角色
+    return 'STUDENT'
+  })
+  
+  // 检查后端状态
+  const checkBackendStatus = async () => {
     try {
-      // 简单的fetch请求，避免axios拦截器
-      const response = await fetch('http://localhost:8080/api/v1/health', {
-        method: 'GET',
+      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+        method: 'HEAD',
         timeout: 3000
       })
       
-      if (response.ok) {
-        backendStatus.value = 'online'
-        return true
-      } else {
-        backendStatus.value = 'offline'
-        return false
-      }
+      backendStatus.value = response.ok ? 'online' : 'offline'
+      return response.ok
     } catch (error) {
       backendStatus.value = 'offline'
       return false
-    } finally {
-      checkingBackend = false
     }
   }
   
-  // API登录 - 使用fetch避免循环
-  const loginWithAPI = async (username, password) => {
+  // API登录 - 只使用真实后端
+  const login = async (username, password) => {
     try {
+      console.log('使用真实后端登录:', username)
+      
       const response = await fetch('http://localhost:8080/api/v1/auth/login', {
         method: 'POST',
         headers: {
@@ -77,67 +61,38 @@ export const useUserStore = defineStore('user', () => {
         const data = await response.json()
         
         if (data.code === 200 && data.data) {
-          const { token: apiToken, user } = data.data
+          // 后端返回的数据结构：{accessToken, userInfo}
+          const { accessToken, userInfo: userInfoData } = data.data
           
-          token.value = apiToken
-          userInfo.value = user
+          // 处理角色信息：从roles数组中提取主要角色到role字段
+          if (userInfoData.roles && userInfoData.roles.length > 0 && !userInfoData.role) {
+            userInfoData.role = userInfoData.roles[0].roleCode
+          }
           
-          localStorage.setItem('token', apiToken)
-          localStorage.setItem('userInfo', JSON.stringify(user))
+          token.value = accessToken
+          userInfo.value = userInfoData
           
-          ElMessage.success(`欢迎回来，${user.name}！`)
+          localStorage.setItem('token', accessToken)
+          localStorage.setItem('userInfo', JSON.stringify(userInfoData))
+          
+          console.log('✅ 真实登录成功，Token:', accessToken.substring(0, 30) + '...')
+          console.log('✅ 用户角色:', userInfoData.role || (userInfoData.roles?.[0]?.roleCode))
+          ElMessage.success(`欢迎回来，${userInfoData.realName || userInfoData.username}！`)
           return true
+        } else {
+          ElMessage.error(data.message || '登录失败')
+          return false
         }
-      }
-      
-      throw new Error('API登录失败')
-    } catch (error) {
-      throw error
-    }
-  }
-  
-  // 测试数据登录
-  const loginWithTestData = (username, password) => {
-    const testUser = testUsers[username]
-    if (testUser && password === '123456') {
-      const mockToken = `mock_token_${username}_${Date.now()}`
-      const userInfoData = {
-        ...testUser,
-        loginTime: new Date().toISOString()
-      }
-      
-      token.value = mockToken
-      userInfo.value = userInfoData
-      
-      localStorage.setItem('token', mockToken)
-      localStorage.setItem('userInfo', JSON.stringify(userInfoData))
-      
-      ElMessage.success(`欢迎回来，${testUser.name}！`)
-      return true
-    }
-    
-    return false
-  }
-  
-  // 智能登录 - 简化逻辑
-  const login = async (username, password) => {
-    // 首先尝试测试数据登录（快速响应）
-    if (loginWithTestData(username, password)) {
-      return true
-    }
-    
-    // 如果测试数据失败，尝试API登录
-    try {
-      const isBackendOnline = await checkBackendStatus()
-      if (isBackendOnline) {
-        return await loginWithAPI(username, password)
+      } else {
+        const errorData = await response.json()
+        ElMessage.error(errorData.message || '登录失败')
+        return false
       }
     } catch (error) {
-      // API登录失败，已经尝试过测试数据了
+      console.error('登录失败:', error)
+      ElMessage.error('连接服务器失败，请检查网络')
+      return false
     }
-    
-    ElMessage.error('用户名或密码错误')
-    return false
   }
   
   // 退出登录
@@ -146,18 +101,28 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = {}
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
+    ElMessage.success('已退出登录')
   }
   
-  // 初始化认证状态 - 简化，不做API请求
+  // 初始化认证状态
   const initializeAuth = () => {
     const localToken = localStorage.getItem('token')
     const localUserInfo = localStorage.getItem('userInfo')
     
     if (localToken && localUserInfo) {
       try {
-        token.value = localToken
-        userInfo.value = JSON.parse(localUserInfo)
+        // 只有真实JWT Token才恢复状态
+        if (localToken.startsWith('eyJ')) {
+          token.value = localToken
+          userInfo.value = JSON.parse(localUserInfo)
+          console.log('恢复登录状态:', userInfo.value.username)
+        } else {
+          // 清除非JWT Token
+          console.log('清除无效Token:', localToken.substring(0, 20))
+          logout()
+        }
       } catch (error) {
+        console.error('恢复登录状态失败:', error)
         logout()
       }
     }

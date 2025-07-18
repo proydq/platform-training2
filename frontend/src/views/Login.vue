@@ -66,8 +66,8 @@ const userStore = useUserStore()
 // 响应式数据
 const isLoading = ref(false)
 const loginForm = reactive({
-  username: '',
-  password: '',
+  username: 'admin',
+  password: '123456',
   remember: false
 })
 

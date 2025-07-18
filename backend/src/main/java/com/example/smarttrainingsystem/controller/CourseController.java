@@ -38,6 +38,58 @@ public class CourseController {
     // ==================== 课程CRUD操作 ====================
 
     /**
+     * 获取课程列表 - 通用接口，支持多种查询参数
+     * 处理前端 GET /api/v1/courses 请求
+     *
+     * @param keyword 搜索关键词
+     * @param category 课程分类
+     * @param difficultyLevel 难度级别
+     * @param status 课程状态
+     * @param isRequired 是否必修
+     * @param instructorId 讲师ID
+     * @param sortBy 排序字段
+     * @param sortDir 排序方向
+     * @param page 页码
+     * @param size 页面大小
+     * @return 课程分页列表
+     */
+    @GetMapping
+    public Result<Page<CourseDTO.ListItem>> getCourses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer difficultyLevel,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Boolean isRequired,
+            @RequestParam(required = false) String instructorId,
+            @RequestParam(defaultValue = "createTime") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+
+        log.info("获取课程列表: keyword={}, category={}, status={}, page={}, size={}",
+                keyword, category, status, page, size);
+
+        // 构建搜索请求
+        CourseDTO.SearchRequest request = new CourseDTO.SearchRequest();
+        request.setKeyword(keyword);
+        request.setCategory(category);
+        request.setDifficultyLevel(difficultyLevel);
+        request.setStatus(status);
+        request.setIsRequired(isRequired);
+        request.setInstructorId(instructorId);
+        request.setSortBy(sortBy);
+        request.setSortOrder(sortDir);
+        request.setPage(page);
+        request.setSize(size);
+
+        // 调用服务层搜索方法
+        Page<CourseDTO.ListItem> result = courseService.searchCourses(request);
+
+        log.info("课程列表查询成功: 总数={}, 当前页={}", result.getTotalElements(), page);
+        return Result.success(result);
+    }
+
+    /**
      * 创建课程 - 需要ADMIN或TEACHER权限
      *
      * @param request 创建请求
