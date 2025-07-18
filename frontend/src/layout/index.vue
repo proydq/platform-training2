@@ -1,85 +1,46 @@
 <template>
   <div class="layout-container">
-    <!-- 头部导航 -->
-    <el-header class="layout-header">
-      <div class="header-left">
-        <div class="logo">
-          <div class="logo-icon">🎓</div>
-          <h1 class="logo-title">智能培训系统</h1>
-        </div>
+    <!-- 头部导航 - 按原始设计 -->
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon">🎓</div>
+        <h1>智能培训系统</h1>
       </div>
       
-      <div class="header-center">
-        <el-menu
-          :default-active="activeMenu"
-          class="header-menu"
-          mode="horizontal"
-          @select="handleMenuSelect"
+      <div class="nav-menu">
+        <div 
+          v-for="menu in visibleMenus" 
+          :key="menu.path"
+          class="nav-item"
+          :class="{ active: activeMenu === menu.path }"
+          @click="handleMenuSelect(menu.path)"
         >
-          <el-menu-item
-            v-for="menu in visibleMenus"
-            :key="menu.path"
-            :index="menu.path"
-          >
-            <el-icon v-if="menu.icon">
-              <component :is="menu.icon" />
-            </el-icon>
-            <span>{{ menu.title }}</span>
-          </el-menu-item>
-        </el-menu>
-      </div>
-      
-      <div class="header-right">
-        <div class="user-info">
-          <span class="user-name">{{ userStore.userName }}</span>
-          <el-avatar class="user-avatar" :size="36">
-            {{ userStore.userAvatar }}
-          </el-avatar>
-          <el-dropdown @command="handleUserCommand">
-            <el-button type="text" class="user-dropdown">
-              <el-icon><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="settings">账号设置</el-dropdown-item>
-                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          {{ menu.title }}
         </div>
       </div>
-    </el-header>
-    
-    <!-- 主要内容区域 -->
-    <el-container class="layout-main">
-      <!-- 面包屑导航 -->
-      <div class="breadcrumb-container">
-        <el-breadcrumb separator="/">
-          <el-breadcrumb-item to="/dashboard">首页</el-breadcrumb-item>
-          <el-breadcrumb-item v-if="currentRouteMeta.title">
-            {{ currentRouteMeta.title }}
-          </el-breadcrumb-item>
-        </el-breadcrumb>
-      </div>
       
-      <!-- 页面内容 -->
-      <el-main class="layout-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade-transform" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </el-main>
-    </el-container>
+      <div class="user-info">
+        <div class="user-name">{{ userName }}</div>
+        <div class="avatar">{{ userAvatar }}</div>
+        <button class="logout-btn" @click="handleLogout">退出登录</button>
+      </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content-wrapper">
+      <router-view v-slot="{ Component }">
+        <transition name="fade-transform" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { generateMenus } from '@/router'
 
@@ -89,43 +50,41 @@ const userStore = useUserStore()
 
 // 当前激活的菜单
 const activeMenu = computed(() => {
-  const path = route.path
-  // 处理子路由的情况
-  if (path.includes('/courses')) return '/courses'
-  if (path.includes('/exams')) return '/exams'
-  if (path.includes('/student-management')) return '/student-management'
-  if (path.includes('/admin')) return '/admin'
-  return '/dashboard'
+  return route.path
 })
 
-// 当前路由元信息
-const currentRouteMeta = computed(() => route.meta || {})
+// 用户信息
+const userName = computed(() => {
+  return userStore.userInfo?.name || userStore.userInfo?.username || '用户'
+})
+
+const userAvatar = computed(() => {
+  const name = userName.value
+  return name.charAt(0).toUpperCase()
+})
 
 // 可见的菜单项
 const visibleMenus = computed(() => {
-  const menus = generateMenus(userStore.userRole)
-  return menus.filter(menu => !menu.hidden)
+  try {
+    const userRole = userStore.userInfo?.role || 'STUDENT'
+    console.log('当前用户角色:', userRole)
+    const menus = generateMenus(userRole)
+    return menus.filter(menu => !menu.hidden)
+  } catch (error) {
+    console.error('生成菜单失败:', error)
+    // 返回默认菜单
+    return [
+      { path: '/dashboard', title: '仪表板', hidden: false },
+      { path: '/courses', title: '我的课程', hidden: false },
+      { path: '/exams', title: '考试中心', hidden: false }
+    ]
+  }
 })
 
 // 菜单选择处理
-const handleMenuSelect = (index) => {
-  if (index !== route.path) {
-    router.push(index)
-  }
-}
-
-// 用户下拉菜单处理
-const handleUserCommand = async (command) => {
-  switch (command) {
-    case 'profile':
-      ElMessage.info('个人资料功能开发中...')
-      break
-    case 'settings':
-      ElMessage.info('账号设置功能开发中...')
-      break
-    case 'logout':
-      await handleLogout()
-      break
+const handleMenuSelect = (path) => {
+  if (path !== route.path) {
+    router.push(path)
   }
 }
 
@@ -143,105 +102,87 @@ const handleLogout = async () => {
     )
     
     await userStore.logout()
+    ElMessage.success('已退出登录')
     router.replace('/login')
   } catch (error) {
-    // 用户取消或其他错误
+    // 用户取消
+    console.log('用户取消退出登录')
   }
 }
 
-// 监听路由变化
-watch(
-  () => route.path,
-  () => {
-    // 可以在这里添加页面切换的逻辑
-  }
-)
-
 onMounted(() => {
-  // 初始化布局相关逻辑
+  console.log('布局组件已挂载')
+  console.log('当前用户信息:', userStore.userInfo)
+  console.log('当前路由:', route.path)
 })
 </script>
 
 <style scoped>
+/* 按原始HTML设计的样式 */
 .layout-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.layout-header {
+.header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 20px 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.header-left {
-  display: flex;
   align-items: center;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
 .logo-icon {
   font-size: 32px;
 }
 
-.logo-title {
-  font-size: 20px;
-  font-weight: 700;
+.logo h1 {
   background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  font-size: 24px;
+  font-weight: 700;
   margin: 0;
 }
 
-.header-center {
-  flex: 1;
+.nav-menu {
   display: flex;
-  justify-content: center;
+  gap: 30px;
 }
 
-.header-menu {
-  border-bottom: none;
-  background: transparent;
-}
-
-.header-menu :deep(.el-menu-item) {
-  color: #333;
-  font-weight: 500;
-  margin: 0 10px;
-  border-radius: 8px;
+.nav-item {
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 500;
+  color: #333;
 }
 
-.header-menu :deep(.el-menu-item:hover) {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-}
-
-.header-menu :deep(.el-menu-item.is-active) {
+.nav-item:hover,
+.nav-item.active {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  border-bottom: none;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
+  transform: translateY(-2px);
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
 .user-name {
@@ -249,36 +190,37 @@ onMounted(() => {
   color: #333;
 }
 
-.user-avatar {
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: white;
   font-weight: bold;
+  font-size: 16px;
 }
 
-.user-dropdown {
-  color: #666;
-  padding: 4px;
-}
-
-.layout-main {
-  padding: 0;
-}
-
-.breadcrumb-container {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.breadcrumb-container :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
+.logout-btn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
   color: #667eea;
-  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
 }
 
-.layout-content {
-  padding: 20px;
-  min-height: calc(100vh - 120px);
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.main-content-wrapper {
+  min-height: calc(100vh - 140px);
 }
 
 /* 页面切换动画 */
@@ -299,23 +241,24 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .layout-header {
-    flex-direction: column;
-    height: auto;
+  .layout-container {
     padding: 10px;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  .nav-menu {
+    flex-wrap: wrap;
     gap: 15px;
-  }
-  
-  .header-center {
-    width: 100%;
-  }
-  
-  .header-menu {
     justify-content: center;
   }
   
-  .logo-title {
-    font-size: 18px;
+  .logo h1 {
+    font-size: 20px;
   }
   
   .user-name {
@@ -324,12 +267,13 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .layout-content {
-    padding: 15px;
+  .nav-menu {
+    gap: 10px;
   }
   
-  .breadcrumb-container {
-    padding: 10px 15px;
+  .nav-item {
+    padding: 8px 15px;
+    font-size: 14px;
   }
 }
 </style>

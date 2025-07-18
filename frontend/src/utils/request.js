@@ -1,77 +1,100 @@
-// store/user.js
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+// utils/request.js - Axios请求封装
+import axios from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import router from '@/router'
 
-export const useUserStore = defineStore('user', () => {
-  // 状态
-  const token = ref(localStorage.getItem('token') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
-  
-  // 计算属性
-  const isLoggedIn = computed(() => !!token.value)
-  const userName = computed(() => userInfo.value.userName || userInfo.value.username || '用户')
-  const userAvatar = computed(() => userInfo.value.avatar || userName.value.charAt(0).toUpperCase())
-  const userRoles = computed(() => userInfo.value.roles || [])
-  
-  // 方法
-  const setToken = (newToken) => {
-    token.value = newToken
-    if (newToken) {
-      localStorage.setItem('token', newToken)
-    } else {
-      localStorage.removeItem('token')
-    }
-  }
-  
-  const setUserInfo = (info) => {
-    userInfo.value = info
-    if (info && Object.keys(info).length > 0) {
-      localStorage.setItem('userInfo', JSON.stringify(info))
-    } else {
-      localStorage.removeItem('userInfo')
-    }
-  }
-  
-  const login = (loginData) => {
-    setToken(loginData.token)
-    setUserInfo(loginData.userInfo || loginData.user || {})
-  }
-  
-  const logout = () => {
-    setToken('')
-    setUserInfo({})
-    // 可以在这里调用登出API
-  }
-  
-  const hasRole = (roles) => {
-    if (!Array.isArray(roles)) {
-      roles = [roles]
-    }
-    return roles.some(role => userRoles.value.includes(role))
-  }
-  
-  const hasPermission = (permission) => {
-    // 简单的权限检查，可以根据实际需求扩展
-    return userRoles.value.includes('ADMIN') || userRoles.value.includes(permission)
-  }
-  
-  return {
-    // 状态
-    token,
-    userInfo,
-    
-    // 计算属性
-    isLoggedIn,
-    userName,
-    userAvatar,
-    userRoles,
-    
-    // 方法
-    setToken,
-    setUserInfo,
-    login,
-    logout,
-    hasRole,
-    hasPermission
+// 创建axios实例
+const service = axios.create({
+  baseURL: process.env.VUE_APP_BASE_API || 'http://localhost:8080', // 后端接口地址
+  timeout: 10000, // 请求超时时间
+  headers: {
+    'Content-Type': 'application/json;charset=UTF-8'
   }
 })
+
+// 请求拦截器
+service.interceptors.request.use(
+  config => {
+    console.log('发送请求:', config.method?.toUpperCase(), config.url, config.data)
+    
+    // 添加token到请求头
+    const userStore = useUserStore()
+    const token = userStore.token || localStorage.getItem('token')
+    
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    return config
+  },
+  error => {
+    console.error('请求错误:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+service.interceptors.response.use(
+  response => {
+    console.log('收到响应:', response.status, response.config.url, response.data)
+    
+    const res = response.data
+    
+    // 这里根据后端的返回格式进行调整
+    // 假设后端返回格式为: { code: 200, message: 'success', data: {...} }
+    if (res.code !== undefined) {
+      // 成功响应
+      if (res.code === 200) {
+        return res
+      }
+      
+      // 业务错误
+      ElMessage.error(res.message || '请求失败')
+      return Promise.reject(new Error(res.message || '请求失败'))
+    }
+    
+    // 如果没有code字段，直接返回数据
+    return res
+  },
+  error => {
+    console.error('响应错误:', error)
+    
+    let message = '网络错误'
+    
+    if (error.response) {
+      const status = error.response.status
+      
+      switch (status) {
+        case 401:
+          message = '登录已过期，请重新登录'
+          // 清除本地存储的认证信息
+          const userStore = useUserStore()
+          userStore.logout()
+          // 跳转到登录页
+          router.push('/login')
+          break
+        case 403:
+          message = '没有权限访问'
+          break
+        case 404:
+          message = '请求的资源不存在'
+          break
+        case 500:
+          message = '服务器内部错误'
+          break
+        default:
+          message = error.response.data?.message || `请求失败 (${status})`
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      message = '请求超时，请稍后重试'
+    } else if (error.message.includes('Network Error')) {
+      message = '网络连接失败，请检查网络设置'
+    }
+    
+    ElMessage.error(message)
+    return Promise.reject(error)
+  }
+)
+
+export default service

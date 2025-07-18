@@ -1,209 +1,97 @@
-// router/index.js - 修复版本
-import { createRouter, createWebHistory } from 'vue-router'
+// utils/request.js - 修复Vite环境变量的Axios封装
+import axios from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
-// 导入页面组件
-const Login = () => import('@/views/Login.vue')
-const Layout = () => import('@/layout/index.vue')
-const Dashboard = () => import('@/views/Dashboard.vue')
-const Courses = () => import('@/views/Courses.vue')
-const Exams = () => import('@/views/Exams.vue')
-const TakeExam = () => import('@/views/TakeExam.vue')
-const ExamResult = () => import('@/views/ExamResult.vue')
-const StudentManagement = () => import('@/views/StudentManagement.vue')
-const Admin = () => import('@/views/Admin.vue')
+// 创建axios实例 - 修复Vite环境变量
+const service = axios.create({
+  baseURL: import.meta.env.VITE_APP_BASE_API || 'http://localhost:8080', // 修复：使用Vite环境变量
+  timeout: 10000, // 请求超时时间
+  headers: {
+    'Content-Type': 'application/json;charset=UTF-8'
+  }
+})
 
-// 路由配置
-const routes = [
-  {
-    path: '/',
-    redirect: '/dashboard'
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: Login,
-    meta: {
-      title: '登录',
-      requiresAuth: false
+// 请求拦截器
+service.interceptors.request.use(
+  config => {
+    console.log('发送请求:', config.method?.toUpperCase(), config.url, config.data)
+    
+    // 添加token到请求头
+    const token = localStorage.getItem('token')
+    
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
+    
+    return config
   },
-  {
-    path: '/',
-    component: Layout,
-    meta: {
-      requiresAuth: true
-    },
-    children: [
-      {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: Dashboard,
-        meta: {
-          title: '仪表板',
-          icon: 'Dashboard'
-        }
-      },
-      {
-        path: 'courses',
-        name: 'Courses',
-        component: Courses,
-        meta: {
-          title: '我的课程',
-          icon: 'Reading'
-        }
-      },
-      {
-        path: 'exams',
-        name: 'Exams',
-        component: Exams,
-        meta: {
-          title: '考试中心',
-          icon: 'Document'
-        }
-      },
-      {
-        path: 'students',
-        name: 'StudentManagement',
-        component: StudentManagement,
-        meta: {
-          title: '学员管理',
-          icon: 'User',
-          roles: ['ADMIN', 'TEACHER']
-        }
-      },
-      {
-        path: 'admin',
-        name: 'Admin',
-        component: Admin,
-        meta: {
-          title: '管理后台',
-          icon: 'Setting',
-          roles: ['ADMIN']
-        }
+  error => {
+    console.error('请求错误:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+service.interceptors.response.use(
+  response => {
+    console.log('收到响应:', response.status, response.config.url, response.data)
+    
+    const res = response.data
+    
+    // 这里根据后端的返回格式进行调整
+    // 假设后端返回格式为: { code: 200, message: 'success', data: {...} }
+    if (res.code !== undefined) {
+      // 成功响应
+      if (res.code === 200) {
+        return res
       }
-    ]
+      
+      // 业务错误
+      ElMessage.error(res.message || '请求失败')
+      return Promise.reject(new Error(res.message || '请求失败'))
+    }
+    
+    // 如果没有code字段，直接返回数据
+    return res
   },
-  {
-    path: '/exams/:examId/take',
-    name: 'TakeExam',
-    component: TakeExam,
-    meta: {
-      title: '在线考试',
-      requiresAuth: true
+  error => {
+    console.error('响应错误:', error)
+    
+    let message = '网络错误'
+    
+    if (error.response) {
+      const status = error.response.status
+      
+      switch (status) {
+        case 401:
+          message = '登录已过期，请重新登录'
+          // 清除本地存储的认证信息
+          localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
+          // 跳转到登录页
+          window.location.href = '/login'
+          break
+        case 403:
+          message = '没有权限访问'
+          break
+        case 404:
+          message = '请求的资源不存在'
+          break
+        case 500:
+          message = '服务器内部错误'
+          break
+        default:
+          message = error.response.data?.message || `请求失败 (${status})`
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      message = '请求超时，请稍后重试'
+    } else if (error.message.includes('Network Error')) {
+      message = '网络连接失败，请检查网络设置'
     }
-  },
-  {
-    path: '/exams/:examId/result',
-    name: 'ExamResult',
-    component: ExamResult,
-    meta: {
-      title: '考试结果',
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/dashboard'
+    
+    ElMessage.error(message)
+    return Promise.reject(error)
   }
-]
+)
 
-// 创建路由实例
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes
-})
-
-// 根据用户角色生成菜单的函数
-export function generateMenus(userRole) {
-  // 基础菜单项（所有角色都可访问）
-  const baseMenus = [
-    {
-      path: '/dashboard',
-      title: '仪表板',
-      icon: 'Dashboard',
-      hidden: false
-    },
-    {
-      path: '/courses',
-      title: '我的课程',
-      icon: 'Reading',
-      hidden: false
-    },
-    {
-      path: '/exams',
-      title: '考试中心',
-      icon: 'Document',
-      hidden: false
-    }
-  ]
-
-  // 管理员和教师可访问的菜单
-  const teacherMenus = [
-    {
-      path: '/students',
-      title: '学员管理',
-      icon: 'User',
-      hidden: false,
-      roles: ['ADMIN', 'TEACHER']
-    }
-  ]
-
-  // 仅管理员可访问的菜单
-  const adminMenus = [
-    {
-      path: '/admin',
-      title: '管理后台',
-      icon: 'Setting',
-      hidden: false,
-      roles: ['ADMIN']
-    }
-  ]
-
-  // 根据用户角色过滤菜单
-  let menus = [...baseMenus]
-
-  if (userRole === 'ADMIN') {
-    // 管理员可以访问所有菜单
-    menus = [...baseMenus, ...teacherMenus, ...adminMenus]
-  } else if (userRole === 'TEACHER') {
-    // 教师可以访问基础菜单和教师菜单
-    menus = [...baseMenus, ...teacherMenus]
-  } else if (userRole === 'STUDENT') {
-    // 学生只能访问基础菜单
-    menus = [...baseMenus]
-  }
-
-  return menus
-}
-
-// 简化的路由守卫
-router.beforeEach((to, from, next) => {
-  // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - 智能培训系统` : '智能培训系统'
-  
-  // 简单的登录检查
-  const token = localStorage.getItem('token')
-  
-  // 检查是否需要登录
-  if (to.meta.requiresAuth !== false) {
-    if (!token) {
-      next('/login')
-      return
-    }
-  }
-  
-  // 如果已登录用户访问登录页，重定向到首页
-  if (to.path === '/login' && token) {
-    next('/dashboard')
-    return
-  }
-  
-  next()
-})
-
-// 路由错误处理
-router.onError((error) => {
-  console.error('路由错误:', error)
-})
-
-export default router
+export default service
