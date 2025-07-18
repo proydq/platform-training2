@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AuthImage: typeof import('./src/components/AuthImage.vue')['default']
     ChapterForm: typeof import('./src/components/ChapterForm.vue')['default']
     CourseForm: typeof import('./src/components/CourseForm.vue')['default']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']

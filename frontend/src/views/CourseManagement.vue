@@ -1,52 +1,69 @@
+<!-- frontend/src/views/CourseManagement.vue -->
 <template>
   <div class="course-management-container">
-    <!-- 页面标题和操作按钮 -->
+    <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>📚 课程管理</h2>
+        <h2>🎓 课程管理</h2>
         <div class="stats-info">
           <span>共 {{ pagination.total }} 门课程</span>
-          <span v-if="hasFilters" class="filter-indicator">（已筛选）</span>
+          <span v-if="filters.category" class="filter-indicator">
+            {{ filters.category }}
+          </span>
+          <span v-if="filters.status !== undefined" class="filter-indicator">
+            {{ getStatusText(filters.status) }}
+          </span>
         </div>
       </div>
-      <div class="header-right">
-        <el-button type="primary" size="large" @click="showAddCourseModal" :loading="loading">
+      <div>
+        <el-button 
+          type="primary" 
+          size="large" 
+          @click="showAddCourseModal"
+          v-if="userStore.userRole === 'ADMIN' || userStore.userRole === 'TEACHER'"
+        >
           <el-icon><Plus /></el-icon>
           新增课程
         </el-button>
       </div>
     </div>
 
-    <!-- 课程筛选器 -->
+    <!-- 筛选器 -->
     <div class="course-filter">
       <div class="filter-item">
-        <span class="filter-label">搜索关键词</span>
+        <span class="filter-label">关键词:</span>
         <el-input
           v-model="filters.keyword"
-          placeholder="输入课程名称或描述"
-          style="width: 240px"
-          @keyup.enter="searchCourses"
+          placeholder="搜索课程标题..."
+          style="width: 200px;"
           clearable
-        />
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
       </div>
       
       <div class="filter-item">
-        <span class="filter-label">课程分类</span>
-        <el-select v-model="filters.category" placeholder="全部分类" style="width: 140px" clearable>
+        <span class="filter-label">分类:</span>
+        <el-select v-model="filters.category" placeholder="请选择分类" clearable style="width: 150px;">
+          <el-option label="全部分类" value="" />
           <el-option v-for="category in courseCategories" :key="category" :label="category" :value="category" />
         </el-select>
       </div>
       
       <div class="filter-item">
-        <span class="filter-label">难度级别</span>
-        <el-select v-model="filters.difficultyLevel" placeholder="全部级别" style="width: 120px" clearable>
+        <span class="filter-label">难度:</span>
+        <el-select v-model="filters.difficultyLevel" placeholder="请选择难度" clearable style="width: 120px;">
+          <el-option label="全部难度" value="" />
           <el-option v-for="level in difficultyLevels" :key="level.value" :label="level.label" :value="level.value" />
         </el-select>
       </div>
       
-      <div class="filter-item">
-        <span class="filter-label">课程状态</span>
-        <el-select v-model="filters.status" placeholder="全部状态" style="width: 120px" clearable>
+      <div class="filter-item" v-if="userStore.userRole === 'ADMIN'">
+        <span class="filter-label">状态:</span>
+        <el-select v-model="filters.status" placeholder="请选择状态" clearable style="width: 120px;">
+          <el-option label="全部状态" value="" />
           <el-option v-for="status in courseStatuses" :key="status.value" :label="status.label" :value="status.value" />
         </el-select>
       </div>
@@ -64,12 +81,18 @@
         :key="course.id"
         class="course-card"
       >
-        <!-- 课程封面 -->
+        <!-- 课程封面 - 使用AuthImage组件 -->
         <div class="course-cover">
-          <img v-if="course.coverImage" :src="course.coverImage" :alt="course.title" />
+          <AuthImage 
+            v-if="course.coverImage" 
+            :src="course.coverImage" 
+            :alt="course.title"
+            :style="{ width: '100%', height: '100%' }"
+            default-image="📚"
+          />
           <div v-else class="default-cover">📚</div>
           <div class="course-status-badge" :style="{ backgroundColor: getStatusColor(course.status) }">
-            {{ getCourseStatusText(course.status) }}
+            {{ getStatusText(course.status) }}
           </div>
         </div>
 
@@ -81,7 +104,7 @@
           <div class="course-meta">
             <el-tag size="small">{{ course.category }}</el-tag>
             <el-tag size="small" :type="getDifficultyType(course.difficultyLevel)">
-              {{ getDifficultyLevelText(course.difficultyLevel) }}
+              {{ getDifficultyText(course.difficultyLevel) }}
             </el-tag>
             <el-tag size="small" type="info">{{ formatDuration(course.duration) }}</el-tag>
             <el-tag size="small" type="warning">{{ formatPrice(course.price) }}</el-tag>
@@ -94,50 +117,46 @@
           
           <div class="course-stats">
             <div class="stat-item">
-              <el-icon><Reading /></el-icon>
-              <span>{{ course.studentCount || 0 }} 人学习</span>
+              <el-icon><View /></el-icon>
+              <span>{{ course.viewCount || 0 }}</span>
             </div>
             <div class="stat-item">
               <el-icon><Star /></el-icon>
-              <span>{{ course.rating || 0 }}/5.0</span>
+              <span>{{ course.favoriteCount || 0 }}</span>
             </div>
             <div class="stat-item">
-              <el-icon><Calendar /></el-icon>
-              <span>{{ formatDate(course.createTime) }}</span>
+              <el-icon><Document /></el-icon>
+              <span>{{ course.chapterCount || 0 }}章</span>
             </div>
           </div>
           
           <div class="course-actions">
             <el-button size="small" @click="viewCourse(course.id)">
               <el-icon><View /></el-icon>
-              查看
+              详情
             </el-button>
-            <el-button size="small" type="primary" @click="editCourse(course)">
+            <el-button 
+              size="small" 
+              type="primary" 
+              @click="editCourse(course)"
+              v-if="userStore.userRole === 'ADMIN' || course.instructorId === userStore.userInfo.id"
+            >
               <el-icon><Edit /></el-icon>
               编辑
             </el-button>
             <el-button 
-              v-if="course.status === 0" 
               size="small" 
-              type="success" 
-              @click="publishCourse(course.id, course.title)"
+              :type="course.status === 1 ? 'warning' : 'success'"
+              @click="toggleCourseStatus(course)"
+              v-if="userStore.userRole === 'ADMIN' || course.instructorId === userStore.userInfo.id"
             >
-              <el-icon><VideoPlay /></el-icon>
-              发布
-            </el-button>
-            <el-button 
-              v-if="course.status === 1" 
-              size="small" 
-              type="warning" 
-              @click="unpublishCourse(course.id, course.title)"
-            >
-              <el-icon><VideoPause /></el-icon>
-              下架
+              {{ course.status === 1 ? '下架' : '发布' }}
             </el-button>
             <el-button 
               size="small" 
               type="danger" 
-              @click="deleteCourse(course.id, course.title)"
+              @click="deleteCourse(course)"
+              v-if="userStore.userRole === 'ADMIN'"
             >
               <el-icon><Delete /></el-icon>
               删除
@@ -148,29 +167,24 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="isEmpty" class="empty-state">
+    <div v-if="!loading && courses.length === 0" class="empty-state">
       <div class="empty-icon">📚</div>
-      <div class="empty-text">
-        {{ hasFilters ? '没有找到符合条件的课程' : '暂无课程数据' }}
-      </div>
-      <el-button v-if="!hasFilters" type="primary" @click="showAddCourseModal">
+      <div class="empty-text">暂无课程数据</div>
+      <el-button type="primary" @click="showAddCourseModal" v-if="userStore.userRole === 'ADMIN' || userStore.userRole === 'TEACHER'">
         创建第一门课程
-      </el-button>
-      <el-button v-else @click="resetFilters">
-        清除筛选条件
       </el-button>
     </div>
 
-    <!-- 分页 -->
-    <div v-if="courses.length > 0" class="pagination-wrapper">
+    <!-- 分页器 -->
+    <div class="pagination-wrapper" v-if="courses.length > 0">
       <el-pagination
         v-model:current-page="pagination.current"
         v-model:page-size="pagination.size"
-        :total="pagination.total"
         :page-sizes="[10, 20, 50, 100]"
+        :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="(size) => handlePagination(1, size)"
-        @current-change="(page) => handlePagination(page)"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
       />
     </div>
 
@@ -194,49 +208,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, onMounted, reactive } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Plus, User, Reading, Star, Calendar, View, Edit, 
-  VideoPlay, VideoPause, Delete 
+  Plus, Search, Edit, Delete, View, User, Star, Document 
 } from '@element-plus/icons-vue'
+
+// 导入组件
+import CourseForm from '@/components/CourseForm.vue'
+// 导入状态管理
 import { useUserStore } from '@/stores/user'
 import { useCourse } from '@/composables/useCourse'
-import CourseForm from '@/components/CourseForm.vue'
 
-// 数据和状态
+// 状态管理
 const userStore = useUserStore()
 
-// 使用课程管理composable
+// 使用组合式函数
 const {
   loading,
   courses,
   pagination,
   filters,
-  hasFilters,
-  isEmpty,
   loadCourses,
   searchCourses,
   resetFilters,
-  handlePagination,
   createCourse,
   updateCourse,
-  deleteCourse,
-  publishCourse,
-  unpublishCourse,
-  formatDate,
-  getStatusColor,
-  getDifficultyType,
-  formatPrice,
-  formatDuration,
-  getDifficultyLevelText,
-  getCourseStatusText
+  deleteCourse: deleteCourseById
 } = useCourse()
 
 // 模态框状态
 const courseModalVisible = ref(false)
 const courseModalTitle = ref('新增课程')
-const courseFormRef = ref()
 const editingCourse = ref(null)
 
 // 配置数据
@@ -261,6 +264,74 @@ const courseStatuses = [
   { label: '已发布', value: 1 },
   { label: '已下架', value: 2 }
 ]
+
+// 工具函数
+const getStatusColor = (status) => {
+  const colors = {
+    0: '#909399', // 草稿 - 灰色
+    1: '#67C23A', // 已发布 - 绿色
+    2: '#F56C6C'  // 已下架 - 红色
+  }
+  return colors[status] || '#909399'
+}
+
+const getStatusText = (status) => {
+  const texts = {
+    0: '草稿',
+    1: '已发布',
+    2: '已下架'
+  }
+  return texts[status] || '未知'
+}
+
+const getDifficultyType = (level) => {
+  const types = {
+    1: 'info',
+    2: 'success',
+    3: 'warning',
+    4: 'danger',
+    5: 'danger'
+  }
+  return types[level] || 'info'
+}
+
+const getDifficultyText = (level) => {
+  const texts = {
+    1: '入门级',
+    2: '初级',
+    3: '中级',
+    4: '高级',
+    5: '专家级'
+  }
+  return texts[level] || '未知'
+}
+
+const formatDuration = (duration) => {
+  if (!duration) return '0分钟'
+  if (duration >= 60) {
+    const hours = Math.floor(duration / 60)
+    const minutes = duration % 60
+    return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`
+  }
+  return `${duration}分钟`
+}
+
+const formatPrice = (price) => {
+  if (!price || price === 0) return '免费'
+  return `¥${price}`
+}
+
+// 分页处理
+const handleSizeChange = (size) => {
+  pagination.size = size
+  pagination.current = 1
+  loadCourses()
+}
+
+const handleCurrentChange = (page) => {
+  pagination.current = page
+  loadCourses()
+}
 
 // 生命周期
 onMounted(() => {
@@ -288,11 +359,37 @@ const viewCourse = (courseId) => {
   ElMessage.info('课程详情功能开发中')
 }
 
+const deleteCourse = async (course) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除课程 "${course.title}" 吗？此操作不可恢复。`,
+      '删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
+    )
+    
+    const success = await deleteCourseById(course.id, course.title)
+    if (success) {
+      ElMessage.success('课程删除成功')
+    }
+  } catch (error) {
+    // 用户取消操作
+  }
+}
+
+const toggleCourseStatus = (course) => {
+  ElMessage.info('课程状态切换功能开发中')
+}
+
 const closeCourseModal = () => {
   courseModalVisible.value = false
   editingCourse.value = null
 }
 
+// 处理课程保存
 const handleCourseSave = async (courseData) => {
   try {
     let result
@@ -308,10 +405,13 @@ const handleCourseSave = async (courseData) => {
     }
     
     if (result) {
+      ElMessage.success(courseModalTitle.value === '新增课程' ? '课程创建成功' : '课程更新成功')
       closeCourseModal()
+      await loadCourses() // 刷新列表
     }
   } catch (error) {
     console.error('保存课程失败:', error)
+    ElMessage.error('保存课程失败，请重试')
   }
 }
 </script>
@@ -409,12 +509,6 @@ const handleCourseSave = async (courseData) => {
   position: relative;
   height: 160px;
   overflow: hidden;
-}
-
-.course-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .default-cover {

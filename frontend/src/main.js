@@ -1,27 +1,28 @@
-// main.js - 修复版本，正确的导入顺序
+// frontend/src/main.js
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
 import router from './router'
+import AuthImage from '@/components/AuthImage.vue'
 
-// 创建应用
+import './assets/main.css'
+
 const app = createApp(App)
 
-// 创建 Pinia 实例
-const pinia = createPinia()
+// 注册Element Plus图标
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component)
+}
 
-// 安装插件 - 顺序很重要
-app.use(pinia)
+// 🔥 注册AuthImage为全局组件
+app.component('AuthImage', AuthImage)
+
+app.use(createPinia())
+app.use(ElementPlus)
 app.use(router)
-app.use(ElementPlus, {
-  locale: zhCn
-})
 
-// 挂载应用
 app.mount('#app')
-
-console.log('应用已启动')
