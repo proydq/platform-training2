@@ -1,38 +1,16 @@
 <template>
   <div class="exams-container">
-    <!-- 考试概览 -->
-    <el-card class="overview-card">
-      <template #header>
-        <div class="card-header">
-          <span>📊 考试概览</span>
-        </div>
-      </template>
-      
-      <div class="exam-overview">
-        <div class="overview-item">
-          <div class="overview-number">{{ overview.completed }}</div>
-          <div class="overview-label">已完成</div>
-        </div>
-        <div class="overview-item">
-          <div class="overview-number">{{ overview.pending }}</div>
-          <div class="overview-label">待考试</div>
-        </div>
-        <div class="overview-item">
-          <div class="overview-number">{{ overview.avgScore }}</div>
-          <div class="overview-label">平均分</div>
-        </div>
-        <div class="overview-item">
-          <div class="overview-number">{{ overview.passRate }}%</div>
-          <div class="overview-label">通过率</div>
-        </div>
-      </div>
-    </el-card>
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h1>考试中心</h1>
+      <p>选择考试开始答题</p>
+    </div>
 
-    <!-- 筛选和搜索 -->
+    <!-- 筛选器 -->
     <el-card class="filter-card">
-      <div class="exam-filters">
-        <el-button-group>
-          <el-button 
+      <div class="filter-section">
+        <el-button-group class="filter-buttons">
+          <el-button
             v-for="filter in filters"
             :key="filter.key"
             :type="activeFilter === filter.key ? 'primary' : ''"
@@ -55,7 +33,7 @@
     </el-card>
 
     <!-- 考试列表 -->
-    <div class="exams-grid">
+    <div class="exams-grid" v-loading="loading">
       <div
         v-for="exam in filteredExams"
         :key="exam.id"
@@ -64,7 +42,7 @@
       >
         <div class="exam-header">
           <div class="exam-title">{{ exam.title }}</div>
-          <div class="exam-status" :class="exam.status">
+          <div class="exam-status" :class="getStatusClass(exam.status)">
             {{ getStatusText(exam.status) }}
           </div>
         </div>
@@ -86,7 +64,7 @@
             <div class="meta-row">
               <div class="meta-item">
                 <el-icon><Calendar /></el-icon>
-                <span>截止时间：{{ exam.deadline }}</span>
+                <span>截止时间：{{ formatDateTime(exam.endTime) }}</span>
               </div>
               <div class="meta-item">
                 <el-icon><Trophy /></el-icon>
@@ -96,115 +74,73 @@
           </div>
           
           <!-- 考试结果（如果已完成） -->
-          <div v-if="exam.status === 'completed'" class="exam-result">
-            <div class="result-score" :class="{ passed: exam.score >= exam.passScore }">
+          <div v-if="exam.userResult" class="exam-result">
+            <div class="result-score" :class="{ passed: exam.userResult.passed }">
               <span class="score-label">得分：</span>
-              <span class="score-value">{{ exam.score }}分</span>
+              <span class="score-value">{{ exam.userResult.score }}分</span>
               <span class="score-status">
-                {{ exam.score >= exam.passScore ? '通过' : '未通过' }}
+                {{ exam.userResult.passed ? '通过' : '未通过' }}
               </span>
             </div>
-            <div class="result-time">
-              完成时间：{{ exam.completedTime }}
+            <div class="result-details">
+              <span>正确率：{{ formatPercent(exam.userResult.accuracyRate) }}</span>
+              <span>用时：{{ formatDuration(exam.userResult.duration) }}</span>
             </div>
           </div>
-          
-          <!-- 考试操作 -->
-          <div class="exam-actions">
-            <el-button 
-              v-if="exam.status === 'available'"
-              type="primary" 
-              size="default"
-              @click="startExam(exam)"
-            >
+        </div>
+        
+        <div class="exam-actions">
+          <!-- 可以考试 -->
+          <template v-if="exam.canTakeExam && !exam.userResult">
+            <el-button type="primary" size="large" @click="startExam(exam)">
               开始考试
             </el-button>
-            
-            <el-button 
-              v-if="exam.status === 'completed'"
-              type="success" 
-              size="default"
-              @click="viewResult(exam)"
-            >
+            <el-button size="large" @click="viewDetails(exam)">
+              查看详情
+            </el-button>
+          </template>
+          
+          <!-- 已完成 -->
+          <template v-else-if="exam.userResult">
+            <el-button type="success" size="large" @click="viewResult(exam)">
               查看结果
             </el-button>
-            
+            <el-button size="large" @click="viewDetails(exam)">
+              查看详情
+            </el-button>
             <el-button 
-              v-if="exam.status === 'completed' && exam.score < exam.passScore"
+              v-if="!exam.userResult.passed && exam.retryCount > 0"
               type="warning" 
-              size="default"
+              size="large" 
               @click="retakeExam(exam)"
             >
               重新考试
             </el-button>
-            
-            <el-button 
-              v-if="exam.status === 'locked'"
-              disabled
-              size="default"
-            >
-              未解锁
+          </template>
+          
+          <!-- 未解锁 -->
+          <template v-else>
+            <el-button size="large" disabled>
+              未开放
             </el-button>
-            
-            <el-button 
-              size="default"
-              @click="viewDetails(exam)"
-            >
-              考试详情
+            <el-button size="large" @click="viewDetails(exam)">
+              查看详情
             </el-button>
-          </div>
+          </template>
         </div>
       </div>
     </div>
 
-    <!-- 练习模式 -->
-    <el-card class="practice-card">
-      <template #header>
-        <div class="card-header">
-          <span>🎯 练习模式</span>
-        </div>
-      </template>
-      
-      <div class="practice-section">
-        <div class="practice-item">
-          <div class="practice-info">
-            <h4>随机练习</h4>
-            <p>从题库中随机抽取题目进行练习</p>
-          </div>
-          <el-button type="primary" @click="startPractice('random')">
-            开始练习
-          </el-button>
-        </div>
-        
-        <div class="practice-item">
-          <div class="practice-info">
-            <h4>错题重做</h4>
-            <p>复习之前做错的题目</p>
-          </div>
-          <el-button type="warning" @click="startPractice('wrong')">
-            错题练习
-          </el-button>
-        </div>
-        
-        <div class="practice-item">
-          <div class="practice-info">
-            <h4>专项练习</h4>
-            <p>针对特定知识点进行练习</p>
-          </div>
-          <el-button @click="startPractice('specific')">
-            专项练习
-          </el-button>
-        </div>
-      </div>
-    </el-card>
+    <!-- 空状态 -->
+    <el-empty v-if="!loading && filteredExams.length === 0" description="暂无考试数据" />
 
     <!-- 分页 -->
-    <div class="pagination-container">
+    <div class="pagination-container" v-if="filteredExams.length > 0">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
-        :page-sizes="[9, 18, 36]"
-        :total="totalExams"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
@@ -218,126 +154,45 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Clock, Document, Calendar, Trophy, Search } from '@element-plus/icons-vue'
+import { getExamListAPI, getExamStatusAPI } from '@/api/exam'
 
 const router = useRouter()
 
-// 概览数据
-const overview = ref({
-  completed: 8,
-  pending: 4,
-  avgScore: 87,
-  passRate: 85
-})
+// 响应式数据
+const loading = ref(false)
+const exams = ref([])
+const searchKeyword = ref('')
+const activeFilter = ref('all')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
-// 筛选器
-const filters = [
-  { key: 'all', label: '全部' },
+// 筛选器配置
+const filters = ref([
+  { key: 'all', label: '全部考试' },
   { key: 'available', label: '可考试' },
   { key: 'completed', label: '已完成' },
-  { key: 'locked', label: '未解锁' }
-]
-
-const activeFilter = ref('all')
-const searchKeyword = ref('')
-
-// 分页
-const currentPage = ref(1)
-const pageSize = ref(9)
-const totalExams = ref(12)
-
-// 考试数据
-const exams = ref([
-  {
-    id: 1,
-    title: '产品知识考试',
-    description: '测试对公司核心产品功能和特性的掌握程度',
-    status: 'available',
-    duration: 60,
-    questionCount: 30,
-    deadline: '2025-01-20',
-    passScore: 80,
-    urgent: true,
-    attempts: 0,
-    maxAttempts: 3
-  },
-  {
-    id: 2,
-    title: '销售技能测试',
-    description: '评估销售沟通技巧和客户处理能力',
-    status: 'completed',
-    duration: 45,
-    questionCount: 25,
-    deadline: '2025-01-15',
-    passScore: 75,
-    score: 92,
-    completedTime: '2025-01-14 14:30',
-    urgent: false,
-    attempts: 1,
-    maxAttempts: 2
-  },
-  {
-    id: 3,
-    title: '客户服务规范',
-    description: '检验对客户服务标准流程的理解',
-    status: 'completed',
-    duration: 30,
-    questionCount: 20,
-    deadline: '2025-01-10',
-    passScore: 80,
-    score: 65,
-    completedTime: '2025-01-09 10:15',
-    urgent: false,
-    attempts: 1,
-    maxAttempts: 3
-  },
-  {
-    id: 4,
-    title: '团队协作评估',
-    description: '测试团队合作和沟通协调能力',
-    status: 'available',
-    duration: 40,
-    questionCount: 25,
-    deadline: '2025-01-25',
-    passScore: 70,
-    urgent: false,
-    attempts: 0,
-    maxAttempts: 2
-  },
-  {
-    id: 5,
-    title: '安全知识测试',
-    description: '检验工作场所安全规范的掌握情况',
-    status: 'locked',
-    duration: 35,
-    questionCount: 20,
-    deadline: '2025-02-01',
-    passScore: 85,
-    urgent: false,
-    attempts: 0,
-    maxAttempts: 3
-  },
-  {
-    id: 6,
-    title: '质量管理考核',
-    description: '评估质量控制流程的理解和应用',
-    status: 'available',
-    duration: 50,
-    questionCount: 30,
-    deadline: '2025-01-30',
-    passScore: 80,
-    urgent: true,
-    attempts: 0,
-    maxAttempts: 2
-  }
+  { key: 'locked', label: '未开放' }
 ])
 
-// 计算属性 - 筛选后的考试
+// 计算属性
 const filteredExams = computed(() => {
   let result = exams.value
 
   // 状态筛选
   if (activeFilter.value !== 'all') {
-    result = result.filter(exam => exam.status === activeFilter.value)
+    result = result.filter(exam => {
+      switch (activeFilter.value) {
+        case 'available':
+          return exam.canTakeExam && !exam.userResult
+        case 'completed':
+          return exam.userResult
+        case 'locked':
+          return !exam.canTakeExam
+        default:
+          return true
+      }
+    })
   }
 
   // 搜索筛选
@@ -352,7 +207,53 @@ const filteredExams = computed(() => {
   return result
 })
 
+// 生命周期
+onMounted(() => {
+  loadExams()
+})
+
 // 方法
+const loadExams = async () => {
+  try {
+    loading.value = true
+    const response = await getExamListAPI()
+    
+    if (response.code === 200) {
+      exams.value = response.data || []
+      total.value = exams.value.length
+      
+      // 加载每个考试的状态
+      await loadExamStatuses()
+    } else {
+      ElMessage.error(response.message || '获取考试列表失败')
+    }
+  } catch (error) {
+    console.error('获取考试列表失败:', error)
+    ElMessage.error('获取考试列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadExamStatuses = async () => {
+  try {
+    const statusPromises = exams.value.map(async (exam) => {
+      try {
+        const response = await getExamStatusAPI(exam.id)
+        if (response.code === 200) {
+          exam.userResult = response.data.hasAttempted ? response.data : null
+        }
+      } catch (error) {
+        console.error(`获取考试状态失败 - ${exam.id}:`, error)
+      }
+    })
+    
+    await Promise.all(statusPromises)
+  } catch (error) {
+    console.error('获取考试状态失败:', error)
+  }
+}
+
 const setActiveFilter = (filterKey) => {
   activeFilter.value = filterKey
   currentPage.value = 1
@@ -362,14 +263,63 @@ const handleSearch = () => {
   currentPage.value = 1
 }
 
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+}
+
+const handleCurrentChange = (page) => {
+  currentPage.value = page
+}
+
+const getStatusClass = (status) => {
+  const classMap = {
+    'PUBLISHED': 'available',
+    'DRAFT': 'draft',
+    'ENDED': 'ended',
+    'CANCELLED': 'cancelled'
+  }
+  return classMap[status] || 'default'
+}
+
 const getStatusText = (status) => {
   const statusMap = {
-    'available': '可考试',
-    'completed': '已完成',
-    'locked': '未解锁',
-    'in-progress': '进行中'
+    'PUBLISHED': '可考试',
+    'DRAFT': '草稿',
+    'ENDED': '已结束',
+    'CANCELLED': '已取消'
   }
   return statusMap[status] || status
+}
+
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '--'
+  
+  const date = new Date(dateTime)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatPercent = (rate) => {
+  return rate ? `${rate.toFixed(1)}%` : '0%'
+}
+
+const formatDuration = (minutes) => {
+  if (!minutes) return '0分钟'
+  
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  
+  if (hours > 0) {
+    return `${hours}小时${mins}分钟`
+  } else {
+    return `${mins}分钟`
+  }
 }
 
 const startExam = async (exam) => {
@@ -384,27 +334,20 @@ const startExam = async (exam) => {
       }
     )
     
-    ElMessage.success(`开始考试：${exam.title}`)
-    // router.push(`/exams/${exam.id}/take`)
+    router.push(`/exams/${exam.id}/take`)
   } catch {
     // 用户取消
   }
 }
 
 const viewResult = (exam) => {
-  ElMessage.info(`查看考试结果：${exam.title}`)
-  // router.push(`/exams/${exam.id}/result`)
+  router.push(`/exams/${exam.id}/result`)
 }
 
 const retakeExam = async (exam) => {
-  if (exam.attempts >= exam.maxAttempts) {
-    ElMessage.warning('已达到最大考试次数限制')
-    return
-  }
-  
   try {
     await ElMessageBox.confirm(
-      `确定要重新考试吗？这是第${exam.attempts + 1}次考试，最多可考${exam.maxAttempts}次。`,
+      `确定要重新考试吗？这将覆盖您之前的考试记录。`,
       '重新考试',
       {
         confirmButtonText: '确定',
@@ -413,95 +356,53 @@ const retakeExam = async (exam) => {
       }
     )
     
-    ElMessage.success(`开始重新考试：${exam.title}`)
-    // router.push(`/exams/${exam.id}/take`)
+    router.push(`/exams/${exam.id}/take`)
   } catch {
     // 用户取消
   }
 }
 
 const viewDetails = (exam) => {
-  ElMessage.info(`查看考试详情：${exam.title}`)
-  // router.push(`/exams/${exam.id}/details`)
+  ElMessage.info(`查看考试详情功能开发中...`)
 }
-
-const startPractice = (type) => {
-  const practiceTypes = {
-    'random': '随机练习',
-    'wrong': '错题练习',
-    'specific': '专项练习'
-  }
-  
-  ElMessage.success(`开始${practiceTypes[type]}`)
-  // router.push(`/practice/${type}`)
-}
-
-const handleSizeChange = (size) => {
-  pageSize.value = size
-  currentPage.value = 1
-}
-
-const handleCurrentChange = (page) => {
-  currentPage.value = page
-}
-
-onMounted(() => {
-  // 初始化考试数据
-})
 </script>
 
 <style scoped>
 .exams-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
 }
 
-.overview-card,
-.filter-card,
-.practice-card {
-  margin-bottom: 20px;
-  border-radius: 15px;
-  border: none;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-}
-
-.card-header {
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.exam-overview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px;
-}
-
-.overview-item {
+.page-header {
   text-align: center;
-  padding: 15px;
-  background: rgba(102, 126, 234, 0.05);
-  border-radius: 10px;
+  margin-bottom: 30px;
 }
 
-.overview-number {
-  font-size: 24px;
-  font-weight: bold;
-  color: #667eea;
-  margin-bottom: 5px;
+.page-header h1 {
+  margin: 0 0 10px 0;
+  color: #333;
 }
 
-.overview-label {
+.page-header p {
+  margin: 0;
   color: #666;
-  font-size: 14px;
 }
 
-.exam-filters {
+.filter-card {
+  margin-bottom: 30px;
+}
+
+.filter-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .search-box {
@@ -516,89 +417,92 @@ onMounted(() => {
 }
 
 .exam-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  background: #fff;
   transition: all 0.3s ease;
-  animation: fadeInUp 0.6s ease forwards;
+}
+
+.exam-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .exam-card.urgent {
   border-left: 4px solid #f56c6c;
 }
 
-.exam-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-}
-
 .exam-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 15px;
 }
 
 .exam-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: bold;
   color: #333;
+  flex: 1;
 }
 
 .exam-status {
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 12px;
-  font-weight: 500;
+  white-space: nowrap;
 }
 
 .exam-status.available {
-  background: #e1f5fe;
-  color: #0277bd;
-}
-
-.exam-status.completed {
   background: #e8f5e8;
-  color: #2e7d32;
+  color: #52c41a;
 }
 
-.exam-status.locked {
-  background: #f1f5f9;
-  color: #64748b;
+.exam-status.ended {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.exam-status.draft {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.exam-content {
+  margin-bottom: 20px;
 }
 
 .exam-description {
   color: #666;
-  font-size: 14px;
+  margin-bottom: 15px;
   line-height: 1.5;
-  margin: 0 0 15px 0;
 }
 
 .exam-meta {
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .meta-row {
   display: flex;
   gap: 20px;
-  margin-bottom: 8px;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 14px;
   color: #666;
 }
 
 .exam-result {
-  background: #f8f9fa;
-  border-radius: 8px;
+  margin-top: 15px;
   padding: 15px;
-  margin-bottom: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
 }
 
 .result-score {
@@ -608,35 +512,38 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.score-label {
-  color: #666;
-  font-size: 14px;
-}
-
 .score-value {
-  font-size: 18px;
   font-weight: bold;
-  color: #333;
+  font-size: 16px;
 }
 
 .score-status {
-  padding: 2px 8px;
-  border-radius: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
   font-size: 12px;
-  font-weight: 500;
+}
+
+.result-score.passed .score-value {
+  color: #52c41a;
 }
 
 .result-score.passed .score-status {
   background: #e8f5e8;
-  color: #2e7d32;
+  color: #52c41a;
+}
+
+.result-score:not(.passed) .score-value {
+  color: #f56c6c;
 }
 
 .result-score:not(.passed) .score-status {
-  background: #ffebee;
-  color: #c62828;
+  background: #fee;
+  color: #f56c6c;
 }
 
-.result-time {
+.result-details {
+  display: flex;
+  gap: 15px;
   font-size: 12px;
   color: #666;
 }
@@ -644,39 +551,6 @@ onMounted(() => {
 .exam-actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.exam-actions .el-button {
-  flex: 1;
-  min-width: 100px;
-}
-
-.practice-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.practice-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: rgba(102, 126, 234, 0.05);
-  border-radius: 10px;
-}
-
-.practice-info h4 {
-  margin: 0 0 5px 0;
-  color: #333;
-  font-size: 16px;
-}
-
-.practice-info p {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
 }
 
 .pagination-container {
@@ -685,9 +559,12 @@ onMounted(() => {
   margin-top: 30px;
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
-  .exam-filters {
+  .exams-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-section {
     flex-direction: column;
     gap: 15px;
   }
@@ -696,48 +573,8 @@ onMounted(() => {
     width: 100%;
   }
   
-  .exams-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .meta-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
   .exam-actions {
     flex-direction: column;
-  }
-  
-  .practice-item {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .exam-overview {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .exam-header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
-}
-
-/* 动画效果 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 </style>
