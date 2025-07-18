@@ -2,7 +2,7 @@
   <div class="dashboard-container">
     <div class="header">
       <h1>🎓 智能培训系统 - 仪表板</h1>
-      <el-button @click="logout">退出登录</el-button>
+      <el-button class="btn btn-secondary" @click="logout">退出登录</el-button>
     </div>
     
     <div class="content">
@@ -44,15 +44,15 @@
         </el-col>
       </el-row>
       
-      <el-card style="margin-top: 20px;">
+      <el-card class="content-card" style="margin-top: 20px;">
         <h3>🎉 登录成功！</h3>
         <p>欢迎使用智能培训系统，这是一个简单的测试页面。</p>
         <p>完整的功能正在开发中...</p>
         
         <div style="margin-top: 20px;">
-          <el-button type="primary">开始学习</el-button>
-          <el-button>参加考试</el-button>
-          <el-button>查看进度</el-button>
+          <el-button class="btn btn-primary">开始学习</el-button>
+          <el-button class="btn btn-secondary">参加考试</el-button>
+          <el-button class="btn btn-secondary">查看进度</el-button>
         </div>
       </el-card>
     </div>
@@ -105,7 +105,15 @@ const logout = () => {
 .stat-card {
   border-radius: 15px;
   border: none;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .stat-content {
@@ -123,5 +131,50 @@ const logout = () => {
 .stat-label {
   color: #666;
   font-size: 14px;
+}
+
+.content-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  border: none;
+}
+
+.content-card:hover {
+  transform: translateY(-5px);
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.btn-secondary:hover {
+  background: rgba(102, 126, 234, 0.2);
 }
 </style>
