@@ -1,27 +1,27 @@
-// main.js - 简化版本，避免复杂的初始化逻辑
+// main.js - 修复版本，正确的导入顺序
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 import App from './App.vue'
 import router from './router'
 
+// 创建应用
 const app = createApp(App)
+
+// 创建 Pinia 实例
 const pinia = createPinia()
 
-// 注册所有Element Plus图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
-
+// 安装插件 - 顺序很重要
 app.use(pinia)
 app.use(router)
 app.use(ElementPlus, {
-  locale: zhCn,
+  locale: zhCn
 })
 
-// 简化挂载，不使用复杂的初始化逻辑
+// 挂载应用
 app.mount('#app')
+
+console.log('应用已启动')

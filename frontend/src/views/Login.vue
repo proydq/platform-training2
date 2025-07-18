@@ -5,59 +5,51 @@
       <h1 class="login-title">智能培训系统</h1>
       <p class="login-subtitle">公司内部产品培训平台</p>
       
-      <el-form 
-        ref="loginFormRef"
-        :model="loginForm"
-        class="login-form"
-      >
-        <el-form-item>
-          <el-input
+      <form class="login-form" @submit.prevent="handleLogin">
+        <div class="form-group">
+          <input
             v-model="loginForm.username"
+            type="text"
+            class="form-input"
             placeholder="请输入用户名"
-            size="large"
-            prefix-icon="User"
+            required
           />
-        </el-form-item>
+        </div>
 
-        <el-form-item>
-          <el-input
+        <div class="form-group">
+          <input
             v-model="loginForm.password"
             type="password"
+            class="form-input"
             placeholder="请输入密码"
-            size="large"
-            prefix-icon="Lock"
+            required
             @keyup.enter="handleLogin"
           />
-        </el-form-item>
-
-        <el-button
-          type="primary"
-          size="large"
-          class="login-btn"
-          :loading="isLoading"
-          @click="handleLogin"
-        >
-          {{ isLoading ? '登录中...' : '登录' }}
-        </el-button>
-      </el-form>
-      
-      <div class="test-accounts">
-        <h4>测试账号:</h4>
-        <div class="account-list">
-          <div class="account-item" @click="quickLogin('admin', '123456')">
-            <span class="role">管理员</span>
-            <span class="credentials">admin / 123456</span>
-          </div>
-          <div class="account-item" @click="quickLogin('teacher01', '123456')">
-            <span class="role">教师</span>
-            <span class="credentials">teacher01 / 123456</span>
-          </div>
-          <div class="account-item" @click="quickLogin('student01', '123456')">
-            <span class="role">学员</span>
-            <span class="credentials">student01 / 123456</span>
-          </div>
         </div>
+
+        <div class="login-options">
+          <label class="remember-me">
+            <input v-model="loginForm.remember" type="checkbox" />
+            记住我
+          </label>
+          <a href="#" class="forgot-password" @click.prevent>忘记密码？</a>
+        </div>
+
+        <button
+          type="submit"
+          class="login-btn"
+          :disabled="isLoading"
+        >
+          <span v-if="isLoading" class="loading-spinner"></span>
+          {{ isLoading ? '登录中...' : '登录' }}
+        </button>
+      </form>
+
+      <div class="register-link">
+        还没有账号？<a href="#" @click.prevent>联系管理员开通</a>
       </div>
+      
+
     </div>
   </div>
 </template>
@@ -75,7 +67,8 @@ const userStore = useUserStore()
 const isLoading = ref(false)
 const loginForm = reactive({
   username: '',
-  password: ''
+  password: '',
+  remember: false
 })
 
 // 登录处理
@@ -88,25 +81,22 @@ const handleLogin = async () => {
   isLoading.value = true
   
   try {
-    const success = userStore.login(loginForm.username, loginForm.password)
+    const success = await userStore.login(loginForm.username, loginForm.password)
     
     if (success) {
-      ElMessage.success('登录成功！')
+      // 延迟跳转，确保状态更新完成
       setTimeout(() => {
         router.push('/dashboard')
-      }, 500)
-    } else {
-      ElMessage.error('用户名或密码错误')
+      }, 300)
     }
   } catch (error) {
-    console.error('登录失败:', error)
     ElMessage.error('登录失败，请重试')
   } finally {
     isLoading.value = false
   }
 }
 
-// 快速登录
+// 快速登录 - 保留功能但不显示界面
 const quickLogin = (username, password) => {
   loginForm.username = username
   loginForm.password = password
@@ -114,9 +104,7 @@ const quickLogin = (username, password) => {
 }
 
 onMounted(() => {
-  console.log('登录页面已挂载')
-  
-  // 如果已登录，直接跳转
+  // 简化挂载逻辑，避免无限请求
   if (userStore.isLoggedIn) {
     router.replace('/dashboard')
   }
@@ -124,6 +112,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 按原始HTML设计的样式 */
 .login-container {
   display: flex;
   justify-content: center;
@@ -142,6 +131,7 @@ onMounted(() => {
   max-width: 450px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   text-align: center;
+  animation: fadeInUp 0.6s ease forwards;
 }
 
 .login-logo {
@@ -164,69 +154,170 @@ onMounted(() => {
   font-size: 16px;
 }
 
+/* 原始表单样式 */
 .login-form {
   text-align: left;
   margin-bottom: 30px;
 }
 
-.login-btn {
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-input {
   width: 100%;
-  height: 50px;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 600;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border: none;
-  margin-top: 20px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+  box-sizing: border-box;
 }
 
-.test-accounts {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: left;
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.test-accounts h4 {
-  margin: 0 0 15px 0;
-  color: #333;
-  text-align: center;
-}
-
-.account-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.account-item {
+.login-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: white;
-  border-radius: 6px;
+  margin-bottom: 30px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.account-item:hover {
-  background: #667eea;
-  color: white;
-  transform: translateX(5px);
+.remember-me input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
-.role {
-  font-weight: 500;
+.forgot-password {
+  color: #667eea;
+  text-decoration: none;
   font-size: 14px;
 }
 
-.credentials {
-  font-size: 12px;
-  color: #999;
+.forgot-password:hover {
+  text-decoration: underline;
 }
 
-.account-item:hover .credentials {
-  color: rgba(255, 255, 255, 0.8);
+.login-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.register-link {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.register-link a {
+  color: #667eea;
+  text-decoration: none;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+
+
+/* 动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .login-card {
+    padding: 30px 25px;
+  }
+  
+  .login-logo {
+    font-size: 48px;
+  }
+  
+  .login-title {
+    font-size: 24px;
+  }
+  
+  .form-input {
+    padding: 12px;
+  }
+  
+  .login-options {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .login-card {
+    padding: 25px 20px;
+  }
+  
+
 }
 </style>

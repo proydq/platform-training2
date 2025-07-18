@@ -1,49 +1,76 @@
-// utils/request.js - 最小化版本，避免循环引用
+// utils/request.js - 简单的HTTP请求工具
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
-// 最简单的axios实例，避免复杂配置
-const service = axios.create({
+// 创建axios实例
+const request = axios.create({
   baseURL: 'http://localhost:8080',
-  timeout: 10000,
+  timeout: 5000,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// 简化的请求拦截器
-service.interceptors.request.use(
+// 请求拦截器
+request.interceptors.request.use(
   config => {
+    console.log('发送请求:', config.method?.toUpperCase(), config.url)
+    
     // 添加token
     const token = localStorage.getItem('token')
-    if (token) {
+    if (token && !token.includes('mock_token')) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
     return config
   },
   error => {
-    console.error('请求错误:', error)
+    console.error('请求失败:', error)
     return Promise.reject(error)
   }
 )
 
-// 简化的响应拦截器
-service.interceptors.response.use(
+// 响应拦截器
+request.interceptors.response.use(
   response => {
+    console.log('收到响应:', response.status, response.data)
     return response.data
   },
   error => {
     console.error('响应错误:', error)
     
-    // 简化错误处理，避免循环引用
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      // 使用简单的页面跳转
-      window.location.href = '/login'
+    let message = '请求失败'
+    
+    if (error.response) {
+      const status = error.response.status
+      switch (status) {
+        case 401:
+          message = '登录已过期'
+          localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
+          window.location.href = '/login'
+          break
+        case 403:
+          message = '没有权限'
+          break
+        case 404:
+          message = '接口不存在'
+          break
+        case 500:
+          message = '服务器错误'
+          break
+        default:
+          message = `请求失败 (${status})`
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      message = '请求超时'
+    } else if (error.message.includes('Network Error')) {
+      message = '网络连接失败'
     }
     
+    ElMessage.error(message)
     return Promise.reject(error)
   }
 )
 
-export default service
+export default request
