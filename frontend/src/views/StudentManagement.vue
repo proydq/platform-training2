@@ -1,331 +1,169 @@
 <template>
   <div class="student-management-container">
-    <!-- 统计概览 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-          <div class="stat-number">{{ stats.total }}</div>
-          <div class="stat-label">总学员数</div>
-        </div>
+    <!-- 顶部统计概览 - 独立卡片 -->
+    <div class="stats-overview">
+      <div class="stat-item">
+        <div class="stat-number">156</div>
+        <div class="stat-label">总学员数</div>
       </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
-        <div class="stat-content">
-          <div class="stat-number">{{ stats.active }}</div>
-          <div class="stat-label">活跃学员</div>
-        </div>
+      <div class="stat-item">
+        <div class="stat-number">89%</div>
+        <div class="stat-label">活跃率</div>
       </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">📈</div>
-        <div class="stat-content">
-          <div class="stat-number">{{ stats.avgProgress }}%</div>
-          <div class="stat-label">平均进度</div>
-        </div>
+      <div class="stat-item">
+        <div class="stat-number">78%</div>
+        <div class="stat-label">平均完成率</div>
       </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">🎯</div>
-        <div class="stat-content">
-          <div class="stat-number">{{ stats.avgScore }}</div>
-          <div class="stat-label">平均成绩</div>
-        </div>
+      <div class="stat-item">
+        <div class="stat-number">85</div>
+        <div class="stat-label">平均分</div>
       </div>
     </div>
 
-    <!-- 筛选和操作区域 -->
-    <el-card class="filter-card">
+    <!-- 主要内容卡片 -->
+    <div class="main-card">
+      <!-- 页面标题和操作按钮 -->
+      <div class="page-header">
+        <h2>👥 学员管理</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" @click="exportData">📥 导出数据</button>
+          <button class="btn btn-secondary" @click="sendBatchNotification">📢 批量通知</button>
+          <button class="btn btn-secondary" @click="addNewStudent">➕ 添加学员</button>
+        </div>
+      </div>
+      
+      <!-- 搜索和筛选区域 -->
       <div class="student-filters">
-        <div class="filter-left">
-          <el-select
-            v-model="filters.department"
-            placeholder="选择部门"
-            clearable
-            style="width: 150px"
-          >
-            <el-option
-              v-for="dept in departments"
-              :key="dept.value"
-              :label="dept.label"
-              :value="dept.value"
-            />
-          </el-select>
-          
-          <el-select
-            v-model="filters.status"
-            placeholder="选择状态"
-            clearable
-            style="width: 150px"
-          >
-            <el-option
-              v-for="status in statusOptions"
-              :key="status.value"
-              :label="status.label"
-              :value="status.value"
-            />
-          </el-select>
-          
-          <el-input
-            v-model="filters.search"
-            placeholder="搜索学员姓名或邮箱"
-            prefix-icon="Search"
-            clearable
-            style="width: 250px"
-            @input="handleSearch"
-          />
-        </div>
-        
-        <div class="filter-right">
-          <el-button type="primary" @click="exportData">
-            <el-icon><Download /></el-icon>
-            导出数据
-          </el-button>
-          <el-button @click="refreshData">
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
-        </div>
+        <input 
+          v-model="filters.search"
+          type="text" 
+          placeholder="搜索学员姓名或邮箱..." 
+          @input="searchStudents"
+        />
+        <select v-model="filters.department" @change="filterStudents">
+          <option value="">全部部门</option>
+          <option value="product">产品部</option>
+          <option value="technology">技术部</option>
+          <option value="marketing">市场部</option>
+          <option value="design">设计部</option>
+          <option value="hr">人事部</option>
+        </select>
+        <select v-model="filters.status" @change="filterStudents">
+          <option value="">全部状态</option>
+          <option value="active">活跃</option>
+          <option value="inactive">不活跃</option>
+          <option value="completed">已完成</option>
+        </select>
+        <button class="btn btn-secondary" @click="refreshData">🔄 刷新</button>
       </div>
-    </el-card>
-
-    <!-- 学员表格 -->
-    <el-card class="table-card">
-      <el-table
-        v-loading="loading"
-        :data="paginatedStudents"
-        stripe
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="55" />
-        
-        <el-table-column label="学员信息" min-width="200">
-          <template #default="{ row }">
-            <div class="student-info">
-              <el-avatar :size="40" class="student-avatar">
-                {{ row.avatar }}
-              </el-avatar>
-              <div class="student-details">
-                <div class="student-name">{{ row.name }}</div>
-                <div class="student-email">{{ row.email }}</div>
+      
+      <!-- 学员表格 -->
+      <table class="student-table">
+        <thead>
+          <tr>
+            <th>学员信息</th>
+            <th>部门</th>
+            <th>学习进度</th>
+            <th>考试成绩</th>
+            <th>状态</th>
+            <th>最后活跃</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="student in paginatedStudents" :key="student.id">
+            <td>
+              <div class="student-info">
+                <div class="student-avatar">{{ student.avatar }}</div>
+                <div class="student-details">
+                  <div class="student-name">{{ student.name }}</div>
+                  <div class="student-email">{{ student.email }}</div>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="department" label="部门" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getDepartmentTagType(row.department)">
-              {{ getDepartmentName(row.department) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="学习进度" width="150">
-          <template #default="{ row }">
-            <div class="progress-cell">
-              <el-progress
-                :percentage="row.progress"
-                :color="getProgressColor(row.progress)"
-                :stroke-width="8"
-              />
-              <span class="progress-text">{{ row.progress }}%</span>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="avgScore" label="考试成绩" width="100">
-          <template #default="{ row }">
-            <span :class="{ 'high-score': row.avgScore >= 80, 'low-score': row.avgScore < 60 }">
-              {{ row.avgScore }}分
-            </span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusTagType(row.status)">
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="lastActive" label="最后活跃" width="120" />
-        
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="viewStudent(row)">
-              查看
-            </el-button>
-            <el-button size="small" type="primary" @click="editStudent(row)">
-              编辑
-            </el-button>
-            <el-dropdown @command="(command) => handleAction(command, row)">
-              <el-button size="small">
-                更多<el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="resetPassword">重置密码</el-dropdown-item>
-                  <el-dropdown-item command="sendNotification">发送通知</el-dropdown-item>
-                  <el-dropdown-item command="exportReport">导出报告</el-dropdown-item>
-                  <el-dropdown-item divided command="delete" class="danger-item">
-                    删除学员
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
+            </td>
+            <td>
+              <span class="department-tag">{{ getDepartmentLabel(student.department) }}</span>
+            </td>
+            <td>
+              <div class="progress-container">
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: student.progress + '%' }"></div>
+                </div>
+                <span class="progress-text">{{ student.progress }}%</span>
+              </div>
+            </td>
+            <td>
+              <span class="score-text" :class="getScoreClass(student.avgScore)">
+                {{ student.avgScore }}分
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" :class="getStatusClass(student.status)">
+                {{ getStatusLabel(student.status) }}
+              </span>
+            </td>
+            <td>{{ student.lastActive }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn view-btn" @click="viewStudent(student)">查看</button>
+                <button class="action-btn edit-btn" @click="editStudent(student)">编辑</button>
+                <button class="action-btn message-btn" @click="sendMessage(student)">消息</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
       
-      <!-- 批量操作 -->
-      <div v-if="selectedStudents.length > 0" class="batch-actions">
-        <span class="batch-info">已选择 {{ selectedStudents.length }} 名学员</span>
-        <el-button size="small" @click="batchSendNotification">
-          批量发送通知
-        </el-button>
-        <el-button size="small" @click="batchExport">
-          批量导出
-        </el-button>
-        <el-button size="small" type="danger" @click="batchDelete">
-          批量删除
-        </el-button>
+      <!-- 分页控件 - 在同一个卡片背景下 -->
+      <div class="pagination-section">
+        <div class="pagination-info">
+          <span>共 <strong>{{ totalStudents }}</strong> 名学员</span>
+          <span class="page-size-selector">
+            每页显示 
+            <select v-model="pageSize" @change="handlePageSizeChange">
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select> 条
+          </span>
+        </div>
+        <div class="pagination-controls">
+          <button 
+            class="btn btn-secondary" 
+            @click="previousPage" 
+            :disabled="currentPage === 1"
+          >
+            上一页
+          </button>
+          <span class="page-info">
+            第 <strong>{{ currentPage }}</strong> 页，共 <strong>{{ totalPages }}</strong> 页
+          </span>
+          <button 
+            class="btn btn-secondary" 
+            @click="nextPage" 
+            :disabled="currentPage === totalPages"
+          >
+            下一页
+          </button>
+        </div>
       </div>
-    </el-card>
-
-    <!-- 分页 -->
-    <div class="pagination-container">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="filteredStudents.length"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
     </div>
-
-    <!-- 学员详情弹窗 -->
-    <el-dialog
-      v-model="studentDialogVisible"
-      :title="dialogTitle"
-      width="800px"
-      @close="closeStudentDialog"
-    >
-      <div v-if="selectedStudent" class="student-dialog-content">
-        <div class="student-profile">
-          <el-avatar :size="80" class="profile-avatar">
-            {{ selectedStudent.avatar }}
-          </el-avatar>
-          <div class="profile-info">
-            <h3>{{ selectedStudent.name }}</h3>
-            <p>{{ selectedStudent.email }}</p>
-            <el-tag :type="getDepartmentTagType(selectedStudent.department)">
-              {{ getDepartmentName(selectedStudent.department) }}
-            </el-tag>
-          </div>
-        </div>
-        
-        <el-divider />
-        
-        <div class="student-stats">
-          <div class="stat-item">
-            <div class="stat-label">学习进度</div>
-            <div class="stat-value">{{ selectedStudent.progress }}%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">平均成绩</div>
-            <div class="stat-value">{{ selectedStudent.avgScore }}分</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">完成课程</div>
-            <div class="stat-value">{{ selectedStudent.completedCourses || 12 }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">学习时长</div>
-            <div class="stat-value">{{ selectedStudent.studyHours || 156 }}h</div>
-          </div>
-        </div>
-        
-        <el-divider />
-        
-        <div class="recent-activities">
-          <h4>最近学习记录</h4>
-          <el-timeline>
-            <el-timeline-item
-              v-for="activity in studentActivities"
-              :key="activity.id"
-              :timestamp="activity.time"
-            >
-              {{ activity.description }}
-            </el-timeline-item>
-          </el-timeline>
-        </div>
-      </div>
-      
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="closeStudentDialog">关闭</el-button>
-          <el-button type="primary" @click="editStudent(selectedStudent)">
-            编辑信息
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Download, Refresh, Search, ArrowDown } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 
 // 响应式数据
-const loading = ref(false)
-const selectedStudents = ref([])
-const studentDialogVisible = ref(false)
-const selectedStudent = ref(null)
-const dialogTitle = ref('')
-
-// 统计数据
-const stats = ref({
-  total: 156,
-  active: 132,
-  avgProgress: 75,
-  avgScore: 87
-})
-
-// 筛选条件
 const filters = ref({
   department: '',
   status: '',
   search: ''
 })
 
-// 分页
 const currentPage = ref(1)
 const pageSize = ref(20)
-
-// 部门选项
-const departments = [
-  { value: 'product', label: '产品部门' },
-  { value: 'technology', label: '技术部门' },
-  { value: 'marketing', label: '市场部门' },
-  { value: 'design', label: '设计部门' },
-  { value: 'hr', label: '人力资源' }
-]
-
-// 状态选项
-const statusOptions = [
-  { value: 'active', label: '活跃' },
-  { value: 'inactive', label: '不活跃' },
-  { value: 'completed', label: '已完成' },
-  { value: 'pending', label: '待激活' }
-]
 
 // 学员数据
 const students = ref([
@@ -353,32 +191,36 @@ const students = ref([
     id: 5, name: '钱七', email: 'qianqi@company.com', 
     department: 'hr', progress: 70, avgScore: 82, 
     status: 'active', lastActive: '3小时前', avatar: '钱'
+  },
+  {
+    id: 6, name: '孙八', email: 'sunba@company.com', 
+    department: 'product', progress: 40, avgScore: 65, 
+    status: 'active', lastActive: '4小时前', avatar: '孙'
+  },
+  {
+    id: 7, name: '周九', email: 'zhoujiu@company.com', 
+    department: 'technology', progress: 90, avgScore: 95, 
+    status: 'active', lastActive: '1小时前', avatar: '周'
+  },
+  {
+    id: 8, name: '吴十', email: 'wushi@company.com', 
+    department: 'marketing', progress: 75, avgScore: 80, 
+    status: 'completed', lastActive: '6小时前', avatar: '吴'
   }
-])
-
-// 学员活动记录
-const studentActivities = ref([
-  { id: 1, time: '2025-01-18 14:30', description: '完成了《产品基础培训》课程' },
-  { id: 2, time: '2025-01-17 10:15', description: '参加了《销售技能测试》考试，得分92分' },
-  { id: 3, time: '2025-01-16 16:45', description: '开始学习《客户服务标准》课程' },
-  { id: 4, time: '2025-01-15 09:20', description: '登录系统，查看学习进度' }
 ])
 
 // 计算属性
 const filteredStudents = computed(() => {
   let result = students.value
 
-  // 部门筛选
   if (filters.value.department) {
     result = result.filter(student => student.department === filters.value.department)
   }
 
-  // 状态筛选
   if (filters.value.status) {
     result = result.filter(student => student.status === filters.value.status)
   }
 
-  // 搜索筛选
   if (filters.value.search) {
     const keyword = filters.value.search.toLowerCase()
     result = result.filter(student => 
@@ -390,6 +232,9 @@ const filteredStudents = computed(() => {
   return result
 })
 
+const totalStudents = computed(() => filteredStudents.value.length)
+const totalPages = computed(() => Math.ceil(totalStudents.value / pageSize.value))
+
 const paginatedStudents = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
@@ -397,267 +242,251 @@ const paginatedStudents = computed(() => {
 })
 
 // 方法
-const getDepartmentName = (dept) => {
-  const deptMap = {
-    'product': '产品部门',
-    'technology': '技术部门', 
-    'marketing': '市场部门',
-    'design': '设计部门',
-    'hr': '人力资源'
+const getDepartmentLabel = (department) => {
+  const labels = {
+    'product': '产品部',
+    'technology': '技术部',
+    'marketing': '市场部',
+    'design': '设计部',
+    'hr': '人事部'
   }
-  return deptMap[dept] || dept
+  return labels[department] || department
 }
 
-const getDepartmentTagType = (dept) => {
-  const typeMap = {
-    'product': 'primary',
-    'technology': 'success',
-    'marketing': 'warning',
-    'design': 'info',
-    'hr': 'danger'
-  }
-  return typeMap[dept] || ''
-}
-
-const getStatusText = (status) => {
-  const statusMap = {
+const getStatusLabel = (status) => {
+  const labels = {
     'active': '活跃',
     'inactive': '不活跃',
-    'completed': '已完成',
-    'pending': '待激活'
+    'completed': '已完成'
   }
-  return statusMap[status] || status
+  return labels[status] || status
 }
 
-const getStatusTagType = (status) => {
-  const typeMap = {
-    'active': 'success',
-    'inactive': 'info',
-    'completed': 'primary',
-    'pending': 'warning'
-  }
-  return typeMap[status] || ''
+const getStatusClass = (status) => {
+  return `status-${status}`
 }
 
-const getProgressColor = (progress) => {
-  if (progress >= 80) return '#67c23a'
-  if (progress >= 60) return '#e6a23c'
-  return '#f56c6c'
+const getScoreClass = (score) => {
+  if (score >= 90) return 'score-excellent'
+  if (score >= 80) return 'score-good'
+  if (score >= 60) return 'score-pass'
+  return 'score-fail'
 }
 
-const handleSearch = () => {
+const searchStudents = () => {
   currentPage.value = 1
 }
 
-const handleSelectionChange = (selection) => {
-  selectedStudents.value = selection
+const filterStudents = () => {
+  currentPage.value = 1
 }
 
-const viewStudent = (student) => {
-  selectedStudent.value = student
-  dialogTitle.value = `学员详情 - ${student.name}`
-  studentDialogVisible.value = true
+const handlePageSizeChange = () => {
+  currentPage.value = 1
 }
 
-const editStudent = (student) => {
-  ElMessage.info(`编辑学员：${student.name}`)
-  // 实现编辑功能
-}
-
-const handleAction = async (command, student) => {
-  switch (command) {
-    case 'resetPassword':
-      await resetPassword(student)
-      break
-    case 'sendNotification':
-      sendNotification([student])
-      break
-    case 'exportReport':
-      exportStudentReport(student)
-      break
-    case 'delete':
-      await deleteStudent(student)
-      break
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
   }
 }
 
-const resetPassword = async (student) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要重置 ${student.name} 的密码吗？`,
-      '重置密码',
-      { type: 'warning' }
-    )
-    ElMessage.success('密码重置成功，新密码已发送到学员邮箱')
-  } catch {
-    // 用户取消
-  }
-}
-
-const sendNotification = (studentList) => {
-  ElMessage.success(`向 ${studentList.length} 名学员发送通知`)
-  // 实现发送通知功能
-}
-
-const exportStudentReport = (student) => {
-  ElMessage.success(`导出 ${student.name} 的学习报告`)
-  // 实现导出功能
-}
-
-const deleteStudent = async (student) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除学员 ${student.name} 吗？此操作不可恢复。`,
-      '删除学员',
-      { type: 'error' }
-    )
-    ElMessage.success('学员删除成功')
-    // 从列表中移除
-    const index = students.value.findIndex(s => s.id === student.id)
-    if (index > -1) {
-      students.value.splice(index, 1)
-    }
-  } catch {
-    // 用户取消
-  }
-}
-
-const batchSendNotification = () => {
-  sendNotification(selectedStudents.value)
-  selectedStudents.value = []
-}
-
-const batchExport = () => {
-  ElMessage.success(`批量导出 ${selectedStudents.value.length} 名学员数据`)
-  selectedStudents.value = []
-}
-
-const batchDelete = async () => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedStudents.value.length} 名学员吗？`,
-      '批量删除',
-      { type: 'error' }
-    )
-    ElMessage.success('批量删除成功')
-    selectedStudents.value = []
-  } catch {
-    // 用户取消
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
   }
 }
 
 const exportData = () => {
-  ElMessage.success('数据导出中...')
-  // 实现导出功能
+  ElMessage.success('正在导出学员数据...')
+}
+
+const sendBatchNotification = () => {
+  ElMessage.success('正在发送批量通知...')
+}
+
+const addNewStudent = () => {
+  ElMessage.info('打开添加学员对话框')
 }
 
 const refreshData = () => {
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-    ElMessage.success('数据刷新成功')
-  }, 1000)
+  ElMessage.success('数据已刷新')
 }
 
-const closeStudentDialog = () => {
-  studentDialogVisible.value = false
-  selectedStudent.value = null
+const viewStudent = (student) => {
+  ElMessage.info(`查看学员：${student.name}`)
 }
 
-const handleSizeChange = (size) => {
-  pageSize.value = size
-  currentPage.value = 1
+const editStudent = (student) => {
+  ElMessage.info(`编辑学员：${student.name}`)
 }
 
-const handleCurrentChange = (page) => {
-  currentPage.value = page
+const sendMessage = (student) => {
+  ElMessage.success(`已向 ${student.name} 发送消息`)
 }
-
-onMounted(() => {
-  // 初始化数据
-})
 </script>
 
 <style scoped>
 .student-management-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  /* Layout已处理容器样式 */
 }
 
-.stats-grid {
+/* 顶部统计概览 */
+.stats-overview {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 20px;
 }
 
-.stat-card {
+.stat-item {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
+  padding: 30px 20px;
+  text-align: center;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
-.stat-card:hover {
-  transform: translateY(-3px);
+.stat-item:hover {
+  transform: translateY(-5px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
 }
 
-.stat-icon {
-  font-size: 24px;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.stat-item .stat-number {
+  font-size: 36px;
+  font-weight: 700;
   background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 10px;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
 }
 
-.stat-number {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-}
-
-.stat-label {
+.stat-item .stat-label {
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
-.filter-card,
-.table-card {
-  margin-bottom: 20px;
-  border-radius: 15px;
-  border: none;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+/* 主卡片 - 包含除统计外的所有内容 */
+.main-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  /* 所有内容都在这个背景下 */
 }
 
-.student-filters {
+/* 页面头部 */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 15px;
+  margin-bottom: 30px;
 }
 
-.filter-left {
-  display: flex;
-  gap: 15px;
-  align-items: center;
+.page-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+  font-weight: 600;
 }
 
-.filter-right {
+.header-actions {
   display: flex;
   gap: 10px;
 }
 
+/* 按钮样式 */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 筛选区域 */
+.student-filters {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.student-filters input,
+.student-filters select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.student-filters input {
+  flex: 1;
+}
+
+/* 表格样式 */
+.student-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.student-table th,
+.student-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.student-table th {
+  background: rgba(102, 126, 234, 0.1);
+  font-weight: 600;
+  color: #333;
+}
+
+.student-table tbody tr {
+  background: white;
+}
+
+.student-table tbody tr:hover {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+/* 学员信息 */
 .student-info {
   display: flex;
   align-items: center;
@@ -665,143 +494,238 @@ onMounted(() => {
 }
 
 .student-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: white;
   font-weight: bold;
+  font-size: 14px;
 }
 
 .student-name {
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
+  margin-bottom: 2px;
 }
 
 .student-email {
-  font-size: 12px;
   color: #666;
+  font-size: 12px;
 }
 
-.progress-cell {
+/* 部门标签 */
+.department-tag {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+/* 进度条 */
+.progress-container {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-bar {
+  width: 100px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width 0.3s ease;
 }
 
 .progress-text {
   font-size: 12px;
   color: #666;
-  text-align: center;
+  min-width: 35px;
 }
 
-.high-score {
-  color: #67c23a;
+/* 成绩样式 */
+.score-excellent {
+  color: #28a745;
   font-weight: bold;
 }
 
-.low-score {
-  color: #f56c6c;
+.score-good {
+  color: #007bff;
   font-weight: bold;
 }
 
-.batch-actions {
-  margin-top: 15px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
+.score-pass {
+  color: #ffc107;
+}
+
+.score-fail {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* 状态标签 */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-completed {
+  background: #cce7ff;
+  color: #0066cc;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.view-btn {
+  background: #007bff;
+  color: white;
+}
+
+.edit-btn {
+  background: #28a745;
+  color: white;
+}
+
+.message-btn {
+  background: #ffc107;
+  color: #333;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* 分页区域 - 重要：在同一个卡片背景下 */
+.pagination-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  /* 注意：这里没有单独的背景色，使用父级卡片的背景 */
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.page-size-selector select {
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 0 5px;
+}
+
+.pagination-controls {
   display: flex;
   align-items: center;
   gap: 15px;
 }
 
-.batch-info {
+.page-info {
   color: #666;
   font-size: 14px;
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.student-dialog-content {
-  max-height: 600px;
-  overflow-y: auto;
-}
-
-.student-profile {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.profile-avatar {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  font-weight: bold;
-}
-
-.profile-info h3 {
-  margin: 0 0 5px 0;
-  color: #333;
-}
-
-.profile-info p {
-  margin: 0 0 10px 0;
-  color: #666;
-}
-
-.student-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px;
-}
-
-.stat-item {
-  text-align: center;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 5px;
-}
-
-.stat-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-}
-
-.recent-activities h4 {
-  margin: 0 0 15px 0;
-  color: #333;
-}
-
-.danger-item {
-  color: #f56c6c !important;
-}
-
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .stats-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 1200px) {
+  .student-table {
+    font-size: 12px;
+  }
+  
+  .student-table th,
+  .student-table td {
+    padding: 10px;
+  }
+}
+
 @media (max-width: 768px) {
-  .student-filters {
+  .stats-overview {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  .stat-item {
+    padding: 20px 15px;
+  }
+  
+  .stat-item .stat-number {
+    font-size: 28px;
+  }
+  
+  .page-header {
     flex-direction: column;
+    gap: 15px;
     align-items: stretch;
   }
   
-  .filter-left {
-    flex-direction: column;
+  .header-actions {
+    justify-content: center;
   }
   
-  .student-profile {
+  .student-filters {
     flex-direction: column;
-    text-align: center;
+    gap: 10px;
   }
   
-  .student-stats {
-    grid-template-columns: repeat(2, 1fr);
+  .pagination-section {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .student-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-overview {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -118,13 +118,36 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 按原始HTML设计的样式 */
+/* 全屏背景布局 */
 .layout-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* 移除max-width限制，让背景平铺整个屏幕 */
+  width: 100%;
   padding: 20px;
+  /* 使用固定定位确保背景覆盖整个视口 */
+  position: relative;
+}
+
+/* 为了确保背景完全平铺，在body上也设置背景 */
+.layout-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: -1;
+}
+
+/* 内容区域居中，但背景平铺 */
+.header,
+.main-content-wrapper {
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
@@ -221,6 +244,8 @@ onMounted(() => {
 
 .main-content-wrapper {
   min-height: calc(100vh - 140px);
+  position: relative;
+  z-index: 1;
 }
 
 /* 页面切换动画 */
