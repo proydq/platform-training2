@@ -228,26 +228,38 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, String> 
     List<ExamResult> findRecentByUserId(@Param("userId") String userId, @Param("limit") int limit);
 
     /**
-     * 统计用户总考试次数
-     *
-     * @param userId 用户ID
-     * @return 总考试次数
-     */
-    long countByUserId(String userId);
-
-    /**
-     * 统计用户通过的考试次数
-     *
-     * @param userId 用户ID
-     * @return 通过的考试次数
-     */
-    long countByUserIdAndPassStatus(String userId, ExamResult.PassStatus passStatus);
-
-    /**
      * 查询正在进行的考试
      *
      * @param userId 用户ID
      * @return 正在进行的考试列表
      */
     List<ExamResult> findByUserIdAndPassStatus(String userId, ExamResult.PassStatus passStatus);
+
+    // 这些方法需要添加到现有的 ExamResultRepository 中
+
+    /**
+     * 根据用户ID统计考试数量
+     *
+     * @param userId 用户ID
+     * @return 考试数量
+     */
+    long countByUserId(String userId);
+
+    /**
+     * 根据用户ID和通过状态统计考试数量
+     *
+     * @param userId 用户ID
+     * @param passStatus 通过状态
+     * @return 考试数量
+     */
+    long countByUserIdAndPassStatus(String userId, ExamResult.PassStatus passStatus);
+
+    /**
+     * 获取用户平均分
+     *
+     * @param userId 用户ID
+     * @return 平均分
+     */
+    @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.userId = :userId AND er.passStatus != 'IN_PROGRESS'")
+    Double getAverageScoreByUserId(@Param("userId") String userId);
 }

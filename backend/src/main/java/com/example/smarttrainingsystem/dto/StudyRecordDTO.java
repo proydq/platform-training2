@@ -8,10 +8,11 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 学习记录数据传输对象
- * 
+ *
  * @author Smart Training System
  * @version 1.0
  * @since 2025-07-17
@@ -25,9 +26,9 @@ public class StudyRecordDTO {
     public static class CreateRequest {
         @NotBlank(message = "课程ID不能为空")
         private String courseId;
-        
+
         private String chapterId;
-        
+
         @Size(max = 1000, message = "学习笔记长度不能超过1000字符")
         private String notes;
     }
@@ -40,23 +41,23 @@ public class StudyRecordDTO {
         @Min(value = 0, message = "学习进度不能小于0")
         @Max(value = 100, message = "学习进度不能大于100")
         private Integer progressPercent;
-        
+
         @Size(max = 100, message = "学习位置长度不能超过100字符")
         private String lastPosition;
-        
+
         @Min(value = 0, message = "学习时长不能小于0")
         private Integer studyDuration;
-        
+
         @Size(max = 1000, message = "学习笔记长度不能超过1000字符")
         private String notes;
-        
+
         @Min(value = 1, message = "评分不能小于1")
         @Max(value = 5, message = "评分不能大于5")
         private Integer rating;
-        
+
         @Size(max = 500, message = "评价长度不能超过500字符")
         private String review;
-        
+
         private Boolean isFavorited;
     }
 
@@ -69,7 +70,7 @@ public class StudyRecordDTO {
         private String userId;
         private String courseId;
         private String chapterId;
-        private StudyRecord.StudyStatus studyStatus;
+        private StudyRecord.Status studyStatus;
         private String studyStatusDesc;
         private Integer progressPercent;
         private Integer studyDuration;
@@ -83,11 +84,11 @@ public class StudyRecordDTO {
         private Boolean isFavorited;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
-        
+
         // 关联信息
         private CourseInfo courseInfo;
         private ChapterInfo chapterInfo;
-        
+
         /**
          * 课程信息
          */
@@ -102,7 +103,7 @@ public class StudyRecordDTO {
             private Integer duration;
             private String instructor;
         }
-        
+
         /**
          * 章节信息
          */
@@ -118,41 +119,12 @@ public class StudyRecordDTO {
     }
 
     /**
-     * 学习记录统计响应对象
-     */
-    @Data
-    public static class StatisticsResponse {
-        private Long totalRecords;
-        private Long completedCourses;
-        private Long inProgressCourses;
-        private Long totalStudyTime;
-        private Double completionRate;
-        private Double avgRating;
-        private Long favoritedCourses;
-        private LocalDateTime lastStudyTime;
-        private Integer continuousDays;
-        private String learningLevel;
-        
-        /**
-         * 学习趋势数据
-         */
-        @Data
-        public static class TrendData {
-            private String date;
-            private Integer studyDuration;
-            private Integer coursesStudied;
-            private Integer chaptersCompleted;
-            private Integer activityScore;
-        }
-    }
-
-    /**
      * 学习记录搜索请求对象
      */
     @Data
     public static class SearchRequest {
         private String keyword;
-        private StudyRecord.StudyStatus status;
+        private StudyRecord.Status status;
         private String courseId;
         private String category;
         private Boolean isFavorited;
@@ -175,14 +147,14 @@ public class StudyRecordDTO {
         private String courseId;
         private String courseTitle;
         private String courseCover;
-        private StudyRecord.StudyStatus studyStatus;
+        private StudyRecord.Status studyStatus;
         private String studyStatusDesc;
         private Integer progressPercent;
         private Integer studyDuration;
         private LocalDateTime lastStudyTime;
         private Boolean isFavorited;
         private Integer rating;
-        
+
         /**
          * 进度状态描述
          */
@@ -198,7 +170,7 @@ public class StudyRecordDTO {
                 return "进行中 " + progressPercent + "%";
             }
         }
-        
+
         /**
          * 学习时长格式化
          */
@@ -206,10 +178,59 @@ public class StudyRecordDTO {
             if (studyDuration == null || studyDuration == 0) {
                 return "0分钟";
             }
-            
+
             int hours = studyDuration / 60;
             int minutes = studyDuration % 60;
-            
+
+            if (hours > 0) {
+                return hours + "小时" + minutes + "分钟";
+            } else {
+                return minutes + "分钟";
+            }
+        }
+    }
+
+    /**
+     * 学习记录统计响应对象
+     */
+    @Data
+    public static class StatisticsResponse {
+        private Long totalRecords;
+        private Long completedCourses;
+        private Long inProgressCourses;
+        private Long totalStudyTime;
+        private Double completionRate;
+        private Double avgRating;
+        private Long favoritedCourses;
+        private LocalDateTime lastStudyTime;
+        private Integer continuousDays;
+        private String learningLevel;
+
+        /**
+         * 学习趋势数据
+         */
+        @Data
+        public static class TrendData {
+            private String date;
+            private Integer studyDuration;
+            private Integer coursesStudied;
+            private Integer chaptersCompleted;
+            private Integer activityScore;
+        }
+
+        private List<TrendData> trendData;
+
+        /**
+         * 学习时长格式化
+         */
+        public String getTotalStudyTimeFormatted() {
+            if (totalStudyTime == null || totalStudyTime == 0) {
+                return "0小时";
+            }
+
+            long hours = totalStudyTime / 60;
+            long minutes = totalStudyTime % 60;
+
             if (hours > 0) {
                 return hours + "小时" + minutes + "分钟";
             } else {
@@ -232,7 +253,7 @@ public class StudyRecordDTO {
         private Long completedCourses;
         private Integer activityScore;
         private Boolean isCurrentUser;
-        
+
         /**
          * 学习时长格式化
          */
@@ -240,17 +261,17 @@ public class StudyRecordDTO {
             if (totalStudyTime == null || totalStudyTime == 0) {
                 return "0小时";
             }
-            
+
             long hours = totalStudyTime / 60;
             long minutes = totalStudyTime % 60;
-            
+
             if (hours > 0) {
                 return hours + "小时" + minutes + "分钟";
             } else {
                 return minutes + "分钟";
             }
         }
-        
+
         /**
          * 活跃度等级
          */
@@ -286,7 +307,7 @@ public class StudyRecordDTO {
         private String userId;
         private LocalDateTime startTime;
         private LocalDateTime endTime;
-        private StudyRecord.StudyStatus status;
+        private StudyRecord.Status status;
         private String format = "excel"; // excel, csv, pdf
         private Boolean includeDetails = false;
     }

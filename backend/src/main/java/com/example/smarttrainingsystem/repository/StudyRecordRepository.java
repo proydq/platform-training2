@@ -14,7 +14,6 @@ import java.util.Optional;
 
 /**
  * 学习记录数据仓储接口
- * 提供学习记录的数据访问操作
  *
  * @author Smart Training System
  * @version 1.0
@@ -25,6 +24,14 @@ public interface StudyRecordRepository extends JpaRepository<StudyRecord, String
 
     /**
      * 根据用户ID查询学习记录
+     *
+     * @param userId 用户ID
+     * @return 学习记录列表
+     */
+    List<StudyRecord> findByUserId(String userId);
+
+    /**
+     * 根据用户ID查询学习记录（分页）
      *
      * @param userId 用户ID
      * @param pageable 分页参数
@@ -42,31 +49,114 @@ public interface StudyRecordRepository extends JpaRepository<StudyRecord, String
     Optional<StudyRecord> findByUserIdAndCourseId(String userId, String courseId);
 
     /**
-     * 根据用户ID和章节ID查询学习记录
+     * 根据课程ID查询学习记录
+     *
+     * @param courseId 课程ID
+     * @return 学习记录列表
+     */
+    List<StudyRecord> findByCourseId(String courseId);
+
+    /**
+     * 统计用户的学习记录数量
      *
      * @param userId 用户ID
-     * @param chapterId 章节ID
-     * @return 学习记录
+     * @return 记录数量
      */
-    Optional<StudyRecord> findByUserIdAndChapterId(String userId, String chapterId);
+    long countByUserId(String userId);
+
+    /**
+     * 根据用户ID和状态统计学习记录
+     *
+     * @param userId 用户ID
+     * @param status 学习状态
+     * @return 记录数量
+     */
+    long countByUserIdAndStatus(String userId, StudyRecord.Status status);
 
     /**
      * 根据用户ID和学习状态查询学习记录
      *
      * @param userId 用户ID
      * @param status 学习状态
+     * @return 学习记录列表
+     */
+    List<StudyRecord> findByUserIdAndStatus(String userId, StudyRecord.Status status);
+
+    /**
+     * 根据用户ID和学习状态查询学习记录（分页）
+     *
+     * @param userId 用户ID
+     * @param status 学习状态
      * @param pageable 分页参数
      * @return 学习记录分页
      */
-    Page<StudyRecord> findByUserIdAndStudyStatus(String userId, StudyRecord.StudyStatus status, Pageable pageable);
+    Page<StudyRecord> findByUserIdAndStatus(String userId, StudyRecord.Status status, Pageable pageable);
+
+    /**
+     * 根据用户ID和学习状态查询学习记录（兼容旧方法名）
+     *
+     * @param userId 用户ID
+     * @param status 学习状态
+     * @param pageable 分页参数
+     * @return 学习记录分页
+     */
+    default Page<StudyRecord> findByUserIdAndStudyStatus(String userId, StudyRecord.Status status, Pageable pageable) {
+        return findByUserIdAndStatus(userId, status, pageable);
+    }
+
+    /**
+     * 根据用户ID和收藏状态查询学习记录
+     *
+     * @param userId 用户ID
+     * @param isFavorited 是否收藏
+     * @param pageable 分页参数
+     * @return 学习记录分页
+     */
+    Page<StudyRecord> findByUserIdAndIsFavorited(String userId, Boolean isFavorited, Pageable pageable);
+
+    /**
+     * 统计用户的总学习时长
+     *
+     * @param userId 用户ID
+     * @return 学习时长（分钟）
+     */
+    @Query("SELECT COALESCE(SUM(sr.studyTime), 0) FROM StudyRecord sr WHERE sr.userId = :userId")
+    Integer sumStudyTimeByUserId(@Param("userId") String userId);
+
+    /**
+     * 统计活跃学员数量（指定时间之后有学习记录）
+     *
+     * @param sinceDate 起始时间
+     * @return 活跃学员数量
+     */
+    @Query("SELECT COUNT(DISTINCT sr.userId) FROM StudyRecord sr WHERE sr.lastStudyAt >= :sinceDate")
+    long countActiveStudents(@Param("sinceDate") LocalDateTime sinceDate);
+
+    /**
+     * 统计有完成课程的学员数量
+     *
+     * @return 学员数量
+     */
+    @Query("SELECT COUNT(DISTINCT sr.userId) FROM StudyRecord sr WHERE sr.status = 'COMPLETED'")
+    long countStudentsWithCompletedCourses();
+
+    /**
+     * 查询用户最近的学习记录
+     *
+     * @param userId 用户ID
+     * @param limit 限制数量
+     * @return 学习记录列表
+     */
+    @Query("SELECT sr FROM StudyRecord sr WHERE sr.userId = :userId ORDER BY sr.lastStudyAt DESC")
+    List<StudyRecord> findRecentStudyRecords(@Param("userId") String userId, @Param("limit") int limit);
 
     /**
      * 查询用户正在学习的课程
      *
      * @param userId 用户ID
-     * @return 正在学习的记录列表
+     * @return 学习记录列表
      */
-    @Query("SELECT sr FROM StudyRecord sr WHERE sr.userId = :userId AND sr.studyStatus = 'IN_PROGRESS' ORDER BY sr.lastStudyTime DESC")
+    @Query("SELECT sr FROM StudyRecord sr WHERE sr.userId = :userId AND sr.status = 'IN_PROGRESS' ORDER BY sr.lastStudyAt DESC")
     List<StudyRecord> findInProgressByUserId(@Param("userId") String userId);
 
     /**
@@ -74,185 +164,21 @@ public interface StudyRecordRepository extends JpaRepository<StudyRecord, String
      *
      * @param userId 用户ID
      * @param pageable 分页参数
-     * @return 已完成的记录分页
+     * @return 学习记录分页
      */
-    @Query("SELECT sr FROM StudyRecord sr WHERE sr.userId = :userId AND sr.studyStatus = 'COMPLETED' ORDER BY sr.completionTime DESC")
+    @Query("SELECT sr FROM StudyRecord sr WHERE sr.userId = :userId AND sr.status = 'COMPLETED' ORDER BY sr.completedAt DESC")
     Page<StudyRecord> findCompletedByUserId(@Param("userId") String userId, Pageable pageable);
 
     /**
-     * 查询用户收藏的课程
-     *
-     * @param userId 用户ID
-     * @param pageable 分页参数
-     * @return 收藏的记录分页
-     */
-    Page<StudyRecord> findByUserIdAndIsFavorited(String userId, Boolean isFavorited, Pageable pageable);
-
-    /**
-     * 统计用户学习记录数量
-     *
-     * @param userId 用户ID
-     * @return 学习记录总数
-     */
-    long countByUserId(String userId);
-
-    /**
-     * 统计用户已完成的课程数量
-     *
-     * @param userId 用户ID
-     * @return 已完成课程数量
-     */
-    @Query("SELECT COUNT(sr) FROM StudyRecord sr WHERE sr.userId = :userId AND sr.studyStatus = 'COMPLETED'")
-    long countCompletedByUserId(@Param("userId") String userId);
-
-    /**
-     * 统计用户正在学习的课程数量
-     *
-     * @param userId 用户ID
-     * @return 正在学习课程数量
-     */
-    @Query("SELECT COUNT(sr) FROM StudyRecord sr WHERE sr.userId = :userId AND sr.studyStatus = 'IN_PROGRESS'")
-    long countInProgressByUserId(@Param("userId") String userId);
-
-    /**
-     * 统计用户总学习时长
-     *
-     * @param userId 用户ID
-     * @return 总学习时长(分钟)
-     */
-    @Query("SELECT COALESCE(SUM(sr.studyDuration), 0) FROM StudyRecord sr WHERE sr.userId = :userId")
-    long sumStudyDurationByUserId(@Param("userId") String userId);
-
-    /**
-     * 统计用户在指定时间范围内的学习时长
-     *
-     * @param userId 用户ID
-     * @param startTime 开始时间
-     * @param endTime 结束时间
-     * @return 学习时长(分钟)
-     */
-    @Query("SELECT COALESCE(SUM(sr.studyDuration), 0) FROM StudyRecord sr WHERE sr.userId = :userId AND sr.lastStudyTime BETWEEN :startTime AND :endTime")
-    long sumStudyDurationByUserIdAndTimeRange(@Param("userId") String userId,
-                                              @Param("startTime") LocalDateTime startTime,
-                                              @Param("endTime") LocalDateTime endTime);
-
-    /**
-     * 查询用户最近的学习记录
-     *
-     * @param userId 用户ID
-     * @param limit 限制数量
-     * @return 最近的学习记录列表
-     */
-    @Query("SELECT sr FROM StudyRecord sr WHERE sr.userId = :userId ORDER BY sr.lastStudyTime DESC")
-    List<StudyRecord> findRecentByUserId(@Param("userId") String userId, Pageable pageable);
-
-    /**
-     * 查询课程的学习记录统计
+     * 查询课程的学习统计
      *
      * @param courseId 课程ID
-     * @return 学习记录统计
+     * @return 统计数据 [总学员数, 完成学员数, 平均进度]
      */
-    @Query("SELECT COUNT(sr) as totalStudents, " +
-            "COUNT(CASE WHEN sr.studyStatus = 'COMPLETED' THEN 1 END) as completedStudents, " +
-            "AVG(sr.progressPercent) as avgProgress, " +
-            "SUM(sr.studyDuration) as totalDuration " +
+    @Query("SELECT " +
+            "COUNT(*) as totalStudents, " +
+            "SUM(CASE WHEN sr.status = 'COMPLETED' THEN 1 ELSE 0 END) as completedStudents, " +
+            "AVG(sr.progress) as averageProgress " +
             "FROM StudyRecord sr WHERE sr.courseId = :courseId")
     Object[] getCourseStudyStatistics(@Param("courseId") String courseId);
-
-    /**
-     * 查询用户的学习热点时间
-     *
-     * @param userId 用户ID
-     * @return 学习时间统计
-     */
-    @Query("SELECT HOUR(sr.lastStudyTime) as hour, COUNT(sr) as studyCount " +
-            "FROM StudyRecord sr WHERE sr.userId = :userId " +
-            "GROUP BY HOUR(sr.lastStudyTime) " +
-            "ORDER BY studyCount DESC")
-    List<Object[]> getUserStudyHours(@Param("userId") String userId);
-
-    /**
-     * 查询用户的学习趋势
-     *
-     * @param userId 用户ID
-     * @param days 统计天数
-     * @return 学习趋势数据
-     */
-    @Query("SELECT DATE(sr.lastStudyTime) as studyDate, " +
-            "COUNT(sr) as studyCount, " +
-            "SUM(sr.studyDuration) as totalDuration " +
-            "FROM StudyRecord sr WHERE sr.userId = :userId " +
-            "AND sr.lastStudyTime >= :startDate " +
-            "GROUP BY DATE(sr.lastStudyTime) " +
-            "ORDER BY studyDate DESC")
-    List<Object[]> getUserStudyTrend(@Param("userId") String userId,
-                                     @Param("startDate") LocalDateTime startDate);
-
-    /**
-     * 查询用户的学习排名
-     *
-     * @param userId 用户ID
-     * @return 排名信息
-     */
-    @Query("SELECT COUNT(DISTINCT sr2.userId) + 1 as ranking " +
-            "FROM StudyRecord sr1, StudyRecord sr2 " +
-            "WHERE sr1.userId = :userId " +
-            "AND sr2.studyDuration > sr1.studyDuration")
-    Long getUserRanking(@Param("userId") String userId);
-
-    /**
-     * 查询学习时长排行榜
-     *
-     * @param limit 限制数量
-     * @return 排行榜数据
-     */
-    @Query("SELECT sr.userId, u.username, u.realName, SUM(sr.studyDuration) as totalDuration " +
-            "FROM StudyRecord sr JOIN User u ON sr.userId = u.id " +
-            "GROUP BY sr.userId, u.username, u.realName " +
-            "ORDER BY totalDuration DESC")
-    List<Object[]> getStudyTimeRanking(Pageable pageable);
-
-    /**
-     * 查询完成课程数排行榜
-     *
-     * @param limit 限制数量
-     * @return 排行榜数据
-     */
-    @Query("SELECT sr.userId, u.username, u.realName, COUNT(sr) as completedCount " +
-            "FROM StudyRecord sr JOIN User u ON sr.userId = u.id " +
-            "WHERE sr.studyStatus = 'COMPLETED' " +
-            "GROUP BY sr.userId, u.username, u.realName " +
-            "ORDER BY completedCount DESC")
-    List<Object[]> getCompletionRanking(Pageable pageable);
-
-    /**
-     * 获取所有有学习记录的用户
-     *
-     * @return 用户ID列表
-     */
-    @Query("SELECT DISTINCT sr.userId FROM StudyRecord sr")
-    List<String> findAllUsersWithStudyRecords();
-
-    /**
-     * 统计用户收藏的课程数量
-     *
-     * @param userId 用户ID
-     * @param isFavorited 是否收藏
-     * @return 收藏课程数量
-     */
-    long countByUserIdAndIsFavorited(String userId, Boolean isFavorited);
-
-    /**
-     * 删除用户的学习记录
-     *
-     * @param userId 用户ID
-     */
-    void deleteByUserId(String userId);
-
-    /**
-     * 删除课程的学习记录
-     *
-     * @param courseId 课程ID
-     */
-    void deleteByCourseId(String courseId);
 }

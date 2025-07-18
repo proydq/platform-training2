@@ -11,8 +11,8 @@ import java.util.UUID;
 
 /**
  * 学习记录实体
- * 记录用户的学习行为和进度
- * 
+ * 用于记录用户的课程学习情况
+ *
  * @author Smart Training System
  * @version 1.0
  * @since 2025-07-17
@@ -43,42 +43,50 @@ public class StudyRecord {
     private String courseId;
 
     /**
-     * 章节ID (可选，用于记录章节级别的学习)
+     * 章节ID
      */
     @Column(name = "chapter_id", length = 36)
     private String chapterId;
 
     /**
      * 学习状态
-     * NOT_STARTED - 未开始
-     * IN_PROGRESS - 学习中
-     * COMPLETED - 已完成
-     * PAUSED - 暂停
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "study_status", length = 20, nullable = false)
-    private StudyStatus studyStatus = StudyStatus.NOT_STARTED;
+    @Column(name = "status", length = 20, nullable = false)
+    private Status status = Status.NOT_STARTED;
 
     /**
-     * 学习进度百分比 (0-100)
+     * 学习进度（百分比）
      */
-    @Column(name = "progress_percent", nullable = false)
+    @Column(name = "progress", nullable = false)
+    private Integer progress = 0;
+
+    /**
+     * 学习进度（百分比） - 兼容字段
+     */
+    @Column(name = "progress_percent")
     private Integer progressPercent = 0;
 
     /**
-     * 学习时长(分钟)
+     * 学习时长（分钟）
      */
-    @Column(name = "study_duration", nullable = false)
+    @Column(name = "study_time", nullable = false)
+    private Integer studyTime = 0;
+
+    /**
+     * 学习时长（分钟） - 兼容字段
+     */
+    @Column(name = "study_duration")
     private Integer studyDuration = 0;
 
     /**
-     * 最后学习位置 (视频时间戳或章节位置)
+     * 最后学习位置
      */
     @Column(name = "last_position", length = 100)
     private String lastPosition;
 
     /**
-     * 学习开始时间
+     * 开始学习时间
      */
     @Column(name = "start_time")
     private LocalDateTime startTime;
@@ -86,11 +94,23 @@ public class StudyRecord {
     /**
      * 最后学习时间
      */
+    @Column(name = "last_study_at")
+    private LocalDateTime lastStudyAt;
+
+    /**
+     * 最后学习时间 - 兼容字段
+     */
     @Column(name = "last_study_time")
     private LocalDateTime lastStudyTime;
 
     /**
      * 完成时间
+     */
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    /**
+     * 完成时间 - 兼容字段
      */
     @Column(name = "completion_time")
     private LocalDateTime completionTime;
@@ -155,17 +175,18 @@ public class StudyRecord {
     private CourseChapter chapter;
 
     /**
-     * 学习状态枚举
+     * 学习状态枚举 (统一使用 Status)
      */
-    public enum StudyStatus {
+    public enum Status {
         NOT_STARTED("未开始"),
         IN_PROGRESS("学习中"),
         COMPLETED("已完成"),
-        PAUSED("暂停");
+        SUSPENDED("已暂停"),
+        PAUSED("暂停"); // 兼容旧枚举值
 
         private final String description;
 
-        StudyStatus(String description) {
+        Status(String description) {
             this.description = description;
         }
 
@@ -175,43 +196,106 @@ public class StudyRecord {
     }
 
     /**
+     * 获取有效的学习进度
+     */
+    public Integer getEffectiveProgress() {
+        return progress != null ? progress : (progressPercent != null ? progressPercent : 0);
+    }
+
+    /**
+     * 获取有效的学习时长
+     */
+    public Integer getEffectiveStudyTime() {
+        return studyTime != null ? studyTime : (studyDuration != null ? studyDuration : 0);
+    }
+
+    /**
+     * 获取有效的最后学习时间
+     */
+    public LocalDateTime getEffectiveLastStudyTime() {
+        return lastStudyAt != null ? lastStudyAt : lastStudyTime;
+    }
+
+    /**
+     * 获取有效的完成时间
+     */
+    public LocalDateTime getEffectiveCompletionTime() {
+        return completedAt != null ? completedAt : completionTime;
+    }
+
+    /**
      * 开始学习
      */
     public void startStudy() {
-        if (this.studyStatus == StudyStatus.NOT_STARTED) {
-            this.studyStatus = StudyStatus.IN_PROGRESS;
+        if (this.status == Status.NOT_STARTED) {
+            this.status = Status.IN_PROGRESS;
             this.startTime = LocalDateTime.now();
         }
-        this.lastStudyTime = LocalDateTime.now();
+        this.setEffectiveLastStudyTime(LocalDateTime.now());
     }
 
     /**
      * 更新学习进度
      */
-    public void updateProgress(int progressPercent, String position) {
-        this.progressPercent = Math.max(0, Math.min(100, progressPercent));
+    public void updateProgress(Integer newProgress) {
+        this.setEffectiveProgress(newProgress);
+        this.setEffectiveLastStudyTime(LocalDateTime.now());
+
+        if (newProgress >= 100) {
+            this.status = Status.COMPLETED;
+            this.setEffectiveCompletionTime(LocalDateTime.now());
+        } else if (this.status == Status.NOT_STARTED) {
+            this.status = Status.IN_PROGRESS;
+        }
+    }
+
+    /**
+     * 更新学习进度（重载方法）
+     */
+    public void updateProgress(Integer newProgress, String position) {
+        this.updateProgress(newProgress);
         this.lastPosition = position;
-        this.lastStudyTime = LocalDateTime.now();
-        
-        // 自动更新状态
-        if (this.studyStatus == StudyStatus.NOT_STARTED) {
-            this.studyStatus = StudyStatus.IN_PROGRESS;
-            this.startTime = LocalDateTime.now();
-        }
-        
-        // 完成学习
-        if (progressPercent >= 100) {
-            this.studyStatus = StudyStatus.COMPLETED;
-            this.completionTime = LocalDateTime.now();
-        }
+    }
+
+    /**
+     * 增加学习时长
+     */
+    public void addStudyTime(Integer minutes) {
+        int currentTime = getEffectiveStudyTime();
+        this.setEffectiveStudyTime(currentTime + minutes);
+        this.setEffectiveLastStudyTime(LocalDateTime.now());
+    }
+
+    /**
+     * 增加学习时长（兼容方法）
+     */
+    public void addStudyDuration(Integer minutes) {
+        addStudyTime(minutes);
+    }
+
+    /**
+     * 标记为完成
+     */
+    public void markAsCompleted() {
+        this.status = Status.COMPLETED;
+        this.setEffectiveProgress(100);
+        this.setEffectiveCompletionTime(LocalDateTime.now());
+        this.setEffectiveLastStudyTime(LocalDateTime.now());
+    }
+
+    /**
+     * 完成学习（兼容方法）
+     */
+    public void completeStudy() {
+        markAsCompleted();
     }
 
     /**
      * 暂停学习
      */
     public void pauseStudy() {
-        if (this.studyStatus == StudyStatus.IN_PROGRESS) {
-            this.studyStatus = StudyStatus.PAUSED;
+        if (this.status == Status.IN_PROGRESS) {
+            this.status = Status.PAUSED;
         }
     }
 
@@ -219,41 +303,102 @@ public class StudyRecord {
      * 恢复学习
      */
     public void resumeStudy() {
-        if (this.studyStatus == StudyStatus.PAUSED) {
-            this.studyStatus = StudyStatus.IN_PROGRESS;
-            this.lastStudyTime = LocalDateTime.now();
+        if (this.status == Status.PAUSED || this.status == Status.SUSPENDED) {
+            this.status = Status.IN_PROGRESS;
+            this.setEffectiveLastStudyTime(LocalDateTime.now());
         }
-    }
-
-    /**
-     * 完成学习
-     */
-    public void completeStudy() {
-        this.studyStatus = StudyStatus.COMPLETED;
-        this.progressPercent = 100;
-        this.completionTime = LocalDateTime.now();
-        this.lastStudyTime = LocalDateTime.now();
-    }
-
-    /**
-     * 添加学习时长
-     */
-    public void addStudyDuration(int minutes) {
-        this.studyDuration += minutes;
-        this.lastStudyTime = LocalDateTime.now();
     }
 
     /**
      * 检查是否已完成
      */
     public boolean isCompleted() {
-        return this.studyStatus == StudyStatus.COMPLETED;
+        return Status.COMPLETED.equals(this.status);
     }
 
     /**
      * 检查是否正在学习
      */
     public boolean isInProgress() {
-        return this.studyStatus == StudyStatus.IN_PROGRESS;
+        return Status.IN_PROGRESS.equals(this.status);
+    }
+
+    /**
+     * 获取完成率
+     */
+    public double getCompletionRate() {
+        return getEffectiveProgress() / 100.0;
+    }
+
+    // ============ 私有设置方法，统一字段更新 ============
+
+    private void setEffectiveProgress(Integer progress) {
+        this.progress = progress;
+        this.progressPercent = progress;
+    }
+
+    private void setEffectiveStudyTime(Integer time) {
+        this.studyTime = time;
+        this.studyDuration = time;
+    }
+
+    private void setEffectiveLastStudyTime(LocalDateTime time) {
+        this.lastStudyAt = time;
+        this.lastStudyTime = time;
+    }
+
+    private void setEffectiveCompletionTime(LocalDateTime time) {
+        this.completedAt = time;
+        this.completionTime = time;
+    }
+
+    // ============ Getter/Setter 覆盖以保证兼容性 ============
+
+    public Integer getProgressPercent() {
+        return getEffectiveProgress();
+    }
+
+    public void setProgressPercent(Integer progressPercent) {
+        setEffectiveProgress(progressPercent);
+    }
+
+    public Integer getStudyDuration() {
+        return getEffectiveStudyTime();
+    }
+
+    public void setStudyDuration(Integer studyDuration) {
+        setEffectiveStudyTime(studyDuration);
+    }
+
+    public LocalDateTime getLastStudyTime() {
+        return getEffectiveLastStudyTime();
+    }
+
+    public void setLastStudyTime(LocalDateTime lastStudyTime) {
+        setEffectiveLastStudyTime(lastStudyTime);
+    }
+
+    public LocalDateTime getCompletionTime() {
+        return getEffectiveCompletionTime();
+    }
+
+    public void setCompletionTime(LocalDateTime completionTime) {
+        setEffectiveCompletionTime(completionTime);
+    }
+
+    // ============ 兼容旧的枚举访问 ============
+
+    /**
+     * 获取 StudyStatus（兼容旧代码）
+     */
+    public Status getStudyStatus() {
+        return this.status;
+    }
+
+    /**
+     * 设置 StudyStatus（兼容旧代码）
+     */
+    public void setStudyStatus(Status status) {
+        this.status = status;
     }
 }

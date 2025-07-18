@@ -1,4 +1,4 @@
-// router/index.js - 简化版本
+// router/index.js - 修复版本
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 导入页面组件
@@ -112,6 +112,69 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
+
+// 根据用户角色生成菜单的函数
+export function generateMenus(userRole) {
+  // 基础菜单项（所有角色都可访问）
+  const baseMenus = [
+    {
+      path: '/dashboard',
+      title: '仪表板',
+      icon: 'Dashboard',
+      hidden: false
+    },
+    {
+      path: '/courses',
+      title: '我的课程',
+      icon: 'Reading',
+      hidden: false
+    },
+    {
+      path: '/exams',
+      title: '考试中心',
+      icon: 'Document',
+      hidden: false
+    }
+  ]
+
+  // 管理员和教师可访问的菜单
+  const teacherMenus = [
+    {
+      path: '/students',
+      title: '学员管理',
+      icon: 'User',
+      hidden: false,
+      roles: ['ADMIN', 'TEACHER']
+    }
+  ]
+
+  // 仅管理员可访问的菜单
+  const adminMenus = [
+    {
+      path: '/admin',
+      title: '管理后台',
+      icon: 'Setting',
+      hidden: false,
+      roles: ['ADMIN']
+    }
+  ]
+
+  // 根据用户角色过滤菜单
+  let menus = [...baseMenus]
+
+  if (userRole === 'ADMIN') {
+    // 管理员可以访问所有菜单
+    menus = [...baseMenus, ...teacherMenus, ...adminMenus]
+  } else if (userRole === 'TEACHER') {
+    // 教师可以访问基础菜单和教师菜单
+    menus = [...baseMenus, ...teacherMenus]
+  } else if (userRole === 'STUDENT') {
+    // 学生只能访问基础菜单
+    menus = [...baseMenus]
+  }
+
+  return menus
+}
 
 // 简化的路由守卫
 router.beforeEach((to, from, next) => {
