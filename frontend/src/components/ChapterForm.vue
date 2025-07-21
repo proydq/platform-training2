@@ -1,5 +1,18 @@
-<!-- ==================== 6. 章节表单组件 ==================== -->
-<!-- frontend/src/components/ChapterForm.vue -->
+<!-- 
+修改说明：
+1. 移除了原来的"资料链接"手动输入方式
+2. 改为选择已上传的教学资料建立绑定关系
+3. 使用复选框列表展示可选的教学资料
+4. 显示文件大小、类型等信息
+5. 保留视频链接功能
+
+使用方法：
+在 CourseForm.vue 中传入 availableMaterials 属性：
+<ChapterForm
+  :available-materials="fileListState.materials"
+  ...其他属性
+/>
+-->
 <template>
   <div class="chapter-form-container">
     <el-form
@@ -79,54 +92,47 @@
           maxlength="2000"
           show-word-limit
         />
+        <div class="field-tip">支持 Markdown 格式</div>
       </el-form-item>
       
-      <!-- 多媒体资源 -->
-      <div class="media-section">
-        <h5>📺 多媒体资源</h5>
+      <!-- 关联资料 -->
+      <div class="material-section">
+        <h5>📁 关联资料</h5>
         
-        <!-- 视频链接 -->
-        <el-form-item label="视频链接">
-          <el-input
-            v-model="form.videoUrl"
-            placeholder="请输入视频链接（支持 MP4、优酷、腾讯视频等）"
-          />
-          <div class="field-tip">支持直链和主流视频平台链接</div>
-        </el-form-item>
-        
-        <!-- 资料链接 -->
-        <el-form-item label="资料链接">
-          <div class="material-links">
-            <div 
-              v-for="(link, index) in form.materialUrls" 
-              :key="index"
-              class="link-item"
-            >
-              <el-input
-                v-model="form.materialUrls[index]"
-                placeholder="请输入资料下载链接"
-              />
-              <el-button 
-                type="danger" 
-                size="small" 
-                @click="removeMaterialLink(index)"
-                style="margin-left: 8px;"
+        <!-- 选择已上传的教学资料 -->
+        <el-form-item label="教学资料">
+          <div class="material-selector">
+            <el-checkbox-group v-model="form.selectedMaterials" class="material-list">
+              <div 
+                v-for="material in availableMaterials" 
+                :key="material.id"
+                class="material-item"
               >
-                <el-icon><Delete /></el-icon>
-              </el-button>
+                <el-checkbox :label="material.id" class="material-checkbox">
+                  <div class="material-info">
+                    <div class="material-name">
+                      <el-icon><Document /></el-icon>
+                      <span>{{ material.name }}</span>
+                    </div>
+                    <div class="material-meta">
+                      <span class="file-size">{{ formatFileSize(material.size) }}</span>
+                      <span class="file-type">{{ getFileType(material.name) }}</span>
+                    </div>
+                  </div>
+                </el-checkbox>
+              </div>
+            </el-checkbox-group>
+            
+            <div v-if="availableMaterials.length === 0" class="no-materials">
+              <div class="no-materials-icon">📄</div>
+              <p>暂无可选择的教学资料</p>
+              <p class="tip">请先在"课程资源"中上传教学资料</p>
             </div>
-            <el-button 
-              type="primary" 
-              size="small" 
-              @click="addMaterialLink"
-              style="margin-top: 8px;"
-            >
-              <el-icon><Plus /></el-icon>
-              添加资料链接
-            </el-button>
           </div>
-          <div class="field-tip">可添加多个相关学习资料的下载链接</div>
+          <div class="field-tip">选择与本章节相关的教学资料，学员可在学习过程中下载查看</div>
         </el-form-item>
+        
+
       </div>
     </el-form>
 
@@ -168,20 +174,13 @@
           <div class="content-text">{{ form.content }}</div>
         </div>
         
-        <div v-if="form.videoUrl" class="preview-video">
-          <h4>教学视频</h4>
-          <div class="video-placeholder">
-            <el-icon><VideoPlay /></el-icon>
-            <span>{{ form.videoUrl }}</span>
-          </div>
-        </div>
-        
-        <div v-if="form.materialUrls && form.materialUrls.length > 0" class="preview-materials">
-          <h4>学习资料</h4>
+        <div v-if="selectedMaterialsList.length > 0" class="preview-materials">
+          <h4>关联资料</h4>
           <ul>
-            <li v-for="(url, index) in form.materialUrls" :key="index">
+            <li v-for="material in selectedMaterialsList" :key="material.id">
               <el-icon><Document /></el-icon>
-              <span>{{ url }}</span>
+              <span>{{ material.name }}</span>
+              <span class="material-size">{{ formatFileSize(material.size) }}</span>
             </li>
           </ul>
         </div>
@@ -191,9 +190,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Delete, Plus, VideoPlay, Document } from '@element-plus/icons-vue'
+import { Document } from '@element-plus/icons-vue'
 
 // Props & Emits
 const props = defineProps({
@@ -204,6 +203,11 @@ const props = defineProps({
   chapterIndex: {
     type: Number,
     default: -1
+  },
+  // 从父组件传入的可用教学资料列表
+  availableMaterials: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -223,8 +227,7 @@ const form = reactive({
   duration: 0,
   order: 1,
   status: 0,
-  videoUrl: '',
-  materialUrls: []
+  selectedMaterials: [] // 选中的教学资料ID数组
 })
 
 // 表单验证规则
@@ -247,6 +250,27 @@ const rules = {
   ]
 }
 
+// 计算属性
+const selectedMaterialsList = computed(() => {
+  return props.availableMaterials.filter(material => 
+    form.selectedMaterials.includes(material.id)
+  )
+})
+
+// 🔧 核心修复：将 initFormData 函数声明移到 watch 之前
+const initFormData = (data) => {
+  Object.assign(form, {
+    id: data.id || '',
+    title: data.title || '',
+    description: data.description || '',
+    content: data.content || '',
+    duration: data.duration || 0,
+    order: data.order || (props.chapterIndex + 1) || 1,
+    status: data.status || 0,
+    selectedMaterials: data.selectedMaterials || data.materialIds || []
+  })
+}
+
 // 监听器
 watch(() => props.chapterData, (newData) => {
   if (newData && Object.keys(newData).length > 0) {
@@ -261,27 +285,18 @@ onMounted(() => {
   }
 })
 
-// 方法
-const initFormData = (data) => {
-  Object.assign(form, {
-    id: data.id || '',
-    title: data.title || '',
-    description: data.description || '',
-    content: data.content || '',
-    duration: data.duration || 0,
-    order: data.order || (props.chapterIndex + 1) || 1,
-    status: data.status || 0,
-    videoUrl: data.videoUrl || '',
-    materialUrls: data.materialUrls || []
-  })
+// 工具方法
+const formatFileSize = (size) => {
+  if (!size) return '未知大小'
+  if (size < 1024) return `${size}B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)}KB`
+  return `${(size / (1024 * 1024)).toFixed(1)}MB`
 }
 
-const addMaterialLink = () => {
-  form.materialUrls.push('')
-}
-
-const removeMaterialLink = (index) => {
-  form.materialUrls.splice(index, 1)
+const getFileType = (filename) => {
+  if (!filename) return ''
+  const ext = filename.split('.').pop()?.toUpperCase()
+  return ext || ''
 }
 
 const getStatusType = (status) => {
@@ -311,7 +326,7 @@ const handleSave = async () => {
     
     const cleanData = {
       ...form,
-      materialUrls: form.materialUrls.filter(url => url.trim() !== '')
+      materialIds: form.selectedMaterials // 将选中的资料ID传给后端
     }
     
     emit('save', cleanData)
@@ -346,13 +361,13 @@ defineExpose({
   padding: 0 16px;
 }
 
-.media-section {
+.material-section {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #ebeef5;
 }
 
-.media-section h5 {
+.material-section h5 {
   color: #303133;
   margin-bottom: 16px;
   font-size: 14px;
@@ -369,24 +384,97 @@ defineExpose({
   line-height: 1.4;
 }
 
-.material-links {
+.material-selector {
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.material-list {
+  width: 100%;
+  padding: 16px;
+}
+
+.material-item {
+  margin-bottom: 12px;
+}
+
+.material-item:last-child {
+  margin-bottom: 0;
+}
+
+.material-checkbox {
+  width: 100%;
+  margin-right: 0;
+}
+
+.material-checkbox :deep(.el-checkbox__label) {
+  width: 100%;
+  padding-left: 8px;
+}
+
+.material-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
 }
 
-.link-item {
+.material-name {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 8px;
+  font-size: 14px;
+  color: #303133;
+}
+
+.material-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.file-size {
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.file-type {
+  background: #e7f4ff;
+  color: #409eff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.no-materials {
+  text-align: center;
+  padding: 40px 20px;
+  color: #909399;
+}
+
+.no-materials-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.no-materials .tip {
+  font-size: 12px;
+  color: #c0c4cc;
+  margin-top: 4px;
 }
 
 .form-footer {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
-  padding: 24px 16px 16px 16px;
-  background: #fff;
+  padding: 20px 16px 0 16px;
   border-top: 1px solid #ebeef5;
-  margin: 0 -16px -16px -16px;
+  margin-top: 24px;
 }
 
 .chapter-preview {
@@ -400,9 +488,8 @@ defineExpose({
 }
 
 .preview-header h3 {
-  margin: 0 0 12px 0;
+  margin-bottom: 12px;
   color: #303133;
-  font-size: 20px;
 }
 
 .preview-meta {
@@ -412,52 +499,29 @@ defineExpose({
 
 .preview-description,
 .preview-content,
-.preview-video,
 .preview-materials {
   margin-bottom: 24px;
 }
 
 .preview-description h4,
 .preview-content h4,
-.preview-video h4,
 .preview-materials h4 {
-  margin: 0 0 12px 0;
-  color: #409eff;
+  color: #303133;
+  margin-bottom: 12px;
   font-size: 16px;
-  font-weight: 600;
-}
-
-.preview-description p {
-  margin: 0;
-  color: #606266;
-  line-height: 1.6;
 }
 
 .content-text {
-  color: #606266;
-  line-height: 1.8;
-  white-space: pre-wrap;
   background: #f5f7fa;
   padding: 16px;
   border-radius: 8px;
-  border-left: 4px solid #409eff;
-}
-
-.video-placeholder {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: #f0f9ff;
-  border: 1px solid #b3d8ff;
-  border-radius: 8px;
-  color: #409eff;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .preview-materials ul {
-  margin: 0;
-  padding: 0;
   list-style: none;
+  padding: 0;
 }
 
 .preview-materials li {
@@ -465,7 +529,6 @@ defineExpose({
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  color: #606266;
   border-bottom: 1px solid #f0f2f5;
 }
 
@@ -473,43 +536,49 @@ defineExpose({
   border-bottom: none;
 }
 
-@media (max-width: 768px) {
-  .link-item {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .link-item .el-button {
-    margin-left: 0 !important;
-    margin-top: 8px;
-    align-self: flex-end;
-  }
-  
-  .form-footer {
-    flex-direction: column;
-  }
-  
-  .preview-meta {
-    flex-direction: column;
-    gap: 4px;
-  }
+.material-size {
+  margin-left: auto;
+  font-size: 12px;
+  color: #909399;
 }
 
-.chapter-form-container::-webkit-scrollbar {
+.chapter-form-container::-webkit-scrollbar,
+.material-selector::-webkit-scrollbar {
   width: 6px;
 }
 
-.chapter-form-container::-webkit-scrollbar-track {
+.chapter-form-container::-webkit-scrollbar-track,
+.material-selector::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.chapter-form-container::-webkit-scrollbar-thumb {
+.chapter-form-container::-webkit-scrollbar-thumb,
+.material-selector::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
 
-.chapter-form-container::-webkit-scrollbar-thumb:hover {
+.chapter-form-container::-webkit-scrollbar-thumb:hover,
+.material-selector::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+@media (max-width: 768px) {
+  .preview-meta {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .material-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .form-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 </style>

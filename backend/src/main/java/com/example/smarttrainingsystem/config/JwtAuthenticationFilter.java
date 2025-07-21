@@ -42,7 +42,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/v1/test",              // 所有测试接口
             "/api/v1/debug/public",      // 公开调试接口
             "/api/health",               // 健康检查
-            "/api/error"                 // 错误页面
+            "/api/error",                 // 错误页面
+            "/api/v1/files/"  // 添加这一行，允许文件访问不需要认证
     );
 
     @Override
@@ -118,8 +119,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 检查是否为排除路径
      */
     private boolean isExcludedPath(String requestPath) {
-        boolean excluded = EXCLUDED_PATHS.stream().anyMatch(requestPath::startsWith);
-        log.debug("路径检查: {} -> {}", requestPath, excluded ? "排除" : "需要验证");
+        boolean excluded = EXCLUDED_PATHS.stream().anyMatch(path -> {
+            // 处理通配符路径
+            if (path.endsWith("/")) {
+                return requestPath.startsWith(path);
+            } else {
+                return requestPath.equals(path) || requestPath.startsWith(path + "/");
+            }
+        });
+        log.info("🔍 路径检查: {} -> {}", requestPath, excluded ? "排除" : "需要验证");
         return excluded;
     }
 

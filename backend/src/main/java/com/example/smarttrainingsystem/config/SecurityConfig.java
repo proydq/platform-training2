@@ -54,7 +54,7 @@ public class SecurityConfig {
                         .antMatchers("/api/v1/auth/check-username").permitAll()
                         .antMatchers("/api/v1/test/**").permitAll()
                         .antMatchers("/api/v1/debug/public").permitAll()
-
+                        .antMatchers("/api/v1/files/**").permitAll()  // 允许文件访问
                         // 其他接口需要认证，但暂时放宽要求
                         .anyRequest().permitAll()  // 暂时允许所有请求，但JWT过滤器仍会处理
                 )

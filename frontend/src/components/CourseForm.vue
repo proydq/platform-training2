@@ -253,6 +253,7 @@
         ref="chapterFormRef"
         :chapter-data="editingChapter"
         :chapter-index="editingChapterIndex"
+        :available-materials="fileListState.materials"
         @save="handleChapterSave"
         @cancel="closeChapterModal"
       />
@@ -383,20 +384,6 @@ const sortedChapters = computed(() => {
   return [...form.chapters].sort((a, b) => (a.order || 0) - (b.order || 0))
 })
 
-// 监听器
-watch(() => props.courseData, (newData) => {
-  if (newData && Object.keys(newData).length > 0) {
-    initFormData(newData)
-  }
-}, { immediate: true })
-
-// 生命周期
-onMounted(() => {
-  if (userStore.userRole === 'TEACHER' && !props.isEditing) {
-    form.instructorId = userStore.userInfo.id || userStore.userInfo.username
-  }
-})
-
 // 方法
 const initFormData = (data) => {
   Object.assign(form, {
@@ -424,6 +411,22 @@ const initFormData = (data) => {
     uid: Date.now() + index
   })))
 }
+
+// 监听器
+watch(() => props.courseData, (newData) => {
+  if (newData && Object.keys(newData).length > 0) {
+    initFormData(newData)
+  }
+}, { immediate: true })
+
+// 生命周期
+onMounted(() => {
+  if (userStore.userRole === 'TEACHER' && !props.isEditing) {
+    form.instructorId = userStore.userInfo.id || userStore.userInfo.username
+  }
+})
+
+
 
 const getDifficultyLevelText = (level) => {
   const levelMap = {
