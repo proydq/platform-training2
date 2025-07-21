@@ -396,31 +396,62 @@ const getDifficultyLevelText = (level) => {
 }
 
 // 方法
+// 修复 CourseForm.vue 中的 initFormData 函数
+
 const initFormData = (data) => {
+  console.log('🏗️ 初始化表单数据，原始数据:', data) // 调试信息
+  
   Object.assign(form, {
     id: data.id || '',
     title: data.title || '',
     description: data.description || '',
     category: data.category || '',
     level: data.level || getDifficultyLevelText(data.difficultyLevel),
-    duration: data.duration || 0,
+    // 🔧 修复：支持多种时长字段名
+    duration: data.duration || data.estimatedDuration || 0,
     instructorId: data.instructorId || '',
     price: data.price || 0,
     isRequired: data.isRequired || false,
     chapters: data.chapters || []
   })
   
-  setFileList('cover', data.coverImage ? [{
+  console.log('📝 处理后的表单数据:', form) // 调试信息
+  
+  // 🔧 修复：支持多种封面字段名
+  const coverImageUrl = data.coverImage || data.coverImageUrl
+  console.log('🖼️ 封面图片URL:', coverImageUrl) // 调试信息
+  
+  setFileList('cover', coverImageUrl ? [{
     name: '课程封面',
-    url: data.coverImage,
+    url: coverImageUrl,
     uid: Date.now()
   }] : [])
   
-  setFileList('materials', (data.materials || []).map((url, index) => ({
+  // 🔧 修复：处理教学资料的多种数据格式
+  let materialsList = []
+  
+  if (data.materials && Array.isArray(data.materials)) {
+    // 如果是数组格式
+    materialsList = data.materials
+  } else if (data.materialUrls) {
+    // 如果是逗号分隔的字符串格式，需要转换为数组
+    if (typeof data.materialUrls === 'string') {
+      materialsList = data.materialUrls.split(',').filter(url => url.trim())
+    } else if (Array.isArray(data.materialUrls)) {
+      materialsList = data.materialUrls
+    }
+  }
+  
+  console.log('📁 教学资料列表:', materialsList) // 调试信息
+  
+  setFileList('materials', materialsList.map((url, index) => ({
     name: `教学资料${index + 1}`,
-    url: url,
+    url: url.trim(), // 去除可能的空格
     uid: Date.now() + index
   })))
+  
+  console.log('📊 章节数据:', data.chapters) // 调试信息
+  console.log('✅ 数据初始化完成') // 调试信息
 }
 
 // 监听器
