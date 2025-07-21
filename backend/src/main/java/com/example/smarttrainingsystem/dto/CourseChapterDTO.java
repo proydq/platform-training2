@@ -20,7 +20,7 @@ public class CourseChapterDTO {
      */
     @Data
     public static class CreateRequest {
-        @NotBlank(message = "课程ID不能为空")
+        //@NotBlank(message = "课程ID不能为空")
         private String courseId;
 
         @NotBlank(message = "章节标题不能为空")
@@ -174,7 +174,7 @@ public class CourseChapterDTO {
      */
     @Data
     public static class BatchSortRequest {
-        @NotBlank(message = "课程ID不能为空")
+        //@NotBlank(message = "课程ID不能为空")
         private String courseId;
 
         @NotEmpty(message = "章节排序列表不能为空")

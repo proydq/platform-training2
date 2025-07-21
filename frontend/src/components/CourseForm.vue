@@ -384,6 +384,17 @@ const sortedChapters = computed(() => {
   return [...form.chapters].sort((a, b) => (a.order || 0) - (b.order || 0))
 })
 
+const getDifficultyLevelText = (level) => {
+  const levelMap = {
+    1: '入门级',
+    2: '初级', 
+    3: '中级',
+    4: '高级',
+    5: '专家级'
+  }
+  return levelMap[level] || '入门级'
+}
+
 // 方法
 const initFormData = (data) => {
   Object.assign(form, {
@@ -414,7 +425,9 @@ const initFormData = (data) => {
 
 // 监听器
 watch(() => props.courseData, (newData) => {
+  console.log('📨 CourseForm 接收到数据:', newData) // 添加这行
   if (newData && Object.keys(newData).length > 0) {
+    console.log('🔄 开始初始化表单数据') // 添加这行
     initFormData(newData)
   }
 }, { immediate: true })
@@ -428,16 +441,7 @@ onMounted(() => {
 
 
 
-const getDifficultyLevelText = (level) => {
-  const levelMap = {
-    1: '入门级',
-    2: '初级', 
-    3: '中级',
-    4: '高级',
-    5: '专家级'
-  }
-  return levelMap[level] || '入门级'
-}
+
 
 const beforeCoverUpload = (file) => {
   return validateImageFile(file)

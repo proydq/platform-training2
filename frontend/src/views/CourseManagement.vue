@@ -194,7 +194,7 @@
       :title="courseModalTitle"
       width="80%"
       :close-on-click-modal="false"
-      destroy-on-close
+      @close="closeCourseModal"
     >
       <CourseForm
         ref="courseFormRef"
@@ -350,9 +350,12 @@ const showAddCourseModal = () => {
 }
 
 const editCourse = (course) => {
+  console.log('🔧 点击编辑按钮，课程数据:', course) // 添加这行
   courseModalTitle.value = '编辑课程'
   editingCourse.value = { ...course }
+  console.log('📝 设置编辑数据:', editingCourse.value) // 添加这行
   courseModalVisible.value = true
+  console.log('👁️ 模态框可见性:', courseModalVisible.value) // 添加这行
 }
 
 const viewCourse = (courseId) => {

@@ -34,32 +34,37 @@ export function getCourseDetailAPI(courseId) {
 }
 
 // 创建课程
+// 创建课程
 export function createCourseAPI(data) {
+  const requestData = {
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    difficultyLevel: Math.min(getDifficultyLevel(data.level), 3),
+    estimatedDuration: data.duration,
+    instructorId: data.instructorId,
+    price: data.price || 0,
+    isRequired: data.isRequired || false,
+    coverImageUrl: data.coverImage || '',
+    materialUrls: data.materials ? data.materials.join(',') : '',
+    videoUrls: data.videos ? data.videos.join(',') : '',
+    chapters: data.chapters ? data.chapters.map(chapter => ({
+      title: chapter.title,
+      description: chapter.description || '',
+      chapterType: chapter.chapterType || 'document',
+      duration: chapter.duration,
+      sortOrder: chapter.sortOrder || chapter.order,
+      content: chapter.content || '',
+      materialUrls: chapter.materialUrls || ''
+    })) : []
+  };
+  
+  console.log('📤 发送到后端的数据:', requestData); // 添加这行调试
+  
   return request({
     url: '/api/v1/courses',
     method: 'POST',
-    data: {
-      title: data.title,
-      description: data.description,
-      category: data.category,
-      difficultyLevel: getDifficultyLevel(data.level),
-      duration: data.duration,
-      instructorId: data.instructorId,
-      price: data.price || 0,
-      isRequired: data.isRequired || false,
-      coverImage: data.coverImage || '',
-      materials: data.materials || [],
-      videos: data.videos || [],
-      chapters: data.chapters ? data.chapters.map(chapter => ({
-        title: chapter.title,
-        description: chapter.description || '',
-        duration: chapter.duration,
-        sortOrder: chapter.order,
-        content: chapter.content || '',
-        videoUrl: chapter.videoUrl || '',
-        materialUrls: chapter.materialUrls || []
-      })) : []
-    }
+    data: requestData
   })
 }
 

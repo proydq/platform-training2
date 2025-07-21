@@ -48,7 +48,7 @@ public class CourseService {
 
         // 验证讲师是否存在
         if (!userRepository.existsById(request.getInstructorId())) {
-            throw new BusinessException(2001, "讲师不存在");
+            //throw new BusinessException(2001, "讲师不存在");
         }
 
         // 创建课程实体

@@ -108,7 +108,7 @@
                 :key="material.id"
                 class="material-item"
               >
-                <el-checkbox :label="material.id" class="material-checkbox">
+                <el-checkbox                 :value="material.id || material.uid" class="material-checkbox">
                   <div class="material-info">
                     <div class="material-name">
                       <el-icon><Document /></el-icon>
@@ -253,7 +253,7 @@ const rules = {
 // 计算属性
 const selectedMaterialsList = computed(() => {
   return props.availableMaterials.filter(material => 
-    form.selectedMaterials.includes(material.id)
+    form.selectedMaterials.includes(material.id || material.uid)
   )
 })
 
@@ -267,7 +267,9 @@ const initFormData = (data) => {
     duration: data.duration || 0,
     order: data.order || (props.chapterIndex + 1) || 1,
     status: data.status || 0,
-    selectedMaterials: data.selectedMaterials || data.materialIds || []
+    selectedMaterials: data.selectedMaterials || 
+      (data.materialUrls ? data.materialUrls.split(',').filter(url => url.trim()) : []) ||
+      data.materialIds || []
   })
 }
 
@@ -326,12 +328,20 @@ const handleSave = async () => {
     
     const cleanData = {
       ...form,
-      materialIds: form.selectedMaterials // 将选中的资料ID传给后端
+      // 后端 materialUrls 字段是 String 类型，需要将数组转换为逗号分隔的字符串
+      materialUrls: form.selectedMaterials.map(id => {
+        const material = props.availableMaterials.find(m => m.id === id || m.uid === id)
+        return material ? (material.url || material.response?.data?.url || '') : ''
+      }).filter(url => url).join(',') // 转换为逗号分隔的字符串
     }
+    
+    // 清理内部使用的字段
+    delete cleanData.selectedMaterials
     
     emit('save', cleanData)
   } catch (error) {
     console.error('章节保存失败:', error)
+    ElMessage.error('表单验证失败，请检查必填项')
   } finally {
     saving.value = false
   }
