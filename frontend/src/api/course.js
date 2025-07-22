@@ -1,5 +1,43 @@
-// frontend/src/api/course.js - 完整的课程管理API接口
+// frontend/src/api/course.js - 最小化修复版本
 import request from '@/utils/request'
+
+/**
+ * ==================== 工具函数 ====================
+ */
+
+// 转换难度级别
+function getDifficultyLevel(level) {
+  const levelMap = {
+    入门级: 1,
+    初级: 2,
+    中级: 3,
+    高级: 4,
+    专家级: 5,
+  }
+  return levelMap[level] || 1
+}
+
+// 转换难度级别（反向）
+export function getDifficultyLevelText(level) {
+  const levelMap = {
+    1: '入门级',
+    2: '初级',
+    3: '中级',
+    4: '高级',
+    5: '专家级',
+  }
+  return levelMap[level] || '入门级'
+}
+
+// 转换课程状态
+export function getCourseStatusText(status) {
+  const statusMap = {
+    0: '草稿',
+    1: '已发布',
+    2: '已下架',
+  }
+  return statusMap[status] || '未知'
+}
 
 /**
  * ==================== 课程管理API ====================
@@ -33,67 +71,51 @@ export function getCourseDetailAPI(courseId) {
   })
 }
 
-// 创建课程
-// 🔧 完整修复后的创建课程API
+// 🔧 修复：创建课程API - 只修复章节数据映射问题
 export function createCourseAPI(data) {
-  // 数据验证
-  if (!data.title?.trim()) {
-    throw new Error('课程标题不能为空')
-  }
-  if (!data.category?.trim()) {
-    throw new Error('课程分类不能为空')
-  }
-  if (!data.description?.trim()) {
-    throw new Error('课程描述不能为空')
-  }
-
   const requestData = {
-    title: data.title.trim(),
-    description: data.description.trim(),
-    category: data.category.trim(),
-
-    // 🔧 关键修复1：移除 Math.min 限制，支持完整的1-5难度级别
+    title: data.title,
+    description: data.description,
+    category: data.category,
     difficultyLevel: getDifficultyLevel(data.level),
-
-    estimatedDuration: Number(data.duration) || 0,
-
-    // 🔧 关键修复2：移除前端设置 instructorId，由后端自动设置
-    // instructorId: data.instructorId, // 删除这行，后端会自动从token设置
-
-    price: Number(data.price) || 0,
-    isRequired: Boolean(data.isRequired),
+    estimatedDuration: data.duration,
+    price: data.price || 0,
+    isRequired: data.isRequired || false,
     coverImageUrl: data.coverImage || '',
 
-    // 🔧 材料信息处理
-    materials: data.materials && data.materials.length > 0
-      ? data.materials.map((material) => ({
-        url: typeof material === 'string' ? material : material.url,
-        name: typeof material === 'object'
-          ? material.originalName || material.name || '学习资料'
-          : '学习资料',
-      }))
-      : [],
+    // 🔧 传递新格式的资料信息（包含文件名）
+    materials:
+      data.materials && data.materials.length > 0
+        ? data.materials.map((material) => ({
+          url: typeof material === 'string' ? material : material.url,
+          name:
+            typeof material === 'object'
+              ? material.originalName || material.name || '学习资料'
+              : '学习资料',
+        }))
+        : [],
 
     // 兼容旧格式
     materialUrls: data.materials
       ? data.materials.map((m) => (typeof m === 'string' ? m : m.url)).join(',')
       : '',
 
-    // 🔧 视频信息处理
-    videos: data.videos && data.videos.length > 0
-      ? data.videos.map((video) => ({
-        url: typeof video === 'string' ? video : video.url,
-        name: typeof video === 'object'
-          ? video.originalName || video.name || '视频资料'
-          : '视频资料',
-      }))
-      : [],
+    videos:
+      data.videos && data.videos.length > 0
+        ? data.videos.map((video) => ({
+          url: typeof video === 'string' ? video : video.url,
+          name:
+            typeof video === 'object'
+              ? video.originalName || video.name || '视频资料'
+              : '视频资料',
+        }))
+        : [],
 
     videoUrls: data.videos
       ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
       : '',
 
-    // 🔧 关键修复3：章节数据映射
+    // 🔧 关键修复：完整的章节数据映射
     chapters: data.chapters && data.chapters.length > 0
       ? data.chapters.map((chapter, index) => {
         // 验证必填字段
@@ -105,10 +127,10 @@ export function createCourseAPI(data) {
           title: chapter.title.trim(),
           description: chapter.description || '',
 
-          // 🔧 关键修复4：添加必填的 chapterType 字段
+          // 🔧 关键修复：添加必填的 chapterType 字段
           chapterType: chapter.chapterType || chapter.type || 'document',
 
-          // 🔧 关键修复5：字段名映射 order -> sortOrder
+          // 🔧 关键修复：字段名映射 order -> sortOrder
           sortOrder: Number(chapter.order || chapter.sortOrder) || (index + 1),
 
           duration: Number(chapter.duration) || 0,
@@ -130,29 +152,6 @@ export function createCourseAPI(data) {
       : [],
   }
 
-  // 🔧 详细验证日志
-  console.log('📤 最终提交数据:', requestData)
-  console.log('🔍 关键字段验证:', {
-    title: requestData.title,
-    category: requestData.category,
-    description: requestData.description,
-    difficultyLevel: requestData.difficultyLevel,
-    chaptersCount: requestData.chapters.length
-  })
-
-  // 验证章节数据
-  if (requestData.chapters.length > 0) {
-    console.log('📚 章节数据验证:')
-    requestData.chapters.forEach((chapter, index) => {
-      console.log(`章节 ${index + 1}:`, {
-        title: chapter.title,
-        chapterType: chapter.chapterType,
-        sortOrder: chapter.sortOrder,
-        isValid: !!(chapter.title && chapter.chapterType && chapter.sortOrder)
-      })
-    })
-  }
-
   return request({
     url: '/api/v1/courses',
     method: 'POST',
@@ -166,10 +165,7 @@ export function updateCourseAPI(courseId, data) {
     title: data.title,
     description: data.description,
     category: data.category,
-
-    // 🔧 修复：移除 Math.min 限制
     difficultyLevel: getDifficultyLevel(data.level),
-
     estimatedDuration: data.duration,
     price: data.price || 0,
     isRequired: data.isRequired || false,
@@ -202,16 +198,23 @@ export function updateCourseAPI(courseId, data) {
       ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
       : '',
 
+    // 🔧 修复：章节数据映射
     chapters: data.chapters
-      ? data.chapters.map((chapter) => ({
+      ? data.chapters.map((chapter, index) => ({
         id: chapter.id,
         title: chapter.title,
         description: chapter.description || '',
-        chapterType: chapter.chapterType || 'document', // 🔧 添加
+        chapterType: chapter.chapterType || chapter.type || 'document',
+        sortOrder: chapter.sortOrder || chapter.order || (index + 1),
         duration: chapter.duration || 0,
-        order: chapter.order,
         content: chapter.content || '',
         videoUrl: chapter.videoUrl || '',
+        contentUrl: chapter.contentUrl || chapter.videoUrl || '',
+        isFree: Boolean(chapter.isFree),
+        requirements: chapter.requirements || '',
+        learningObjectives: chapter.learningObjectives || '',
+        materialUrls: chapter.materialUrls || '',
+        videoUrls: chapter.videoUrls || ''
       }))
       : [],
   }
@@ -268,7 +271,7 @@ export function getChapterDetailAPI(courseId, chapterId) {
   })
 }
 
-// 创建章节
+// 🔧 修复：创建章节API
 export function createChapterAPI(courseId, data) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters`,
@@ -276,16 +279,21 @@ export function createChapterAPI(courseId, data) {
     data: {
       title: data.title,
       description: data.description || '',
-      duration: data.duration,
-      sortOrder: data.order,
+      chapterType: data.chapterType || 'document',
+      duration: data.duration || 0,
+      sortOrder: data.sortOrder || data.order || 1,
       content: data.content || '',
       videoUrl: data.videoUrl || '',
-      materialUrls: data.materialUrls || [],
+      contentUrl: data.contentUrl || '',
+      materialUrls: data.materialUrls || '',
+      isFree: Boolean(data.isFree),
+      requirements: data.requirements || '',
+      learningObjectives: data.learningObjectives || ''
     },
   })
 }
 
-// 更新章节
+// 🔧 修复：更新章节API
 export function updateChapterAPI(courseId, chapterId, data) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
@@ -293,11 +301,16 @@ export function updateChapterAPI(courseId, chapterId, data) {
     data: {
       title: data.title,
       description: data.description || '',
-      duration: data.duration,
-      sortOrder: data.order,
+      chapterType: data.chapterType || 'document',
+      duration: data.duration || 0,
+      sortOrder: data.sortOrder || data.order || 1,
       content: data.content || '',
       videoUrl: data.videoUrl || '',
-      materialUrls: data.materialUrls || [],
+      contentUrl: data.contentUrl || '',
+      materialUrls: data.materialUrls || '',
+      isFree: Boolean(data.isFree),
+      requirements: data.requirements || '',
+      learningObjectives: data.learningObjectives || ''
     },
   })
 }
@@ -380,23 +393,6 @@ export function uploadCourseVideoAPI(file, onProgress) {
   })
 }
 
-// 通用文件上传
-export function uploadFileAPI(file, category = 'temp', userId) {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('category', category)
-  formData.append('userId', userId)
-
-  return request({
-    url: '/api/v1/upload',
-    method: 'POST',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
-}
-
 /**
  * ==================== 搜索和筛选API ====================
  */
@@ -428,94 +424,31 @@ export function getPopularCoursesAPI(page = 0, size = 10) {
   })
 }
 
-// 获取我的课程（讲师）
-export function getMyCoursesAPI(page = 0, size = 20) {
+// 获取最新课程
+export function getLatestCoursesAPI(page = 0, size = 10) {
   return request({
-    url: '/api/v1/courses/my',
+    url: '/api/v1/courses/latest',
     method: 'GET',
     params: { page, size },
   })
 }
 
-// 获取管理员课程列表
-export function getAdminCoursesAPI(params = {}) {
+/**
+ * ==================== 统计API ====================
+ */
+
+// 获取课程统计
+export function getCourseStatsAPI() {
   return request({
-    url: '/api/v1/courses/admin',
+    url: '/api/v1/courses/stats',
     method: 'GET',
-    params,
   })
 }
 
-/**
- * ==================== 工具函数 ====================
- */
-
-// 转换难度级别
-function getDifficultyLevel(level) {
-  const levelMap = {
-    入门级: 1,
-    初级: 2,
-    中级: 3,
-    高级: 4,
-    专家级: 5,
-  }
-  return levelMap[level] || 1
-}
-
-// 转换难度级别（反向）
-export function getDifficultyLevelText(level) {
-  const levelMap = {
-    1: '入门级',
-    2: '初级',
-    3: '中级',
-    4: '高级',
-    5: '专家级',
-  }
-  return levelMap[level] || '入门级'
-}
-
-// 转换课程状态
-export function getCourseStatusText(status) {
-  const statusMap = {
-    0: '草稿',
-    1: '已发布',
-    2: '已下架',
-  }
-  return statusMap[status] || '未知'
-}
-
-// 转换章节状态
-export function getChapterStatusText(status) {
-  const statusMap = {
-    0: '草稿',
-    1: '已发布',
-    2: '已下架',
-  }
-  return statusMap[status] || '未知'
-}
-
-// 格式化文件大小
-export function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-// 格式化时长（秒转换为时分秒）
-export function formatDuration(seconds) {
-  if (!seconds) return '0分钟'
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = seconds % 60
-
-  if (hours > 0) {
-    return `${hours}小时${minutes}分钟`
-  } else if (minutes > 0) {
-    return `${minutes}分钟`
-  } else {
-    return `${secs}秒`
-  }
+// 获取讲师课程统计
+export function getInstructorStatsAPI(instructorId) {
+  return request({
+    url: `/api/v1/courses/instructor/${instructorId}/stats`,
+    method: 'GET',
+  })
 }

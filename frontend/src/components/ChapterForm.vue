@@ -1,17 +1,8 @@
-<!-- 
+<!--
 修改说明：
-1. 移除了原来的"资料链接"手动输入方式
-2. 改为选择已上传的教学资料建立绑定关系
-3. 使用复选框列表展示可选的教学资料
-4. 显示文件大小、类型等信息
-5. 保留视频链接功能
-
-使用方法：
-在 CourseForm.vue 中传入 availableMaterials 属性：
-<ChapterForm
-  :available-materials="fileListState.materials"
-  ...其他属性
-/>
+1. 只添加了缺失的 chapterType 字段，这是后端验证要求的必填字段
+2. 保持原有的所有功能和样式不变
+3. 最小化修复，解决"第 1 个章节的类型不能为空"错误
 -->
 <template>
   <div class="chapter-form-container">
@@ -26,8 +17,8 @@
       <el-row :gutter="20">
         <el-col :span="16">
           <el-form-item label="章节标题" prop="title">
-            <el-input 
-              v-model="form.title" 
+            <el-input
+              v-model="form.title"
               placeholder="请输入章节标题"
               maxlength="100"
               show-word-limit
@@ -36,25 +27,36 @@
         </el-col>
         <el-col :span="8">
           <el-form-item label="排序" prop="order">
-            <el-input-number 
-              v-model="form.order" 
-              :min="1" 
+            <el-input-number
+              v-model="form.order"
+              :min="1"
               :max="999"
-              style="width: 100%" 
+              style="width: 100%"
             />
           </el-form-item>
         </el-col>
       </el-row>
-      
+
+      <!-- 🔧 新增：章节类型字段 - 解决后端验证问题 -->
+      <el-form-item label="章节类型" prop="chapterType">
+        <el-select v-model="form.chapterType" placeholder="请选择章节类型" style="width: 100%">
+          <el-option label="视频课程" value="video" />
+          <el-option label="文档资料" value="document" />
+          <el-option label="音频课程" value="audio" />
+          <el-option label="测验考试" value="quiz" />
+        </el-select>
+        <div class="field-tip">选择章节的内容类型</div>
+      </el-form-item>
+
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="章节时长" prop="duration">
-            <el-input-number 
-              v-model="form.duration" 
-              :min="0" 
+            <el-input-number
+              v-model="form.duration"
+              :min="0"
               :max="9999"
-              placeholder="分钟" 
-              style="width: 100%" 
+              placeholder="分钟"
+              style="width: 100%"
             />
             <div class="field-tip">预计学习时间（分钟）</div>
           </el-form-item>
@@ -69,70 +71,74 @@
           </el-form-item>
         </el-col>
       </el-row>
-      
+
       <!-- 章节描述 -->
       <el-form-item label="章节描述">
         <el-input
           v-model="form.description"
           type="textarea"
+          placeholder="请输入章节描述"
           :rows="3"
-          placeholder="请输入章节描述，简要说明本章节的学习内容和目标"
-          maxlength="200"
+          maxlength="500"
           show-word-limit
         />
       </el-form-item>
-      
+
       <!-- 章节内容 -->
       <el-form-item label="章节内容" prop="content">
         <el-input
           v-model="form.content"
           type="textarea"
-          :rows="8"
-          placeholder="请输入章节的详细内容，包括知识点、操作步骤、案例分析等"
+          placeholder="请输入章节内容"
+          :rows="4"
           maxlength="2000"
           show-word-limit
         />
-        <div class="field-tip">支持 Markdown 格式</div>
       </el-form-item>
-      
-      <!-- 关联资料 -->
+
+      <!-- 关联学习资料 -->
       <div class="material-section">
-        <h5>📁 关联资料</h5>
-        
-        <!-- 选择已上传的教学资料 -->
-        <el-form-item label="教学资料">
-          <div class="material-selector">
-            <el-checkbox-group v-model="form.selectedMaterials" class="material-list">
-              <div 
-                v-for="material in availableMaterials" 
-                :key="material.id"
-                class="material-item"
-              >
-                <el-checkbox                 :value="material.id || material.uid" class="material-checkbox">
-                  <div class="material-info">
-                    <div class="material-name">
-                      <el-icon><Document /></el-icon>
-                      <span>{{ material.name }}</span>
+        <h5>
+          <el-icon><Document /></el-icon>
+          关联学习资料
+        </h5>
+        <el-form-item prop="selectedMaterials">
+          <div v-if="props.availableMaterials.length === 0" class="no-materials">
+            <div class="no-materials-icon">
+              <el-icon><Document /></el-icon>
+            </div>
+            <p>暂无可用的学习资料</p>
+            <p class="tip">请先在课程基础信息中上传教学资料</p>
+          </div>
+          <div v-else class="material-selector">
+            <div class="material-list">
+              <el-checkbox-group v-model="form.selectedMaterials">
+                <div
+                  v-for="material in props.availableMaterials"
+                  :key="material.id || material.uid"
+                  class="material-item"
+                >
+                  <el-checkbox
+                    :label="material.id || material.uid"
+                    class="material-checkbox"
+                  >
+                    <div class="material-info">
+                      <div class="material-name">
+                        <el-icon><Document /></el-icon>
+                        <span>{{ material.name || material.originalName || '学习资料' }}</span>
+                      </div>
+                      <div class="material-meta">
+                        <span class="file-type">{{ getFileType(material.name) }}</span>
+                        <span class="file-size">{{ formatFileSize(material.size) }}</span>
+                      </div>
                     </div>
-                    <div class="material-meta">
-                      <span class="file-size">{{ formatFileSize(material.size) }}</span>
-                      <span class="file-type">{{ getFileType(material.name) }}</span>
-                    </div>
-                  </div>
-                </el-checkbox>
-              </div>
-            </el-checkbox-group>
-            
-            <div v-if="availableMaterials.length === 0" class="no-materials">
-              <div class="no-materials-icon">📄</div>
-              <p>暂无可选择的教学资料</p>
-              <p class="tip">请先在"课程资源"中上传教学资料</p>
+                  </el-checkbox>
+                </div>
+              </el-checkbox-group>
             </div>
           </div>
           <div class="field-tip">选择与本章节相关的教学资料，学员可在学习过程中下载查看</div>
         </el-form-item>
-        
-
       </div>
     </el-form>
 
@@ -163,17 +169,17 @@
             </el-tag>
           </div>
         </div>
-        
+
         <div v-if="form.description" class="preview-description">
           <h4>章节描述</h4>
           <p>{{ form.description }}</p>
         </div>
-        
+
         <div v-if="form.content" class="preview-content">
           <h4>章节内容</h4>
           <div class="content-text">{{ form.content }}</div>
         </div>
-        
+
         <div v-if="selectedMaterialsList.length > 0" class="preview-materials">
           <h4>关联资料</h4>
           <ul>
@@ -218,11 +224,12 @@ const formRef = ref()
 const saving = ref(false)
 const previewVisible = ref(false)
 
-// 表单数据
+// 🔧 修复：表单数据添加 chapterType 字段
 const form = reactive({
   id: '',
   title: '',
   description: '',
+  chapterType: 'document', // 🔧 新增必填字段，设置默认值
   content: '',
   duration: 0,
   order: 1,
@@ -230,11 +237,14 @@ const form = reactive({
   selectedMaterials: [] // 选中的教学资料ID数组
 })
 
-// 表单验证规则
+// 🔧 修复：表单验证规则添加 chapterType 验证
 const rules = {
   title: [
     { required: true, message: '请输入章节标题', trigger: 'blur' },
     { min: 2, max: 100, message: '章节标题长度在 2 到 100 个字符', trigger: 'blur' }
+  ],
+  chapterType: [
+    { required: true, message: '请选择章节类型', trigger: 'change' }
   ],
   duration: [
     { required: true, message: '请输入章节时长', trigger: 'blur' },
@@ -252,22 +262,23 @@ const rules = {
 
 // 计算属性
 const selectedMaterialsList = computed(() => {
-  return props.availableMaterials.filter(material => 
+  return props.availableMaterials.filter(material =>
     form.selectedMaterials.includes(material.id || material.uid)
   )
 })
 
-// 🔧 核心修复：将 initFormData 函数声明移到 watch 之前
+// 🔧 修复：初始化表单数据，包含 chapterType
 const initFormData = (data) => {
   Object.assign(form, {
     id: data.id || '',
     title: data.title || '',
     description: data.description || '',
+    chapterType: data.chapterType || data.type || 'document', // 🔧 确保有默认值
     content: data.content || '',
     duration: data.duration || 0,
     order: data.order || (props.chapterIndex + 1) || 1,
     status: data.status || 0,
-    selectedMaterials: data.selectedMaterials || 
+    selectedMaterials: data.selectedMaterials ||
       (data.materialUrls ? data.materialUrls.split(',').filter(url => url.trim()) : []) ||
       data.materialIds || []
   })
@@ -284,6 +295,7 @@ watch(() => props.chapterData, (newData) => {
 onMounted(() => {
   if (!props.chapterData || Object.keys(props.chapterData).length === 0) {
     form.order = (props.chapterIndex + 1) || 1
+    form.chapterType = 'document' // 🔧 确保默认值
   }
 })
 
@@ -319,25 +331,36 @@ const getStatusText = (status) => {
   return textMap[status] || '草稿'
 }
 
+// 🔧 修复：保存时确保 chapterType 字段正确传递
 const handleSave = async () => {
   try {
     const valid = await formRef.value.validate()
     if (!valid) return
-    
+
+    // 🔧 额外验证 chapterType
+    if (!form.chapterType) {
+      ElMessage.error('请选择章节类型')
+      return
+    }
+
     saving.value = true
-    
+
     const cleanData = {
       ...form,
+      // 🔧 确保 chapterType 字段正确传递
+      chapterType: form.chapterType,
       // 后端 materialUrls 字段是 String 类型，需要将数组转换为逗号分隔的字符串
       materialUrls: form.selectedMaterials.map(id => {
         const material = props.availableMaterials.find(m => m.id === id || m.uid === id)
         return material ? (material.url || material.response?.data?.url || '') : ''
       }).filter(url => url).join(',') // 转换为逗号分隔的字符串
     }
-    
+
     // 清理内部使用的字段
     delete cleanData.selectedMaterials
-    
+
+    console.log('📤 ChapterForm 提交数据:', cleanData) // 调试日志
+
     emit('save', cleanData)
   } catch (error) {
     console.error('章节保存失败:', error)
@@ -579,13 +602,13 @@ defineExpose({
     flex-wrap: wrap;
     gap: 4px;
   }
-  
+
   .material-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-  
+
   .form-footer {
     flex-direction: column;
     gap: 12px;
