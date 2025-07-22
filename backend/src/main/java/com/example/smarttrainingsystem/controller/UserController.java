@@ -6,10 +6,8 @@ import com.example.smarttrainingsystem.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import javax.validation.Valid;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,5 +32,11 @@ public class UserController {
         resp.put("data", users.getContent());
         resp.put("total", users.getTotalElements());
         return Result.success("获取用户列表成功", resp);
+    }
+
+    @PostMapping
+    public Result<UserDTO.ListItem> createUser(@Valid @RequestBody UserDTO.CreateRequest request) {
+        UserDTO.ListItem user = userService.createUser(request);
+        return Result.success("创建用户成功", user);
     }
 }
