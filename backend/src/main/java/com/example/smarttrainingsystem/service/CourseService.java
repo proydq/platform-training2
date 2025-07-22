@@ -101,6 +101,11 @@ public class CourseService {
 
         Course savedCourse = courseRepository.save(course);
 
+        // 更新章节信息
+        if (request.getChapters() != null && !request.getChapters().isEmpty()) {
+            updateChaptersForCourse(savedCourse.getId(), request.getChapters());
+        }
+
         log.info("课程更新成功: courseId={}", savedCourse.getId());
         return convertToResponse(savedCourse);
     }
@@ -300,6 +305,37 @@ public class CourseService {
             }
 
             courseChapterRepository.save(chapter);
+        }
+    }
+
+    /**
+     * 更新课程章节（根据ID存在则更新，否则创建）
+     */
+    @Transactional
+    public void updateChaptersForCourse(String courseId, List<CourseChapterDTO.UpdateRequest> chapterRequests) {
+        for (CourseChapterDTO.UpdateRequest chapterRequest : chapterRequests) {
+            if (StringUtils.hasText(chapterRequest.getId())) {
+                // 更新已有章节
+                CourseChapter chapter = courseChapterRepository.findById(chapterRequest.getId())
+                        .orElse(new CourseChapter());
+                // 如果查询到的章节不属于当前课程，则忽略
+                if (chapter.getId() != null && !courseId.equals(chapter.getCourseId())) {
+                    continue;
+                }
+                BeanUtils.copyProperties(chapterRequest, chapter, "id", "courseId");
+                chapter.setCourseId(courseId);
+                courseChapterRepository.save(chapter);
+            } else {
+                // 新建章节
+                CourseChapter chapter = new CourseChapter();
+                BeanUtils.copyProperties(chapterRequest, chapter);
+                chapter.setCourseId(courseId);
+                if (chapter.getSortOrder() == null) {
+                    Integer maxOrder = courseChapterRepository.findMaxSortOrderByCourseId(courseId);
+                    chapter.setSortOrder(maxOrder == null ? 1 : maxOrder + 1);
+                }
+                courseChapterRepository.save(chapter);
+            }
         }
     }
 

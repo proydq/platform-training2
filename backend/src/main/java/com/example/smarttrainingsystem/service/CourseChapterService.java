@@ -104,6 +104,9 @@ public class CourseChapterService {
         if (request.getIsFree() != null) {
             chapter.setIsFree(request.getIsFree());
         }
+        if (request.getStatus() != null) {
+            chapter.setStatus(request.getStatus());
+        }
         if (request.getRequirements() != null) {
             chapter.setRequirements(request.getRequirements());
         }
