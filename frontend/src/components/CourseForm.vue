@@ -562,12 +562,14 @@ const handleChapterSave = (chapterData) => {
     // 新增章节
     chapterData.id = Date.now().toString()
     form.chapters.push(chapterData)
-    ElMessage.success('章节添加成功')
   } else {
-    // 更新章节
-    Object.assign(form.chapters[editingChapterIndex.value], chapterData)
-    ElMessage.success('章节更新成功')
+    // 更新章节 - 使用 splice 确保响应式
+    form.chapters.splice(editingChapterIndex.value, 1, { ...chapterData })
   }
+
+  // 更新顺序并给出提示
+  updateChapterOrder()
+  ElMessage.success(editingChapterIndex.value === -1 ? '章节添加成功' : '章节更新成功')
   closeChapterModal()
 }
 
