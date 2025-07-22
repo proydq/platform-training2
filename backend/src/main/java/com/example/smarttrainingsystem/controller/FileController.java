@@ -63,25 +63,41 @@ public class FileController {
      * @param request HTTP请求
      * @return 文件访问URL
      */
+    /**
+     * 🔧 通用文件上传接口 - 增强返回信息
+     */
     @PostMapping("/upload")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('STUDENT')")
     public Result<Map<String, Object>> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(defaultValue = "temp") String category,
+            @RequestParam(value = "category", defaultValue = "temp") String category,
+            @RequestParam(value = "type", required = false) String type,
             HttpServletRequest request) {
 
         String userId = getCurrentUserId(request);
 
-        log.info("接收文件上传请求: fileName={}, category={}, userId={}",
-                file.getOriginalFilename(), category, userId);
+        log.info("接收文件上传请求: fileName={}, category={}, type={}, userId={}",
+                file.getOriginalFilename(), category, type, userId);
 
-        String fileUrl = fileUploadService.uploadFile(file, category, userId);
+        String fileUrl;
+
+        // 根据类型选择合适的上传方法
+        if ("cover".equals(type)) {
+            fileUrl = fileUploadService.uploadCourseCover(file, userId);
+        } else if ("material".equals(type)) {
+            fileUrl = fileUploadService.uploadCourseDocument(file, userId);
+        } else if ("video".equals(type)) {
+            fileUrl = fileUploadService.uploadCourseVideo(file, userId);
+        } else {
+            fileUrl = fileUploadService.uploadFile(file, category, userId);
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("url", fileUrl);
-        result.put("originalName", file.getOriginalFilename());
+        result.put("originalName", file.getOriginalFilename()); // 🔧 原始文件名
+        result.put("name", file.getOriginalFilename()); // 🔧 文件名
         result.put("size", file.getSize());
-        result.put("contentType", file.getContentType());
+        result.put("type", file.getContentType());
 
         return Result.success(result);
     }
@@ -161,7 +177,8 @@ public class FileController {
 
         Map<String, Object> result = new HashMap<>();
         result.put("url", fileUrl);
-        result.put("originalName", file.getOriginalFilename());
+        result.put("originalName", file.getOriginalFilename()); // 🔧 返回原始文件名
+        result.put("name", file.getOriginalFilename()); // 🔧 添加name字段
         result.put("size", file.getSize());
 
         return Result.success(result);

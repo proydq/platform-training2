@@ -467,26 +467,33 @@ public class CourseService {
         CourseDTO.Response response = new CourseDTO.Response();
         BeanUtils.copyProperties(course, response);
 
+        // 设置状态和难度文本
         response.setStatusText(course.getStatusText());
         response.setDifficultyText(course.getDifficultyText());
 
-        // 🔧 设置学习资料信息列表（包含原始文件名）
+        // 🔧 重要：设置新格式的材料列表（包含文件名）
         response.setMaterialList(convertMaterialInfoList(course.getMaterialInfoList()));
-
-        // 🔧 设置视频资料信息列表（包含原始文件名）
         response.setVideoList(convertVideoInfoList(course.getVideoInfoList()));
 
-        // 设置章节信息
-        List<CourseChapter> chapters = courseChapterRepository.findByCourseIdOrderBySortOrderAsc(course.getId());
-        response.setChapters(chapters.stream()
-                .map(this::convertChapterToResponse)
-                .collect(Collectors.toList()));
+        // 🔧 保持兼容：同时设置旧格式字段
+        response.setMaterialUrls(course.getMaterialUrls());
+        response.setMaterialNames(course.getMaterialNames());
+        response.setVideoUrls(course.getVideoUrls());
+        response.setVideoNames(course.getVideoNames());
 
-        // 设置统计信息
-        response.setTotalChapters(chapters.size());
-        response.setTotalDuration(chapters.stream()
-                .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
-                .sum());
+        // 设置章节信息
+        if (course.getChapters() != null) {
+            List<CourseChapterDTO.Response> chapterResponses = course.getChapters().stream()
+                    .map(this::convertChapterToResponse)
+                    .collect(Collectors.toList());
+            response.setChapters(chapterResponses);
+
+            // 计算统计信息
+            response.setTotalChapters(chapterResponses.size());
+            response.setTotalDuration(chapterResponses.stream()
+                    .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
+                    .sum());
+        }
 
         return response;
     }
@@ -498,19 +505,21 @@ public class CourseService {
         CourseDTO.ListItem item = new CourseDTO.ListItem();
         BeanUtils.copyProperties(course, item);
 
+        // 设置状态和难度文本
         item.setStatusText(course.getStatusText());
         item.setDifficultyText(course.getDifficultyText());
 
-        // 🔧 为列表项也包含材料信息
+        // 🔧 重要：设置新格式的材料列表（包含文件名）
         item.setMaterialList(convertMaterialInfoList(course.getMaterialInfoList()));
         item.setVideoList(convertVideoInfoList(course.getVideoInfoList()));
 
-        // 设置简化的统计信息
-        List<CourseChapter> chapters = courseChapterRepository.findByCourseIdOrderBySortOrderAsc(course.getId());
-        item.setTotalChapters(chapters.size());
-        item.setTotalDuration(chapters.stream()
-                .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
-                .sum());
+        // 设置统计信息
+        if (course.getChapters() != null) {
+            item.setTotalChapters(course.getChapters().size());
+            item.setTotalDuration(course.getChapters().stream()
+                    .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
+                    .sum());
+        }
 
         return item;
     }

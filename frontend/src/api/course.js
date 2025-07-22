@@ -20,8 +20,8 @@ export function getCourseListAPI(params = {}) {
       isRequired: params.isRequired || '',
       instructorId: params.instructorId || '',
       sortBy: params.sortBy || 'createTime',
-      sortDir: params.sortDir || 'desc'
-    }
+      sortDir: params.sortDir || 'desc',
+    },
   })
 }
 
@@ -29,7 +29,7 @@ export function getCourseListAPI(params = {}) {
 export function getCourseDetailAPI(courseId) {
   return request({
     url: `/api/v1/courses/${courseId}`,
-    method: 'GET'
+    method: 'GET',
   })
 }
 
@@ -46,46 +46,119 @@ export function createCourseAPI(data) {
     price: data.price || 0,
     isRequired: data.isRequired || false,
     coverImageUrl: data.coverImage || '',
-    materialUrls: data.materials ? data.materials.join(',') : '',
-    videoUrls: data.videos ? data.videos.join(',') : '',
-    chapters: data.chapters ? data.chapters.map(chapter => ({
-      title: chapter.title,
-      description: chapter.description || '',
-      chapterType: chapter.chapterType || 'document',
-      duration: chapter.duration,
-      sortOrder: chapter.sortOrder || chapter.order,
-      content: chapter.content || '',
-      materialUrls: chapter.materialUrls || ''
-    })) : []
-  };
-  
-  console.log('📤 发送到后端的数据:', requestData); // 添加这行调试
-  
+
+    // 🔧 传递新格式的资料信息（包含文件名）
+    materials:
+      data.materials && data.materials.length > 0
+        ? data.materials.map((material) => ({
+            url: typeof material === 'string' ? material : material.url,
+            name:
+              typeof material === 'object'
+                ? material.originalName || material.name || '学习资料'
+                : '学习资料',
+          }))
+        : [],
+
+    // 兼容旧格式
+    materialUrls: data.materials
+      ? data.materials.map((m) => (typeof m === 'string' ? m : m.url)).join(',')
+      : '',
+
+    videos:
+      data.videos && data.videos.length > 0
+        ? data.videos.map((video) => ({
+            url: typeof video === 'string' ? video : video.url,
+            name:
+              typeof video === 'object'
+                ? video.originalName || video.name || '视频资料'
+                : '视频资料',
+          }))
+        : [],
+
+    videoUrls: data.videos
+      ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
+      : '',
+
+    chapters: data.chapters
+      ? data.chapters.map((chapter) => ({
+          title: chapter.title,
+          description: chapter.description || '',
+          duration: chapter.duration || 0,
+          order: chapter.order,
+          content: chapter.content || '',
+          videoUrl: chapter.videoUrl || '',
+        }))
+      : [],
+  }
+
   return request({
     url: '/api/v1/courses',
     method: 'POST',
-    data: requestData
+    data: requestData,
   })
 }
 
 // 更新课程
 export function updateCourseAPI(courseId, data) {
+  const requestData = {
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    difficultyLevel: Math.min(getDifficultyLevel(data.level), 3),
+    estimatedDuration: data.duration,
+    price: data.price || 0,
+    isRequired: data.isRequired || false,
+    coverImageUrl: data.coverImage || '',
+
+    // 🔧 传递新格式的资料信息（包含文件名）
+    materials:
+      data.materials && data.materials.length > 0
+        ? data.materials.map((material) => ({
+            url: typeof material === 'string' ? material : material.url,
+            name:
+              typeof material === 'object'
+                ? material.originalName || material.name || '学习资料'
+                : '学习资料',
+          }))
+        : [],
+
+    // 兼容旧格式
+    materialUrls: data.materials
+      ? data.materials.map((m) => (typeof m === 'string' ? m : m.url)).join(',')
+      : '',
+
+    videos:
+      data.videos && data.videos.length > 0
+        ? data.videos.map((video) => ({
+            url: typeof video === 'string' ? video : video.url,
+            name:
+              typeof video === 'object'
+                ? video.originalName || video.name || '视频资料'
+                : '视频资料',
+          }))
+        : [],
+
+    videoUrls: data.videos
+      ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
+      : '',
+
+    chapters: data.chapters
+      ? data.chapters.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+          description: chapter.description || '',
+          duration: chapter.duration || 0,
+          order: chapter.order,
+          content: chapter.content || '',
+          videoUrl: chapter.videoUrl || '',
+        }))
+      : [],
+  }
+
   return request({
     url: `/api/v1/courses/${courseId}`,
     method: 'PUT',
-    data: {
-      title: data.title,
-      description: data.description,
-      category: data.category,
-      difficultyLevel: getDifficultyLevel(data.level),
-      duration: data.duration,
-      instructorId: data.instructorId,
-      price: data.price || 0,
-      isRequired: data.isRequired || false,
-      coverImage: data.coverImage || '',
-      materials: data.materials || [],
-      videos: data.videos || []
-    }
+    data: requestData,
   })
 }
 
@@ -93,7 +166,7 @@ export function updateCourseAPI(courseId, data) {
 export function deleteCourseAPI(courseId) {
   return request({
     url: `/api/v1/courses/${courseId}`,
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -101,7 +174,7 @@ export function deleteCourseAPI(courseId) {
 export function publishCourseAPI(courseId) {
   return request({
     url: `/api/v1/courses/${courseId}/publish`,
-    method: 'POST'
+    method: 'POST',
   })
 }
 
@@ -109,7 +182,7 @@ export function publishCourseAPI(courseId) {
 export function unpublishCourseAPI(courseId) {
   return request({
     url: `/api/v1/courses/${courseId}/unpublish`,
-    method: 'POST'
+    method: 'POST',
   })
 }
 
@@ -122,7 +195,7 @@ export function getCourseChaptersAPI(courseId, status = null) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters`,
     method: 'GET',
-    params: status ? { status } : {}
+    params: status ? { status } : {},
   })
 }
 
@@ -130,7 +203,7 @@ export function getCourseChaptersAPI(courseId, status = null) {
 export function getChapterDetailAPI(courseId, chapterId) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
-    method: 'GET'
+    method: 'GET',
   })
 }
 
@@ -146,8 +219,8 @@ export function createChapterAPI(courseId, data) {
       sortOrder: data.order,
       content: data.content || '',
       videoUrl: data.videoUrl || '',
-      materialUrls: data.materialUrls || []
-    }
+      materialUrls: data.materialUrls || [],
+    },
   })
 }
 
@@ -163,8 +236,8 @@ export function updateChapterAPI(courseId, chapterId, data) {
       sortOrder: data.order,
       content: data.content || '',
       videoUrl: data.videoUrl || '',
-      materialUrls: data.materialUrls || []
-    }
+      materialUrls: data.materialUrls || [],
+    },
   })
 }
 
@@ -172,7 +245,7 @@ export function updateChapterAPI(courseId, chapterId, data) {
 export function deleteChapterAPI(courseId, chapterId) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -182,11 +255,11 @@ export function reorderChaptersAPI(courseId, chapterOrders) {
     url: `/api/v1/courses/${courseId}/chapters/reorder`,
     method: 'POST',
     data: {
-      chapterOrders: chapterOrders.map(item => ({
+      chapterOrders: chapterOrders.map((item) => ({
         chapterId: item.id,
-        sortOrder: item.order
-      }))
-    }
+        sortOrder: item.order,
+      })),
+    },
   })
 }
 
@@ -200,14 +273,14 @@ export function uploadCourseCoverAPI(file) {
   formData.append('file', file)
   formData.append('category', 'course')
   formData.append('type', 'cover')
-  
+
   return request({
     url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+      'Content-Type': 'multipart/form-data',
+    },
   })
 }
 
@@ -217,14 +290,14 @@ export function uploadCourseMaterialAPI(file) {
   formData.append('file', file)
   formData.append('category', 'course')
   formData.append('type', 'material')
-  
+
   return request({
     url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+      'Content-Type': 'multipart/form-data',
+    },
   })
 }
 
@@ -234,15 +307,15 @@ export function uploadCourseVideoAPI(file, onProgress) {
   formData.append('file', file)
   formData.append('category', 'course')
   formData.append('type', 'video')
-  
+
   return request({
     url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
+      'Content-Type': 'multipart/form-data',
     },
-    onUploadProgress: onProgress
+    onUploadProgress: onProgress,
   })
 }
 
@@ -252,14 +325,14 @@ export function uploadFileAPI(file, category = 'temp', userId) {
   formData.append('file', file)
   formData.append('category', category)
   formData.append('userId', userId)
-  
+
   return request({
     url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+      'Content-Type': 'multipart/form-data',
+    },
   })
 }
 
@@ -272,7 +345,7 @@ export function searchCoursesAPI(params) {
   return request({
     url: '/api/v1/courses/search',
     method: 'GET',
-    params
+    params,
   })
 }
 
@@ -281,7 +354,7 @@ export function getRecommendedCoursesAPI(page = 0, size = 10) {
   return request({
     url: '/api/v1/courses/recommended',
     method: 'GET',
-    params: { page, size }
+    params: { page, size },
   })
 }
 
@@ -290,7 +363,7 @@ export function getPopularCoursesAPI(page = 0, size = 10) {
   return request({
     url: '/api/v1/courses/popular',
     method: 'GET',
-    params: { page, size }
+    params: { page, size },
   })
 }
 
@@ -299,7 +372,7 @@ export function getMyCoursesAPI(page = 0, size = 20) {
   return request({
     url: '/api/v1/courses/my',
     method: 'GET',
-    params: { page, size }
+    params: { page, size },
   })
 }
 
@@ -308,7 +381,7 @@ export function getAdminCoursesAPI(params = {}) {
   return request({
     url: '/api/v1/courses/admin',
     method: 'GET',
-    params
+    params,
   })
 }
 
@@ -319,11 +392,11 @@ export function getAdminCoursesAPI(params = {}) {
 // 转换难度级别
 function getDifficultyLevel(level) {
   const levelMap = {
-    '入门级': 1,
-    '初级': 2,
-    '中级': 3,
-    '高级': 4,
-    '专家级': 5
+    入门级: 1,
+    初级: 2,
+    中级: 3,
+    高级: 4,
+    专家级: 5,
   }
   return levelMap[level] || 1
 }
@@ -335,7 +408,7 @@ export function getDifficultyLevelText(level) {
     2: '初级',
     3: '中级',
     4: '高级',
-    5: '专家级'
+    5: '专家级',
   }
   return levelMap[level] || '入门级'
 }
@@ -345,7 +418,7 @@ export function getCourseStatusText(status) {
   const statusMap = {
     0: '草稿',
     1: '已发布',
-    2: '已下架'
+    2: '已下架',
   }
   return statusMap[status] || '未知'
 }
@@ -355,7 +428,7 @@ export function getChapterStatusText(status) {
   const statusMap = {
     0: '草稿',
     1: '已发布',
-    2: '已下架'
+    2: '已下架',
   }
   return statusMap[status] || '未知'
 }
@@ -372,11 +445,11 @@ export function formatFileSize(bytes) {
 // 格式化时长（秒转换为时分秒）
 export function formatDuration(seconds) {
   if (!seconds) return '0分钟'
-  
+
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   const secs = seconds % 60
-  
+
   if (hours > 0) {
     return `${hours}小时${minutes}分钟`
   } else if (minutes > 0) {

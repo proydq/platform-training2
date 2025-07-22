@@ -1,20 +1,14 @@
 <template>
   <div class="course-form-container">
-    <el-form
-      ref="formRef"
-      :model="form"
-      :rules="rules"
-      label-width="120px"
-      class="course-form"
-    >
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" class="course-form">
       <!-- 基本信息 -->
       <div class="form-section">
         <h4>📝 基本信息</h4>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="课程名称" prop="title">
-              <el-input 
-                v-model="form.title" 
+              <el-input
+                v-model="form.title"
                 placeholder="请输入课程名称"
                 maxlength="100"
                 show-word-limit
@@ -23,64 +17,56 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="课程分类" prop="category">
-              <el-select 
-                v-model="form.category" 
-                placeholder="请选择课程分类" 
-                style="width: 100%"
-              >
-                <el-option 
-                  v-for="category in courseCategories" 
-                  :key="category" 
-                  :label="category" 
-                  :value="category" 
+              <el-select v-model="form.category" placeholder="请选择课程分类" style="width: 100%">
+                <el-option
+                  v-for="category in courseCategories"
+                  :key="category"
+                  :label="category"
+                  :value="category"
                 />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="难度级别" prop="level">
-              <el-select 
-                v-model="form.level" 
-                placeholder="请选择难度级别" 
-                style="width: 100%"
-              >
-                <el-option 
-                  v-for="level in difficultyLevels" 
-                  :key="level.value" 
-                  :label="level.label" 
-                  :value="level.label" 
+              <el-select v-model="form.level" placeholder="请选择难度级别" style="width: 100%">
+                <el-option
+                  v-for="level in difficultyLevels"
+                  :key="level.value"
+                  :label="level.label"
+                  :value="level.label"
                 />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="课程时长" prop="duration">
-              <el-input-number 
-                v-model="form.duration" 
-                :min="1" 
+              <el-input-number
+                v-model="form.duration"
+                :min="1"
                 :max="9999"
-                placeholder="分钟" 
-                style="width: 100%" 
+                placeholder="分钟"
+                style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="课程价格" prop="price">
-              <el-input-number 
-                v-model="form.price" 
-                :min="0" 
+              <el-input-number
+                v-model="form.price"
+                :min="0"
                 :max="99999"
-                :precision="2" 
-                placeholder="元" 
-                style="width: 100%" 
+                :precision="2"
+                placeholder="元"
+                style="width: 100%"
               />
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-form-item label="课程描述" prop="description">
           <el-input
             v-model="form.description"
@@ -91,24 +77,20 @@
             show-word-limit
           />
         </el-form-item>
-        
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="讲师ID" prop="instructorId">
-              <el-input 
-                v-model="form.instructorId" 
-                placeholder="请输入讲师ID" 
+              <el-input
+                v-model="form.instructorId"
+                placeholder="请输入讲师ID"
                 :disabled="userStore.userRole === 'TEACHER'"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="必修课程">
-              <el-switch 
-                v-model="form.isRequired"
-                active-text="是"
-                inactive-text="否"
-              />
+              <el-switch v-model="form.isRequired" active-text="是" inactive-text="否" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -117,7 +99,7 @@
       <!-- 课程资源 -->
       <div class="form-section">
         <h4>📁 课程资源</h4>
-        
+
         <!-- 课程封面 -->
         <el-form-item label="课程封面">
           <div class="upload-wrapper">
@@ -139,7 +121,7 @@
             </div>
           </div>
         </el-form-item>
-        
+
         <!-- 教学资料 -->
         <el-form-item label="教学资料">
           <div class="upload-wrapper">
@@ -162,7 +144,7 @@
             </div>
           </div>
         </el-form-item>
-        
+
         <!-- 上传进度 -->
         <div v-if="uploading" class="upload-progress">
           <el-progress :percentage="uploadProgress" />
@@ -179,32 +161,28 @@
             添加章节
           </el-button>
         </div>
-        
+
         <div v-if="form.chapters.length === 0" class="no-chapters">
           <div class="no-chapters-icon">📚</div>
           <p>暂无章节，点击"添加章节"开始创建课程内容</p>
         </div>
-        
+
         <div v-else class="chapters-list">
-          <div
-            v-for="(chapter, index) in sortedChapters"
-            :key="chapter.id"
-            class="chapter-item"
-          >
+          <div v-for="(chapter, index) in sortedChapters" :key="chapter.id" class="chapter-item">
             <div class="chapter-header">
               <span class="chapter-number">第{{ index + 1 }}章</span>
               <span class="chapter-title">{{ chapter.title || '未命名章节' }}</span>
               <div class="chapter-order-controls">
-                <el-button 
-                  size="small" 
+                <el-button
+                  size="small"
                   :disabled="index === 0"
                   @click="moveChapterUp(index)"
                   title="上移"
                 >
                   <el-icon><ArrowUp /></el-icon>
                 </el-button>
-                <el-button 
-                  size="small" 
+                <el-button
+                  size="small"
                   :disabled="index === form.chapters.length - 1"
                   @click="moveChapterDown(index)"
                   title="下移"
@@ -225,7 +203,7 @@
             </div>
             <div class="chapter-meta">
               <span>时长: {{ chapter.duration || 0 }}分钟</span>
-              <span>顺序: {{ chapter.order || (index + 1) }}</span>
+              <span>顺序: {{ chapter.order || index + 1 }}</span>
               <span v-if="chapter.description">{{ chapter.description }}</span>
             </div>
           </div>
@@ -273,12 +251,12 @@ import ChapterForm from './ChapterForm.vue'
 const props = defineProps({
   courseData: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   isEditing: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['save', 'cancel'])
@@ -300,7 +278,7 @@ const {
   validateImageFile,
   validateDocumentFile,
   setFileList,
-  clearAllFiles
+  clearAllFiles,
 } = useFileUpload()
 
 // 表单数据
@@ -316,7 +294,7 @@ const form = reactive({
   isRequired: false,
   coverImage: '',
   materials: [],
-  chapters: []
+  chapters: [],
 })
 
 // 章节编辑
@@ -327,48 +305,34 @@ const editingChapter = ref(null)
 const editingChapterIndex = ref(-1)
 
 // 配置数据
-const courseCategories = [
-  '技术培训',
-  '产品培训',
-  '安全培训', 
-  '管理培训',
-  '营销培训'
-]
+const courseCategories = ['技术培训', '产品培训', '安全培训', '管理培训', '营销培训']
 
 const difficultyLevels = [
   { label: '入门级', value: 1 },
   { label: '初级', value: 2 },
   { label: '中级', value: 3 },
   { label: '高级', value: 4 },
-  { label: '专家级', value: 5 }
+  { label: '专家级', value: 5 },
 ]
 
 // 表单验证规则
 const rules = {
   title: [
     { required: true, message: '请输入课程名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '课程名称长度在 2 到 100 个字符', trigger: 'blur' }
+    { min: 2, max: 100, message: '课程名称长度在 2 到 100 个字符', trigger: 'blur' },
   ],
   description: [
     { required: true, message: '请输入课程描述', trigger: 'blur' },
-    { min: 10, max: 500, message: '课程描述长度在 10 到 500 个字符', trigger: 'blur' }
+    { min: 10, max: 500, message: '课程描述长度在 10 到 500 个字符', trigger: 'blur' },
   ],
-  category: [
-    { required: true, message: '请选择课程分类', trigger: 'change' }
-  ],
-  level: [
-    { required: true, message: '请选择难度级别', trigger: 'change' }
-  ],
+  category: [{ required: true, message: '请选择课程分类', trigger: 'change' }],
+  level: [{ required: true, message: '请选择难度级别', trigger: 'change' }],
   duration: [
     { required: true, message: '请输入课程时长', trigger: 'blur' },
-    { type: 'number', min: 1, message: '课程时长必须大于0', trigger: 'blur' }
+    { type: 'number', min: 1, message: '课程时长必须大于0', trigger: 'blur' },
   ],
-  instructorId: [
-    { required: true, message: '请输入讲师ID', trigger: 'blur' }
-  ],
-  price: [
-    { type: 'number', min: 0, message: '价格不能为负数', trigger: 'blur' }
-  ]
+  instructorId: [{ required: true, message: '请输入讲师ID', trigger: 'blur' }],
+  price: [{ type: 'number', min: 0, message: '价格不能为负数', trigger: 'blur' }],
 }
 
 // 计算属性
@@ -376,7 +340,7 @@ const formData = computed(() => {
   return {
     ...form,
     coverImage: fileListState.cover[0]?.url || '',
-    materials: fileListState.materials.map(file => file.url)
+    materials: fileListState.materials.map((file) => file.url),
   }
 })
 
@@ -387,10 +351,10 @@ const sortedChapters = computed(() => {
 const getDifficultyLevelText = (level) => {
   const levelMap = {
     1: '入门级',
-    2: '初级', 
+    2: '初级',
     3: '中级',
     4: '高级',
-    5: '专家级'
+    5: '专家级',
   }
   return levelMap[level] || '入门级'
 }
@@ -398,70 +362,118 @@ const getDifficultyLevelText = (level) => {
 // 方法
 // 修复 CourseForm.vue 中的 initFormData 函数
 
+// frontend/src/components/CourseForm.vue
 const initFormData = (data) => {
-  console.log('🏗️ 初始化表单数据，原始数据:', data) // 调试信息
-  
+  console.log('🏗️ 初始化表单数据，原始数据:', data)
+
   Object.assign(form, {
     id: data.id || '',
     title: data.title || '',
     description: data.description || '',
     category: data.category || '',
     level: data.level || getDifficultyLevelText(data.difficultyLevel),
-    // 🔧 修复：支持多种时长字段名
     duration: data.duration || data.estimatedDuration || 0,
     instructorId: data.instructorId || '',
     price: data.price || 0,
     isRequired: data.isRequired || false,
-    chapters: data.chapters || []
+    chapters: data.chapters || [],
   })
-  
-  console.log('📝 处理后的表单数据:', form) // 调试信息
-  
-  // 🔧 修复：支持多种封面字段名
+
+  // 🔧 处理封面图片
   const coverImageUrl = data.coverImage || data.coverImageUrl
-  console.log('🖼️ 封面图片URL:', coverImageUrl) // 调试信息
-  
-  setFileList('cover', coverImageUrl ? [{
-    name: '课程封面',
-    url: coverImageUrl,
-    uid: Date.now()
-  }] : [])
-  
-  // 🔧 修复：处理教学资料的多种数据格式
+  setFileList(
+    'cover',
+    coverImageUrl
+      ? [
+          {
+            name: '课程封面',
+            url: coverImageUrl,
+            uid: Date.now(),
+          },
+        ]
+      : [],
+  )
+
+  // 🔧 优先处理新格式的教学资料（包含文件名）
   let materialsList = []
-  
-  if (data.materials && Array.isArray(data.materials)) {
-    // 如果是数组格式
+
+  if (data.materialList && Array.isArray(data.materialList)) {
+    // 新格式：使用materialList（包含文件名）
+    materialsList = data.materialList.map((material, index) => ({
+      name: material.name || material.originalName || `教学资料${index + 1}`,
+      url: material.url,
+      uid: Date.now() + index,
+      size: material.size,
+      originalName: material.name || material.originalName,
+    }))
+    console.log('📁 使用新格式教学资料列表:', materialsList)
+  } else if (data.materials && Array.isArray(data.materials)) {
+    // 兼容格式：materials数组
     materialsList = data.materials
+      .map((item, index) => {
+        if (typeof item === 'string') {
+          // 如果是URL字符串
+          return {
+            name: `教学资料${index + 1}`,
+            url: item.trim(),
+            uid: Date.now() + index,
+          }
+        } else if (item && item.url) {
+          // 如果是对象
+          return {
+            name: item.name || item.originalName || `教学资料${index + 1}`,
+            url: item.url,
+            uid: Date.now() + index,
+            size: item.size,
+            originalName: item.name || item.originalName,
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
+  } else if (data.materialUrls && data.materialNames) {
+    // 兼容旧格式：URL字符串和名称字符串
+    const urls = data.materialUrls.split(',').filter((url) => url.trim())
+    const names = data.materialNames.split(',').filter((name) => name.trim())
+
+    materialsList = urls.map((url, index) => ({
+      name: names[index] || `教学资料${index + 1}`,
+      url: url.trim(),
+      uid: Date.now() + index,
+      originalName: names[index],
+    }))
+    console.log('📁 使用旧格式教学资料列表:', materialsList)
   } else if (data.materialUrls) {
-    // 如果是逗号分隔的字符串格式，需要转换为数组
-    if (typeof data.materialUrls === 'string') {
-      materialsList = data.materialUrls.split(',').filter(url => url.trim())
-    } else if (Array.isArray(data.materialUrls)) {
-      materialsList = data.materialUrls
-    }
+    // 最基础兼容：只有URL字符串
+    const urls = (
+      typeof data.materialUrls === 'string' ? data.materialUrls.split(',') : data.materialUrls
+    ).filter((url) => url && url.trim())
+
+    materialsList = urls.map((url, index) => ({
+      name: `教学资料${index + 1}`,
+      url: url.trim(),
+      uid: Date.now() + index,
+    }))
   }
-  
-  console.log('📁 教学资料列表:', materialsList) // 调试信息
-  
-  setFileList('materials', materialsList.map((url, index) => ({
-    name: `教学资料${index + 1}`,
-    url: url.trim(), // 去除可能的空格
-    uid: Date.now() + index
-  })))
-  
-  console.log('📊 章节数据:', data.chapters) // 调试信息
-  console.log('✅ 数据初始化完成') // 调试信息
+
+  setFileList('materials', materialsList)
+
+  console.log('📊 章节数据:', data.chapters)
+  console.log('✅ 数据初始化完成')
 }
 
 // 监听器
-watch(() => props.courseData, (newData) => {
-  console.log('📨 CourseForm 接收到数据:', newData) // 添加这行
-  if (newData && Object.keys(newData).length > 0) {
-    console.log('🔄 开始初始化表单数据') // 添加这行
-    initFormData(newData)
-  }
-}, { immediate: true })
+watch(
+  () => props.courseData,
+  (newData) => {
+    console.log('📨 CourseForm 接收到数据:', newData) // 添加这行
+    if (newData && Object.keys(newData).length > 0) {
+      console.log('🔄 开始初始化表单数据') // 添加这行
+      initFormData(newData)
+    }
+  },
+  { immediate: true },
+)
 
 // 生命周期
 onMounted(() => {
@@ -469,10 +481,6 @@ onMounted(() => {
     form.instructorId = userStore.userInfo.id || userStore.userInfo.username
   }
 })
-
-
-
-
 
 const beforeCoverUpload = (file) => {
   return validateImageFile(file)
@@ -492,7 +500,7 @@ const addChapter = () => {
     duration: 0,
     order: form.chapters.length + 1,
     content: '',
-    videoUrl: ''
+    videoUrl: '',
   }
   editingChapterIndex.value = -1
   chapterModalVisible.value = true
@@ -515,50 +523,50 @@ const removeChapter = (index) => {
 
 const moveChapterUp = (index) => {
   if (index === 0) return
-  
+
   const sortedList = sortedChapters.value
   const currentChapter = sortedList[index]
   const prevChapter = sortedList[index - 1]
-  
+
   // 交换order值
   const tempOrder = currentChapter.order
   currentChapter.order = prevChapter.order
   prevChapter.order = tempOrder
-  
+
   // 在原数组中更新
   const currentOriginalIndex = getOriginalIndex(currentChapter.id)
   const prevOriginalIndex = getOriginalIndex(prevChapter.id)
-  
+
   form.chapters[currentOriginalIndex].order = currentChapter.order
   form.chapters[prevOriginalIndex].order = prevChapter.order
-  
+
   ElMessage.success('章节顺序调整成功')
 }
 
 const moveChapterDown = (index) => {
   const sortedList = sortedChapters.value
   if (index === sortedList.length - 1) return
-  
+
   const currentChapter = sortedList[index]
   const nextChapter = sortedList[index + 1]
-  
+
   // 交换order值
   const tempOrder = currentChapter.order
   currentChapter.order = nextChapter.order
   nextChapter.order = tempOrder
-  
+
   // 在原数组中更新
   const currentOriginalIndex = getOriginalIndex(currentChapter.id)
   const nextOriginalIndex = getOriginalIndex(nextChapter.id)
-  
+
   form.chapters[currentOriginalIndex].order = currentChapter.order
   form.chapters[nextOriginalIndex].order = nextChapter.order
-  
+
   ElMessage.success('章节顺序调整成功')
 }
 
 const getOriginalIndex = (chapterId) => {
-  return form.chapters.findIndex(c => c.id === chapterId)
+  return form.chapters.findIndex((c) => c.id === chapterId)
 }
 
 const handleChapterSave = (chapterData) => {
@@ -566,13 +574,13 @@ const handleChapterSave = (chapterData) => {
     // 新增章节
     form.chapters.push({
       ...chapterData,
-      id: `chapter_${Date.now()}`
+      id: `chapter_${Date.now()}`,
     })
   } else {
     // 编辑章节
     form.chapters[editingChapterIndex.value] = chapterData
   }
-  
+
   updateChapterOrder()
   closeChapterModal()
   ElMessage.success('章节保存成功')
@@ -597,7 +605,7 @@ const handleSave = async () => {
   try {
     const valid = await formRef.value.validate()
     if (!valid) return
-    
+
     saving.value = true
     emit('save', formData.value)
   } catch (error) {
@@ -627,7 +635,7 @@ defineExpose({
   resetForm: () => {
     formRef.value?.resetFields()
     clearAllFiles()
-  }
+  },
 })
 </script>
 
@@ -757,13 +765,13 @@ defineExpose({
   .chapter-header {
     flex-wrap: wrap;
   }
-  
+
   .chapter-order-controls,
   .chapter-actions {
     width: 100%;
     justify-content: flex-end;
   }
-  
+
   .chapter-meta {
     flex-direction: column;
     gap: 4px;
