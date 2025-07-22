@@ -1,4 +1,3 @@
-// 文件路径: backend/src/main/java/com/example/smarttrainingsystem/service/CourseService.java
 package com.example.smarttrainingsystem.service;
 
 import com.example.smarttrainingsystem.dto.CourseDTO;
@@ -6,9 +5,8 @@ import com.example.smarttrainingsystem.dto.CourseChapterDTO;
 import com.example.smarttrainingsystem.entity.Course;
 import com.example.smarttrainingsystem.entity.CourseChapter;
 import com.example.smarttrainingsystem.exception.BusinessException;
-import com.example.smarttrainingsystem.repository.CourseRepository;
 import com.example.smarttrainingsystem.repository.CourseChapterRepository;
-import com.example.smarttrainingsystem.repository.UserRepository;
+import com.example.smarttrainingsystem.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -16,10 +14,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,157 +39,93 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final CourseChapterRepository courseChapterRepository;
-    private final UserRepository userRepository;
+
+    // ==================== 基础CRUD操作 ====================
 
     /**
      * 创建课程
      */
     @Transactional
-    public CourseDTO.Response createCourse(CourseDTO.CreateRequest request) {
-        log.info("创建课程: {}", request.getTitle());
+    public CourseDTO.Response createCourse(CourseDTO.CreateRequest request, String userId) {
+        log.info("创建课程: title={}, userId={}", request.getTitle(), userId);
 
-        // 验证讲师是否存在
-        if (!userRepository.existsById(request.getInstructorId())) {
-            //throw new BusinessException(2001, "讲师不存在");
-        }
-
-        // 创建课程实体
         Course course = new Course();
         BeanUtils.copyProperties(request, course);
-        course.setStatus(0); // 默认草稿状态
 
-        // 保存课程
-        course = courseRepository.save(course);
+        course.setInstructorId(userId);
+        course.setCreateBy(userId);
+        course.setCreateTime(System.currentTimeMillis());
 
-        // 创建章节（如果有的话）
+        // 🔧 处理学习资料信息
+        handleCourseMaterials(course, request);
+
+        // 🔧 处理视频资料信息
+        handleCourseVideos(course, request);
+
+        Course savedCourse = courseRepository.save(course);
+
+        // 创建章节（如果有）
         if (request.getChapters() != null && !request.getChapters().isEmpty()) {
-            createChaptersForCourse(course.getId(), request.getChapters());
+            createChaptersForCourse(savedCourse.getId(), request.getChapters());
         }
 
-        log.info("课程创建成功: courseId={}", course.getId());
-        return getCourseDetail(course.getId());
+        log.info("课程创建成功: courseId={}", savedCourse.getId());
+        return convertToResponse(savedCourse);
     }
 
     /**
      * 更新课程
      */
     @Transactional
-    public CourseDTO.Response updateCourse(String courseId, CourseDTO.UpdateRequest request) {
-        log.info("更新课程: courseId={}", courseId);
+    public CourseDTO.Response updateCourse(String courseId, CourseDTO.UpdateRequest request, String userId) {
+        log.info("更新课程: courseId={}, userId={}", courseId, userId);
 
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(2002, "课程不存在"));
+                .orElseThrow(() -> new BusinessException(2001, "课程不存在"));
 
-        // 更新课程信息（只更新非空字段）
-        if (StringUtils.hasText(request.getTitle())) {
-            course.setTitle(request.getTitle());
-        }
-        if (request.getDescription() != null) {
-            course.setDescription(request.getDescription());
-        }
-        if (StringUtils.hasText(request.getCategory())) {
-            course.setCategory(request.getCategory());
-        }
-        if (StringUtils.hasText(request.getInstructorName())) {
-            course.setInstructorName(request.getInstructorName());
-        }
-        if (request.getPrice() != null) {
-            course.setPrice(request.getPrice());
-        }
-        if (request.getDifficultyLevel() != null) {
-            course.setDifficultyLevel(request.getDifficultyLevel());
-        }
-        if (request.getEstimatedDuration() != null) {
-            course.setEstimatedDuration(request.getEstimatedDuration());
-        }
-        if (request.getIsRequired() != null) {
-            course.setIsRequired(request.getIsRequired());
-        }
-        if (request.getLearningObjectives() != null) {
-            course.setLearningObjectives(request.getLearningObjectives());
-        }
-        if (request.getPrerequisites() != null) {
-            course.setPrerequisites(request.getPrerequisites());
-        }
-        if (request.getTags() != null) {
-            course.setTags(request.getTags());
-        }
-        if (request.getCoverImageUrl() != null) {
-            course.setCoverImageUrl(request.getCoverImageUrl());
-        }
-        if (request.getMaterialUrls() != null) {
-            course.setMaterialUrls(request.getMaterialUrls());
-        }
-        if (request.getVideoUrls() != null) {
-            course.setVideoUrls(request.getVideoUrls());
+        // 权限检查
+        if (!course.getInstructorId().equals(userId)) {
+            throw new BusinessException(2002, "无权限修改此课程");
         }
 
-        courseRepository.save(course);
+        // 更新基本信息
+        BeanUtils.copyProperties(request, course, "id", "createTime", "createBy", "instructorId");
+        course.setUpdateTime(System.currentTimeMillis());
+        course.setUpdateBy(userId);
 
-        log.info("课程更新成功: courseId={}", courseId);
-        return getCourseDetail(courseId);
-    }
+        // 🔧 处理学习资料信息
+        handleCourseMaterials(course, request);
 
-    /**
-     * 发布课程
-     */
-    @Transactional
-    public CourseDTO.Response publishCourse(String courseId) {
-        log.info("发布课程: courseId={}", courseId);
+        // 🔧 处理视频资料信息
+        handleCourseVideos(course, request);
 
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(2002, "课程不存在"));
+        Course savedCourse = courseRepository.save(course);
 
-        // 验证课程是否可以发布
-        validateCourseForPublish(course);
-
-        // 发布课程
-        course.publish();
-        courseRepository.save(course);
-
-        log.info("课程发布成功: courseId={}", courseId);
-        return getCourseDetail(courseId);
-    }
-
-    /**
-     * 下架课程
-     */
-    @Transactional
-    public CourseDTO.Response unpublishCourse(String courseId) {
-        log.info("下架课程: courseId={}", courseId);
-
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(2002, "课程不存在"));
-
-        // 下架课程
-        course.unpublish();
-        courseRepository.save(course);
-
-        log.info("课程下架成功: courseId={}", courseId);
-        return getCourseDetail(courseId);
+        log.info("课程更新成功: courseId={}", savedCourse.getId());
+        return convertToResponse(savedCourse);
     }
 
     /**
      * 删除课程
      */
     @Transactional
-    public void deleteCourse(String courseId) {
-        log.info("删除课程: courseId={}", courseId);
+    public void deleteCourse(String courseId, String userId) {
+        log.info("删除课程: courseId={}, userId={}", courseId, userId);
 
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(2002, "课程不存在"));
+                .orElseThrow(() -> new BusinessException(2001, "课程不存在"));
 
-        // 检查课程是否可以删除（已发布的课程不能删除）
-        if (course.isPublished()) {
-            throw new BusinessException(2004, "已发布的课程不能删除，请先下架");
+        // 权限检查
+        if (!course.getInstructorId().equals(userId)) {
+            throw new BusinessException(2002, "无权限删除此课程");
         }
 
-        // 删除课程章节
-        courseChapterRepository.deleteByCourseId(courseId);
+        // 检查课程状态
+        if (course.isPublished()) {
+            throw new BusinessException(2003, "已发布的课程不能直接删除，请先下架");
+        }
 
-        // 删除课程
         courseRepository.delete(course);
-
         log.info("课程删除成功: courseId={}", courseId);
     }
 
@@ -195,84 +133,97 @@ public class CourseService {
      * 获取课程详情
      */
     public CourseDTO.Response getCourseDetail(String courseId) {
+        log.info("获取课程详情: courseId={}", courseId);
+
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(2002, "课程不存在"));
+                .orElseThrow(() -> new BusinessException(2001, "课程不存在"));
 
         // 增加浏览次数
         course.incrementViewCount();
         courseRepository.save(course);
 
-        // 转换为响应DTO
-        CourseDTO.Response response = convertToResponse(course);
-
-        // 获取章节信息
-        List<CourseChapter> chapters = courseChapterRepository.findByCourseIdOrderBySortOrderAsc(courseId);
-        response.setChapters(chapters.stream()
-                .map(this::convertChapterToResponse)
-                .collect(Collectors.toList()));
-
-        // 设置章节统计
-        response.setChapterCount(chapters.size());
-        long publishedCount = chapters.stream()
-                .filter(CourseChapter::isPublished)
-                .count();
-        response.setPublishedChapterCount((int) publishedCount);
-
-        return response;
+        return convertToResponse(course);
     }
 
     /**
-     * 搜索课程（支持多条件）
+     * 获取课程列表
      */
-    public Page<CourseDTO.ListItem> searchCourses(CourseDTO.SearchRequest request) {
-        log.info("搜索课程: keyword={}, category={}", request.getKeyword(), request.getCategory());
+    public Page<CourseDTO.ListItem> getCourseList(CourseDTO.SearchRequest searchRequest, Pageable pageable) {
+        log.info("获取课程列表: searchRequest={}", searchRequest);
 
-        // 构建分页参数
-        Sort sort = buildSort(request.getSortBy(), request.getSortOrder());
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+        Specification<Course> spec = buildSearchSpecification(searchRequest);
+        Sort sort = buildSort(searchRequest.getSortBy(), searchRequest.getSortOrder());
 
-        // 搜索课程
-        Page<Course> coursePage = courseRepository.searchCoursesByMultipleConditions(
-                request.getKeyword(),
-                request.getCategory(),
-                request.getDifficultyLevel(),
-                request.getStatus(),
-                request.getIsRequired(),
-                request.getInstructorId(),
-                pageable
-        );
+        // 🔧 修正：创建新的 PageRequest 而不是使用 withSort
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        Page<Course> coursePage = courseRepository.findAll(spec, sortedPageable);
+        return coursePage.map(this::convertToListItem);
+    }
 
-        // 转换为DTO并设置章节数量
-        return coursePage.map(course -> {
-            CourseDTO.ListItem item = convertToListItem(course);
-            // 设置章节数量
-            Long chapterCount = courseChapterRepository.countByCourseId(course.getId());
-            item.setChapterCount(chapterCount.intValue());
-            return item;
-        });
+    // ==================== 课程状态管理 ====================
+
+    /**
+     * 发布课程
+     */
+    @Transactional
+    public CourseDTO.Response publishCourse(String courseId, String userId) {
+        log.info("发布课程: courseId={}, userId={}", courseId, userId);
+
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessException(2001, "课程不存在"));
+
+        // 权限检查
+        if (!course.getInstructorId().equals(userId)) {
+            throw new BusinessException(2002, "无权限发布此课程");
+        }
+
+        // 验证课程是否可以发布
+        validateCourseForPublish(course);
+
+        course.publish();
+        Course savedCourse = courseRepository.save(course);
+
+        log.info("课程发布成功: courseId={}", courseId);
+        return convertToResponse(savedCourse);
     }
 
     /**
-     * 获取我的课程（讲师）
+     * 下架课程
      */
-    public Page<CourseDTO.ListItem> getMyCourses(String instructorId, Pageable pageable) {
-        log.info("获取讲师课程: instructorId={}", instructorId);
+    @Transactional
+    public CourseDTO.Response unpublishCourse(String courseId, String userId) {
+        log.info("下架课程: courseId={}, userId={}", courseId, userId);
 
-        Page<Course> coursePage = courseRepository.findByInstructorIdOrderByCreateTimeDesc(instructorId, pageable);
-        return coursePage.map(course -> {
-            CourseDTO.ListItem item = convertToListItem(course);
-            Long chapterCount = courseChapterRepository.countByCourseId(course.getId());
-            item.setChapterCount(chapterCount.intValue());
-            return item;
-        });
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessException(2001, "课程不存在"));
+
+        // 权限检查
+        if (!course.getInstructorId().equals(userId)) {
+            throw new BusinessException(2002, "无权限下架此课程");
+        }
+
+        course.unpublish();
+        Course savedCourse = courseRepository.save(course);
+
+        log.info("课程下架成功: courseId={}", courseId);
+        return convertToResponse(savedCourse);
     }
 
+    // ==================== 课程搜索和筛选 ====================
+
     /**
-     * 获取课程列表（管理员用）
+     * 搜索课程
      */
-    public Page<CourseDTO.ListItem> getCoursesForAdmin(CourseDTO.SearchRequest request) {
-        log.info("管理员获取课程列表");
-        return searchCourses(request);
+    public Page<CourseDTO.ListItem> searchCourses(CourseDTO.SearchRequest searchRequest, Pageable pageable) {
+        log.info("搜索课程: keyword={}, category={}", searchRequest.getKeyword(), searchRequest.getCategory());
+
+        Specification<Course> spec = buildSearchSpecification(searchRequest);
+        Sort sort = buildSort(searchRequest.getSortBy(), searchRequest.getSortOrder());
+
+        // 🔧 修正：创建新的 PageRequest 而不是使用 withSort
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        Page<Course> coursePage = courseRepository.findAll(spec, sortedPageable);
+        return coursePage.map(this::convertToListItem);
     }
 
     /**
@@ -352,6 +303,84 @@ public class CourseService {
         }
     }
 
+    // ==================== 🔧 文件处理方法 ====================
+
+    /**
+     * 处理课程学习资料信息
+     */
+    private void handleCourseMaterials(Course course, Object request) {
+        List<CourseDTO.MaterialInfo> materials = null;
+        String materialUrls = null;
+
+        if (request instanceof CourseDTO.CreateRequest) {
+            CourseDTO.CreateRequest createRequest = (CourseDTO.CreateRequest) request;
+            materials = createRequest.getMaterials();
+            materialUrls = createRequest.getMaterialUrls();
+        } else if (request instanceof CourseDTO.UpdateRequest) {
+            CourseDTO.UpdateRequest updateRequest = (CourseDTO.UpdateRequest) request;
+            materials = updateRequest.getMaterials();
+            materialUrls = updateRequest.getMaterialUrls();
+        }
+
+        if (materials != null && !materials.isEmpty()) {
+            // 🔧 优先使用包含文件名的新格式
+            List<String> urls = new ArrayList<>();
+            List<String> names = new ArrayList<>();
+
+            for (CourseDTO.MaterialInfo material : materials) {
+                urls.add(material.getUrl());
+                names.add(material.getName() != null ? material.getName() :
+                        (material.getOriginalName() != null ? material.getOriginalName() : "学习资料"));
+            }
+
+            course.setMaterialsWithNames(urls, names);
+            log.debug("设置学习资料: urls={}, names={}", urls, names);
+        } else if (StringUtils.hasText(materialUrls)) {
+            // 🔧 兼容旧格式：只有URL字符串 - 修正为Java 8兼容
+            List<String> urls = Arrays.asList(materialUrls.split(","));
+            course.setMaterialsWithNames(urls, null);
+            log.debug("设置学习资料(兼容格式): urls={}", urls);
+        }
+    }
+
+    /**
+     * 处理课程视频资料信息
+     */
+    private void handleCourseVideos(Course course, Object request) {
+        List<CourseDTO.VideoInfo> videos = null;
+        String videoUrls = null;
+
+        if (request instanceof CourseDTO.CreateRequest) {
+            CourseDTO.CreateRequest createRequest = (CourseDTO.CreateRequest) request;
+            videos = createRequest.getVideos();
+            videoUrls = createRequest.getVideoUrls();
+        } else if (request instanceof CourseDTO.UpdateRequest) {
+            CourseDTO.UpdateRequest updateRequest = (CourseDTO.UpdateRequest) request;
+            videos = updateRequest.getVideos();
+            videoUrls = updateRequest.getVideoUrls();
+        }
+
+        if (videos != null && !videos.isEmpty()) {
+            // 🔧 优先使用包含文件名的新格式
+            List<String> urls = new ArrayList<>();
+            List<String> names = new ArrayList<>();
+
+            for (CourseDTO.VideoInfo video : videos) {
+                urls.add(video.getUrl());
+                names.add(video.getName() != null ? video.getName() :
+                        (video.getOriginalName() != null ? video.getOriginalName() : "视频资料"));
+            }
+
+            course.setVideosWithNames(urls, names);
+            log.debug("设置视频资料: urls={}, names={}", urls, names);
+        } else if (StringUtils.hasText(videoUrls)) {
+            // 🔧 兼容旧格式：只有URL字符串 - 修正为Java 8兼容
+            List<String> urls = Arrays.asList(videoUrls.split(","));
+            course.setVideosWithNames(urls, null);
+            log.debug("设置视频资料(兼容格式): urls={}", urls);
+        }
+    }
+
     // ==================== 私有方法 ====================
 
     /**
@@ -376,35 +405,162 @@ public class CourseService {
     }
 
     /**
-     * 转换为响应DTO
+     * 构建搜索条件
+     */
+    private Specification<Course> buildSearchSpecification(CourseDTO.SearchRequest searchRequest) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // 关键词搜索
+            if (StringUtils.hasText(searchRequest.getKeyword())) {
+                String keyword = "%" + searchRequest.getKeyword() + "%";
+                Predicate titlePredicate = criteriaBuilder.like(root.get("title"), keyword);
+                Predicate descriptionPredicate = criteriaBuilder.like(root.get("description"), keyword);
+                Predicate tagsPredicate = criteriaBuilder.like(root.get("tags"), keyword);
+                predicates.add(criteriaBuilder.or(titlePredicate, descriptionPredicate, tagsPredicate));
+            }
+
+            // 分类筛选
+            if (StringUtils.hasText(searchRequest.getCategory())) {
+                predicates.add(criteriaBuilder.equal(root.get("category"), searchRequest.getCategory()));
+            }
+
+            // 难度筛选
+            if (searchRequest.getDifficultyLevel() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("difficultyLevel"), searchRequest.getDifficultyLevel()));
+            }
+
+            // 讲师筛选
+            if (StringUtils.hasText(searchRequest.getInstructorId())) {
+                predicates.add(criteriaBuilder.equal(root.get("instructorId"), searchRequest.getInstructorId()));
+            }
+
+            // 状态筛选
+            if (searchRequest.getStatus() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), searchRequest.getStatus()));
+            } else {
+                // 默认只显示已发布的课程
+                predicates.add(criteriaBuilder.equal(root.get("status"), 1));
+            }
+
+            // 价格筛选
+            if (searchRequest.getMinPrice() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("price"), searchRequest.getMinPrice()));
+            }
+            if (searchRequest.getMaxPrice() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("price"), searchRequest.getMaxPrice()));
+            }
+
+            // 是否必修筛选
+            if (searchRequest.getIsRequired() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("isRequired"), searchRequest.getIsRequired()));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * 🔧 转换为响应DTO
      */
     private CourseDTO.Response convertToResponse(Course course) {
         CourseDTO.Response response = new CourseDTO.Response();
         BeanUtils.copyProperties(course, response);
+
         response.setStatusText(course.getStatusText());
         response.setDifficultyText(course.getDifficultyText());
+
+        // 🔧 设置学习资料信息列表（包含原始文件名）
+        response.setMaterialList(convertMaterialInfoList(course.getMaterialInfoList()));
+
+        // 🔧 设置视频资料信息列表（包含原始文件名）
+        response.setVideoList(convertVideoInfoList(course.getVideoInfoList()));
+
+        // 设置章节信息
+        List<CourseChapter> chapters = courseChapterRepository.findByCourseIdOrderBySortOrderAsc(course.getId());
+        response.setChapters(chapters.stream()
+                .map(this::convertChapterToResponse)
+                .collect(Collectors.toList()));
+
+        // 设置统计信息
+        response.setTotalChapters(chapters.size());
+        response.setTotalDuration(chapters.stream()
+                .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
+                .sum());
+
         return response;
     }
 
     /**
-     * 转换为列表项DTO
+     * 🔧 转换为列表项DTO
      */
     private CourseDTO.ListItem convertToListItem(Course course) {
         CourseDTO.ListItem item = new CourseDTO.ListItem();
         BeanUtils.copyProperties(course, item);
+
         item.setStatusText(course.getStatusText());
         item.setDifficultyText(course.getDifficultyText());
+
+        // 🔧 为列表项也包含材料信息
+        item.setMaterialList(convertMaterialInfoList(course.getMaterialInfoList()));
+        item.setVideoList(convertVideoInfoList(course.getVideoInfoList()));
+
+        // 设置简化的统计信息
+        List<CourseChapter> chapters = courseChapterRepository.findByCourseIdOrderBySortOrderAsc(course.getId());
+        item.setTotalChapters(chapters.size());
+        item.setTotalDuration(chapters.stream()
+                .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
+                .sum());
+
         return item;
     }
 
     /**
-     * 转换章节为响应DTO
+     * 🔧 转换材料信息列表
+     */
+    private List<CourseDTO.MaterialInfo> convertMaterialInfoList(List<Course.MaterialInfo> courseInfoList) {
+        if (courseInfoList == null || courseInfoList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return courseInfoList.stream()
+                .map(courseInfo -> {
+                    CourseDTO.MaterialInfo dtoInfo = new CourseDTO.MaterialInfo();
+                    dtoInfo.setUrl(courseInfo.getUrl());
+                    dtoInfo.setName(courseInfo.getName());
+                    dtoInfo.setSize(courseInfo.getSize());
+                    dtoInfo.setContentType(courseInfo.getContentType());
+                    return dtoInfo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 🔧 转换视频信息列表
+     */
+    private List<CourseDTO.VideoInfo> convertVideoInfoList(List<Course.VideoInfo> courseInfoList) {
+        if (courseInfoList == null || courseInfoList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return courseInfoList.stream()
+                .map(courseInfo -> {
+                    CourseDTO.VideoInfo dtoInfo = new CourseDTO.VideoInfo();
+                    dtoInfo.setUrl(courseInfo.getUrl());
+                    dtoInfo.setName(courseInfo.getName());
+                    dtoInfo.setSize(courseInfo.getSize());
+                    dtoInfo.setDuration(courseInfo.getDuration());
+                    return dtoInfo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 🔧 转换章节为响应DTO
      */
     private CourseChapterDTO.Response convertChapterToResponse(CourseChapter chapter) {
         CourseChapterDTO.Response response = new CourseChapterDTO.Response();
         BeanUtils.copyProperties(chapter, response);
-        response.setChapterTypeText(chapter.getChapterTypeText());
-        response.setStatusText(chapter.getStatusText());
         return response;
     }
 
@@ -424,6 +580,8 @@ public class CourseService {
                 return Sort.by(direction, "publishTime", "createTime");
             case "title":
                 return Sort.by(direction, "title");
+            case "price":
+                return Sort.by(direction, "price", "createTime");
             default:
                 return Sort.by(direction, "createTime");
         }
