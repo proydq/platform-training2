@@ -136,7 +136,9 @@ export function createCourseAPI(data) {
           duration: Number(chapter.duration) || 0,
           content: chapter.content || '',
           videoUrl: chapter.videoUrl || '',
-          contentUrl: chapter.contentUrl || chapter.videoUrl || '',
+          // 将文本内容映射到后端的 contentUrl 字段
+          contentUrl: chapter.content || chapter.contentUrl || chapter.videoUrl || '',
+          status: typeof chapter.status === 'number' ? chapter.status : 0,
 
           // 可选字段
           isFree: Boolean(chapter.isFree),
@@ -209,7 +211,9 @@ export function updateCourseAPI(courseId, data) {
         duration: chapter.duration || 0,
         content: chapter.content || '',
         videoUrl: chapter.videoUrl || '',
-        contentUrl: chapter.contentUrl || chapter.videoUrl || '',
+        // 将文本内容映射到后端的 contentUrl 字段
+        contentUrl: chapter.content || chapter.contentUrl || chapter.videoUrl || '',
+        status: typeof chapter.status === 'number' ? chapter.status : 0,
         isFree: Boolean(chapter.isFree),
         requirements: chapter.requirements || '',
         learningObjectives: chapter.learningObjectives || '',
@@ -284,7 +288,9 @@ export function createChapterAPI(courseId, data) {
       sortOrder: data.sortOrder || data.order || 1,
       content: data.content || '',
       videoUrl: data.videoUrl || '',
-      contentUrl: data.contentUrl || '',
+      // 文本内容映射到后端字段
+      contentUrl: data.content || data.contentUrl || '',
+      status: typeof data.status === 'number' ? data.status : 0,
       materialUrls: data.materialUrls || '',
       isFree: Boolean(data.isFree),
       requirements: data.requirements || '',
@@ -306,7 +312,9 @@ export function updateChapterAPI(courseId, chapterId, data) {
       sortOrder: data.sortOrder || data.order || 1,
       content: data.content || '',
       videoUrl: data.videoUrl || '',
-      contentUrl: data.contentUrl || '',
+      // 文本内容映射到后端字段
+      contentUrl: data.content || data.contentUrl || '',
+      status: typeof data.status === 'number' ? data.status : 0,
       materialUrls: data.materialUrls || '',
       isFree: Boolean(data.isFree),
       requirements: data.requirements || '',

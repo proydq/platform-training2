@@ -467,7 +467,7 @@ const processChaptersData = (chapters) => {
       order: chapter.order || chapter.sortOrder || chapter.sort_order || (index + 1),
 
       duration: chapter.duration || 0,
-      content: chapter.content || '',
+      content: chapter.content || chapter.contentUrl || chapter.content_url || '',
 
       // 🔧 处理内容和视频URL
       videoUrl: chapter.videoUrl || chapter.video_url || '',
@@ -537,6 +537,7 @@ const addChapter = () => {
     content: '',
     videoUrl: '',
     contentUrl: '',
+    status: 0,
     requirements: '',
     learningObjectives: '',
     materialUrls: '',

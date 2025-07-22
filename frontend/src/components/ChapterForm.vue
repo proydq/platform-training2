@@ -276,7 +276,7 @@ const initFormData = (data) => {
     title: data.title || '',
     description: data.description || '',
     chapterType: data.chapterType || data.type || 'document',
-    content: data.content || '',
+    content: data.content || data.contentUrl || '',
     duration: data.duration || 0,
     order: data.order || (props.chapterIndex + 1) || 1,
     status: data.status || 0,
