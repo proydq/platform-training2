@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +62,8 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException(1011, "角色不存在"));
 
         User user = new User();
+        // 主键依然使用字段初始化，但需显式调用setId以触发插入
+        user.setId(UUID.randomUUID().toString());
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRealName(request.getName());
@@ -72,6 +75,7 @@ public class UserService {
         user.setRoles(new java.util.HashSet<>(java.util.Collections.singletonList(role)));
 
         User saved = userRepository.save(user);
+        log.debug("保存用户ID: {}", saved.getId());
         return convertToListItem(saved);
     }
 
