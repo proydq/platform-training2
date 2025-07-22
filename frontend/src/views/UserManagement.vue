@@ -70,7 +70,7 @@
           <div class="search-right">
             <select v-model="query.role" @change="handleSearch" class="filter-select">
               <option value="">全部角色</option>
-              <option v-for="r in roleOptions" :key="r" :value="r">{{ getRoleText(r) }}</option>
+              <option v-for="r in roleOptions" :key="r.value" :value="r.value">{{ r.label }}</option>
             </select>
             <button class="filter-btn" @click="fetchUsers">🔍 更多筛选</button>
           </div>
@@ -182,7 +182,7 @@
                 <label class="form-label">角色 <span class="required">*</span></label>
                 <select v-model="form.role" class="form-select" required>
                   <option value="">请选择角色</option>
-                  <option v-for="r in roleOptions" :key="'form-' + r" :value="r">{{ getRoleText(r) }}</option>
+                  <option v-for="r in roleOptions" :key="'form-' + r.value" :value="r.value">{{ r.label }}</option>
                 </select>
               </div>
               <div class="form-col">
@@ -329,11 +329,15 @@ function closeModal() {
 
 async function saveUser() {
   try {
+    const payload = {
+      ...form,
+      role: typeof form.role === 'object' ? form.role.value : form.role
+    }
     if (isEdit.value) {
-      await updateUserAPI(form.id, form)
+      await updateUserAPI(form.id, payload)
       ElMessage.success('用户更新成功')
     } else {
-      await createUserAPI(form)
+      await createUserAPI(payload)
       ElMessage.success('用户添加成功')
     }
     showModal.value = false
