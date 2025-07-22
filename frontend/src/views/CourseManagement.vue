@@ -362,27 +362,26 @@ const showAddCourseModal = () => {
 const editCourse = async (course) => {
   console.log('🔧 点击编辑按钮，课程数据:', course)
 
-  try {
-    // 设置基本课程信息
-    courseModalTitle.value = '编辑课程'
-    editingCourse.value = { ...course }
+  courseModalTitle.value = '编辑课程'
 
-    // 🔧 新增：获取课程章节数据
+  try {
     console.log('📖 开始获取章节数据...')
     const chaptersResponse = await getCourseChaptersAPI(course.id)
 
+    let chapters = []
     if (chaptersResponse.code === 200) {
-      // 将章节数据添加到编辑数据中
-      editingCourse.value.chapters = chaptersResponse.data || []
-      console.log('✅ 章节数据获取成功:', editingCourse.value.chapters)
+      chapters = chaptersResponse.data || []
+      console.log('✅ 章节数据获取成功:', chapters)
     } else {
       console.warn('⚠️ 获取章节数据失败:', chaptersResponse.message)
-      editingCourse.value.chapters = []
     }
+
+    // 设置课程信息并带上章节数据，确保触发子组件 watch
+    editingCourse.value = { ...course, chapters }
   } catch (error) {
     console.error('❌ 获取章节数据出错:', error)
-    editingCourse.value.chapters = []
     ElMessage.warning('获取章节数据失败，但可以继续编辑课程')
+    editingCourse.value = { ...course, chapters: [] }
   }
 
   console.log('📝 最终设置的编辑数据:', editingCourse.value)
