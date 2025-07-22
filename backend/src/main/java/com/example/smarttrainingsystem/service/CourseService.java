@@ -438,15 +438,15 @@ public class CourseService {
             // 状态筛选
             if (searchRequest.getStatus() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), searchRequest.getStatus()));
-            } else {
+            } /*else {
                 // 默认只显示已发布的课程
                 predicates.add(criteriaBuilder.equal(root.get("status"), 1));
-            }
+            }*/
 
             // 价格筛选
-            if (searchRequest.getMinPrice() != null) {
+            /*if (searchRequest.getMinPrice() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("price"), searchRequest.getMinPrice()));
-            }
+            }*/
             if (searchRequest.getMaxPrice() != null) {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("price"), searchRequest.getMaxPrice()));
             }

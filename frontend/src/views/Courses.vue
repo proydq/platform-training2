@@ -5,27 +5,27 @@
       <h2>📊 学习概览</h2>
       <div class="course-overview">
         <div class="overview-item completed">
-          <div class="overview-number">24</div>
-          <div class="overview-label">已完成</div>
+          <div class="overview-number">{{ courseStats.published || 0 }}</div>
+          <div class="overview-label">已发布</div>
         </div>
         <div class="overview-item in-progress">
-          <div class="overview-number">8</div>
-          <div class="overview-label">进行中</div>
+          <div class="overview-number">{{ courseStats.draft || 0 }}</div>
+          <div class="overview-label">草稿</div>
         </div>
         <div class="overview-item not-started">
-          <div class="overview-number">4</div>
-          <div class="overview-label">待开始</div>
+          <div class="overview-number">{{ courseStats.unpublished || 0 }}</div>
+          <div class="overview-label">已下架</div>
         </div>
         <div class="overview-item study-time">
-          <div class="overview-number">156h</div>
-          <div class="overview-label">学习时长</div>
+          <div class="overview-number">{{ courseStats.total || 0 }}</div>
+          <div class="overview-label">总课程</div>
         </div>
       </div>
-      
+
       <!-- 课程分类筛选 -->
       <div class="course-filters">
-        <button 
-          v-for="filter in filters" 
+        <button
+          v-for="filter in filters"
           :key="filter.key"
           class="filter-btn"
           :class="{ active: activeFilter === filter.key }"
@@ -34,139 +34,151 @@
           {{ filter.label }}
         </button>
       </div>
-      
+
       <!-- 推荐课程 -->
-      <h3 style="margin-bottom: 15px;">🎯 为你推荐</h3>
-      <div class="recommended-course">
+      <div v-if="recommendedCourse" class="recommended-course">
         <div class="course-icon recommended">🚀</div>
         <div class="course-info">
-          <div class="course-title">AI产品设计实战</div>
-          <div class="course-meta">🤖 基于你的学习记录推荐 | 讲师：AI专家</div>
+          <div class="course-title">{{ recommendedCourse.title }}</div>
+          <div class="course-meta">🤖 推荐课程 | 讲师：{{ recommendedCourse.instructorName || '系统推荐' }}</div>
         </div>
-        <button class="btn-recommended" @click="startCourse('ai-design')">开始学习</button>
+        <button class="btn-recommended" @click="startCourse(recommendedCourse.id)">开始学习</button>
       </div>
     </div>
 
     <!-- 课程列表 -->
     <div class="courses-card card">
-      <h2>📚 我的课程</h2>
-      
+      <h2>📚 课程列表</h2>
+
       <!-- 搜索栏 -->
       <div class="search-section">
-        <input 
-          v-model="searchKeyword"
-          type="text" 
-          placeholder="搜索课程名称..." 
+        <input
+          v-model="searchFilters.keyword"
+          type="text"
+          placeholder="搜索课程名称..."
           class="search-input"
-          @input="searchCourses"
+          @input="handleSearch"
         />
       </div>
-      
-      <div class="course-list">
-        <!-- 进行中的课程 -->
-        <div class="course-item in-progress" data-category="in-progress">
-          <div class="course-icon">📱</div>
-          <div class="course-content">
-            <div class="course-title">产品基础知识培训</div>
-            <div class="course-meta">讲师：李经理 | 时长：2小时 | 🎥 12个视频</div>
-            <div class="course-progress-section">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: 65%"></div>
-              </div>
-              <span class="progress-text">进度：65%</span>
-              <span class="course-status status-progress">进行中</span>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-state">
+        <div class="loading-spinner">⏳</div>
+        <div class="loading-text">正在加载课程数据...</div>
+      </div>
+
+      <!-- 课程列表内容 -->
+      <div v-else class="course-list">
+        <!-- 真实课程数据循环 -->
+        <div
+          v-for="course in filteredCourses"
+          :key="course.id"
+          class="course-item"
+          :class="getCourseStatusClass(course.status)"
+          :data-category="getCourseCategory(course.status)"
+        >
+          <!-- 🔧 优化：课程封面图展示 -->
+          <div class="course-cover">
+            <img
+              v-if="course.coverImageUrl"
+              :src="course.coverImageUrl"
+              :alt="course.title"
+              class="cover-image"
+              @error="handleImageError"
+            />
+            <div v-else class="default-cover">
+              {{ getCourseIcon(course.category) }}
+            </div>
+            <!-- 状态徽章 -->
+            <div class="status-badge" :class="getStatusBadgeClass(course.status)">
+              {{ getCourseStatusText(course.status) }}
             </div>
           </div>
+
+          <div class="course-content">
+            <div class="course-title">{{ course.title }}</div>
+            <div class="course-description">{{ course.description }}</div>
+            <div class="course-meta">
+              <span class="meta-item">
+                <i class="icon">👨‍🏫</i>
+                {{ course.instructorName || course.instructorId }}
+              </span>
+              <span class="meta-item">
+                <i class="icon">⏱️</i>
+                {{ formatDuration(course.estimatedDuration) }}
+              </span>
+              <span class="meta-item">
+                <i class="icon">📂</i>
+                {{ course.category }}
+              </span>
+            </div>
+
+            <div class="course-progress-section">
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  :class="getProgressClass(course.status)"
+                  :style="{ width: getProgressWidth(course.status) }"
+                ></div>
+              </div>
+              <span class="progress-text">{{ getStatusText(course.status) }}</span>
+            </div>
+          </div>
+
           <div class="course-actions">
-            <button class="btn-continue" @click="continueCourse('product-basic')">继续学习</button>
-            <button class="btn-favorite" @click="toggleFavorite('product-basic')">💖</button>
+            <button
+              v-if="course.status === 1"
+              class="btn-continue"
+              @click="startCourse(course.id)"
+            >
+              开始学习
+            </button>
+            <button
+              v-else-if="course.status === 0"
+              class="btn-draft"
+              @click="viewCourse(course.id)"
+            >
+              查看详情
+            </button>
+            <button
+              v-else
+              class="btn-unavailable"
+              disabled
+            >
+              暂不可用
+            </button>
+            <button class="btn-favorite" @click="toggleFavorite(course.id)">💖</button>
           </div>
         </div>
 
-        <!-- 已完成的课程 -->
-        <div class="course-item completed" data-category="completed">
-          <div class="course-icon">🎨</div>
-          <div class="course-content">
-            <div class="course-title">UI设计基础课程</div>
-            <div class="course-meta">讲师：设计师张三 | 时长：3小时 | 🎥 18个视频</div>
-            <div class="course-progress-section">
-              <div class="progress-bar">
-                <div class="progress-fill completed" style="width: 100%"></div>
-              </div>
-              <span class="progress-text">已完成</span>
-              <span class="course-status status-completed">✅ 已完成</span>
-              <span class="course-score">得分：92分</span>
-            </div>
-          </div>
-          <div class="course-actions">
-            <button class="btn-review" @click="reviewCourse('ui-basic')">复习</button>
-            <button class="btn-certificate" @click="downloadCertificate('ui-basic')">📜 证书</button>
-            <button class="btn-favorite active" @click="toggleFavorite('ui-basic')">💖</button>
-          </div>
-        </div>
-
-        <!-- 待开始的课程 -->
-        <div class="course-item not-started" data-category="not-started">
-          <div class="course-icon locked">🔒</div>
-          <div class="course-content">
-            <div class="course-title">高级数据分析</div>
-            <div class="course-meta">讲师：数据专家 | 时长：4小时 | 🎥 24个视频</div>
-            <div class="course-progress-section">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: 0%"></div>
-              </div>
-              <span class="progress-text">待开始</span>
-              <span class="course-status status-locked">🔒 需要完成前置课程</span>
-            </div>
-          </div>
-          <div class="course-actions">
-            <button class="btn-prerequisites" @click="viewPrerequisites('data-analysis')">查看前置要求</button>
-            <button class="btn-favorite" @click="toggleFavorite('data-analysis')">💖</button>
-          </div>
-        </div>
-
-        <!-- 新课程 -->
-        <div class="course-item new" data-category="not-started">
-          <div class="course-icon new">✨</div>
-          <div class="course-content">
-            <div class="course-title">
-              <span>前端开发实战</span>
-              <span class="new-badge">NEW</span>
-            </div>
-            <div class="course-meta">讲师：前端专家 | 时长：6小时 | 🎥 30个视频</div>
-            <div class="course-progress-section">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: 0%"></div>
-              </div>
-              <span class="progress-text">全新课程</span>
-              <span class="course-status status-new">🚀 立即开始</span>
-            </div>
-          </div>
-          <div class="course-actions">
-            <button class="btn-start" @click="startCourse('frontend-dev')">开始学习</button>
-            <button class="btn-favorite" @click="toggleFavorite('frontend-dev')">💖</button>
-          </div>
+        <!-- 空状态 -->
+        <div v-if="filteredCourses.length === 0" class="empty-state">
+          <div class="empty-icon">📚</div>
+          <div class="empty-text">{{ getEmptyText() }}</div>
         </div>
       </div>
-    </div>
 
-    <!-- 学习路径推荐 -->
-    <div class="learning-path-card card">
-      <h2>🛤️ 学习路径</h2>
-      <div class="learning-paths">
-        <div class="path-item">
-          <div class="path-header">
-            <h3>产品经理成长路径</h3>
-            <span class="path-progress">2/5 完成</span>
-          </div>
-          <div class="path-courses">
-            <div class="path-course completed">产品基础</div>
-            <div class="path-course completed">用户研究</div>
-            <div class="path-course current">产品设计</div>
-            <div class="path-course">数据分析</div>
-            <div class="path-course">产品运营</div>
-          </div>
-          <button class="btn-continue-path" @click="continuePath('pm-path')">继续路径</button>
+      <!-- 分页器 -->
+      <div v-if="filteredCourses.length > 0 && pagination.total > pagination.size" class="pagination-wrapper">
+        <div class="pagination-info">
+          共 {{ pagination.total }} 门课程，当前第 {{ pagination.current }}/{{ Math.ceil(pagination.total / pagination.size) }} 页
+        </div>
+        <div class="pagination-controls">
+          <button
+            class="pagination-btn"
+            :disabled="pagination.current === 1"
+            @click="handlePageChange(pagination.current - 1)"
+          >
+            上一页
+          </button>
+          <span class="pagination-current">{{ pagination.current }}</span>
+          <button
+            class="pagination-btn"
+            :disabled="pagination.current >= Math.ceil(pagination.total / pagination.size)"
+            @click="handlePageChange(pagination.current + 1)"
+          >
+            下一页
+          </button>
         </div>
       </div>
     </div>
@@ -174,84 +186,213 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useCourse } from '@/composables/useCourse'
+import { getCourseStatusText, getDifficultyLevelText } from '@/api/course'
+
+// 使用useCourse获取真实数据
+const {
+  loading,
+  courses,
+  pagination,
+  filters: courseFilters,
+  loadCourses,
+  getCourseStats,
+  formatDuration
+} = useCourse()
 
 // 响应式数据
-const searchKeyword = ref('')
 const activeFilter = ref('all')
+const recommendedCourse = ref(null)
+const courseStats = ref({
+  total: 0,
+  published: 0,
+  draft: 0,
+  unpublished: 0
+})
+
+// 搜索筛选条件
+const searchFilters = reactive({
+  keyword: '',
+  category: ''
+})
 
 // 筛选器配置
 const filters = ref([
   { key: 'all', label: '全部' },
-  { key: 'in-progress', label: '进行中' },
-  { key: 'completed', label: '已完成' },
-  { key: 'not-started', label: '待开始' },
-  { key: 'favorites', label: '⭐ 收藏' }
+  { key: 'published', label: '已发布' },
+  { key: 'draft', label: '草稿' },
+  { key: 'unpublished', label: '已下架' }
 ])
 
-// 方法
+// 计算属性 - 根据筛选条件过滤课程
+const filteredCourses = computed(() => {
+  let result = courses.value || []
+
+  // 按状态筛选
+  if (activeFilter.value !== 'all') {
+    const statusMap = {
+      'published': 1,
+      'draft': 0,
+      'unpublished': 2
+    }
+    const targetStatus = statusMap[activeFilter.value]
+    if (targetStatus !== undefined) {
+      result = result.filter(course => course.status === targetStatus)
+    }
+  }
+
+  // 按关键词搜索
+  if (searchFilters.keyword.trim()) {
+    const keyword = searchFilters.keyword.trim().toLowerCase()
+    result = result.filter(course =>
+      course.title?.toLowerCase().includes(keyword) ||
+      course.description?.toLowerCase().includes(keyword) ||
+      course.category?.toLowerCase().includes(keyword)
+    )
+  }
+
+  return result
+})
+
+// 方法定义
 const setActiveFilter = (filterKey) => {
   activeFilter.value = filterKey
-  filterCourses(filterKey)
+  console.log('切换筛选器:', filterKey)
 }
 
-const filterCourses = (category) => {
-  const courses = document.querySelectorAll('.course-item')
-  
-  courses.forEach(course => {
-    if (category === 'all' || course.dataset.category === category) {
-      course.style.display = 'flex'
-    } else {
-      course.style.display = 'none'
+const handleSearch = () => {
+  console.log('搜索课程:', searchFilters.keyword)
+}
+
+const handlePageChange = async (page) => {
+  if (page >= 1 && page <= Math.ceil(pagination.total / pagination.size)) {
+    pagination.current = page
+    await loadCourses()
+  }
+}
+
+// 🔧 图片处理方法
+const handleImageError = (event) => {
+  console.log('图片加载失败，使用默认图标')
+  event.target.style.display = 'none'
+  event.target.nextElementSibling.style.display = 'flex'
+}
+
+// 工具方法
+const getCourseIcon = (category) => {
+  const iconMap = {
+    '技术培训': '💻',
+    '产品培训': '📱',
+    '安全培训': '🔒',
+    '管理培训': '👔',
+    '营销培训': '📈',
+    '设计培训': '🎨'
+  }
+  return iconMap[category] || '📚'
+}
+
+const getCourseStatusClass = (status) => {
+  const classMap = {
+    0: 'draft',
+    1: 'published',
+    2: 'unpublished'
+  }
+  return classMap[status] || 'unknown'
+}
+
+const getCourseCategory = (status) => {
+  const categoryMap = {
+    0: 'draft',
+    1: 'published',
+    2: 'unpublished'
+  }
+  return categoryMap[status] || 'unknown'
+}
+
+const getProgressClass = (status) => {
+  return status === 1 ? 'published' : status === 0 ? 'draft' : 'unpublished'
+}
+
+const getProgressWidth = (status) => {
+  return status === 1 ? '100%' : status === 0 ? '50%' : '0%'
+}
+
+const getStatusText = (status) => {
+  const textMap = {
+    0: '草稿状态',
+    1: '可学习',
+    2: '已下架'
+  }
+  return textMap[status] || '未知状态'
+}
+
+const getStatusBadgeClass = (status) => {
+  const classMap = {
+    0: 'badge-draft',
+    1: 'badge-published',
+    2: 'badge-unpublished'
+  }
+  return classMap[status] || 'badge-unknown'
+}
+
+const getEmptyText = () => {
+  if (searchFilters.keyword.trim()) {
+    return `没有找到包含"${searchFilters.keyword}"的课程`
+  }
+  if (activeFilter.value !== 'all') {
+    const labelMap = {
+      'published': '已发布',
+      'draft': '草稿',
+      'unpublished': '已下架'
     }
-  })
+    return `暂无${labelMap[activeFilter.value]}课程`
+  }
+  return '暂无课程数据，请联系管理员添加课程'
 }
 
-const searchCourses = () => {
-  const searchTerm = searchKeyword.value.toLowerCase()
-  const courses = document.querySelectorAll('.course-item')
-  
-  courses.forEach(course => {
-    const title = course.querySelector('.course-title').textContent.toLowerCase()
-    if (title.includes(searchTerm)) {
-      course.style.display = 'flex'
-    } else {
-      course.style.display = 'none'
-    }
-  })
-}
-
+// 操作方法
 const startCourse = (courseId) => {
   ElMessage.success(`正在启动课程: ${courseId}`)
 }
 
-const continueCourse = (courseId) => {
-  ElMessage.success(`继续学习课程: ${courseId}`)
-}
-
-const reviewCourse = (courseId) => {
-  ElMessage.success(`正在加载复习模式: ${courseId}`)
-}
-
-const downloadCertificate = (courseId) => {
-  ElMessage.success(`正在下载证书: ${courseId}`)
-}
-
-const viewPrerequisites = (courseId) => {
-  ElMessage.warning(`查看课程前置要求: ${courseId}`)
+const viewCourse = (courseId) => {
+  ElMessage.info(`查看课程详情: ${courseId}`)
 }
 
 const toggleFavorite = (courseId) => {
-  ElMessage.success(`已${Math.random() > 0.5 ? '添加到' : '取消'}收藏: ${courseId}`)
+  ElMessage.success(`收藏状态已切换: ${courseId}`)
 }
 
-const continuePath = (pathId) => {
-  ElMessage.success(`继续学习路径: ${pathId}`)
+// 初始化数据加载
+const initData = async () => {
+  try {
+    console.log('初始化课程列表数据...')
+
+    await loadCourses()
+    courseStats.value = getCourseStats()
+
+    const publishedCourses = courses.value.filter(course => course.status === 1)
+    if (publishedCourses.length > 0) {
+      recommendedCourse.value = publishedCourses[0]
+    }
+
+    console.log('课程数据初始化完成:', {
+      总课程数: courses.value.length,
+      统计数据: courseStats.value,
+      推荐课程: recommendedCourse.value?.title
+    })
+
+  } catch (error) {
+    console.error('初始化课程数据失败:', error)
+    ElMessage.error('加载课程数据失败，请刷新页面重试')
+  }
 }
 
+// 组件挂载时加载数据
 onMounted(() => {
-  // 初始化
+  initData()
 })
 </script>
 
@@ -338,6 +479,7 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .filter-btn {
@@ -370,7 +512,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 10px;
   color: white;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .course-icon.recommended {
@@ -382,6 +524,10 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 24px;
+}
+
+.course-info {
+  flex: 1;
 }
 
 .btn-recommended {
@@ -398,316 +544,375 @@ onMounted(() => {
   background: rgba(255,255,255,0.3);
 }
 
-/* 搜索栏 */
+/* 搜索部分 */
 .search-section {
   margin-bottom: 20px;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
+  transition: border-color 0.3s ease;
 }
 
-/* 课程列表 */
+.search-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* 加载状态 */
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.loading-spinner {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.loading-text {
+  font-size: 14px;
+}
+
+/* 🔧 优化：课程列表样式 */
 .course-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
 }
 
 .course-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  border-left: 4px solid #ddd;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
 }
 
 .course-item:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.course-item.in-progress {
-  border-left-color: #ffc107;
+/* 🔧 重点优化：课程封面样式 */
+.course-cover {
+  position: relative;
+  width: 100%;
+  height: 180px; /* 固定高度，16:9 比例 */
+  overflow: hidden;
+  background: #f8f9fa;
 }
 
-.course-item.completed {
-  border-left-color: #28a745;
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 保持比例，裁剪超出部分 */
+  object-position: center; /* 居中裁剪 */
+  transition: transform 0.3s ease;
 }
 
-.course-item.not-started {
-  border-left-color: #6c757d;
+.course-item:hover .cover-image {
+  transform: scale(1.05); /* 悬停时轻微放大 */
 }
 
-.course-item.new {
-  border-left-color: #007bff;
-  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-}
-
-.course-icon {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 10px;
+.default-cover {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 48px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: #666;
+}
+
+/* 状态徽章 */
+.status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+.badge-draft {
+  background: rgba(255, 193, 7, 0.9);
   color: white;
-  font-size: 20px;
-  flex-shrink: 0;
 }
 
-.course-icon.locked {
-  background: #6c757d;
+.badge-published {
+  background: rgba(40, 167, 69, 0.9);
+  color: white;
 }
 
-.course-icon.new {
-  background: linear-gradient(135deg, #007bff, #6610f2);
+.badge-unpublished {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
 }
 
+/* 课程内容区域 */
 .course-content {
-  flex: 1;
+  padding: 16px;
 }
 
 .course-title {
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 5px;
   color: #333;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 最多显示2行 */
+  -webkit-box-orient: vertical;
 }
 
-.new-badge {
-  background: #dc3545;
-  color: white;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: bold;
+.course-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 最多显示2行 */
+  -webkit-box-orient: vertical;
 }
 
 .course-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   color: #666;
+}
+
+.meta-item .icon {
   font-size: 14px;
-  margin-bottom: 5px;
 }
 
 .course-progress-section {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 16px;
 }
 
 .progress-bar {
-  width: 100px;
-  height: 6px;
+  flex: 1;
+  height: 4px;
   background: #e9ecef;
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #ffc107;
   transition: width 0.3s ease;
 }
 
-.progress-fill.completed {
+.progress-fill.published {
   background: #28a745;
+}
+
+.progress-fill.draft {
+  background: #ffc107;
+}
+
+.progress-fill.unpublished {
+  background: #dc3545;
 }
 
 .progress-text {
   font-size: 12px;
   color: #666;
-  min-width: 60px;
+  white-space: nowrap;
 }
 
-.course-status {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-}
-
-.status-progress {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-completed {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-locked {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.status-new {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-.course-score {
-  font-size: 12px;
-  color: #28a745;
-  font-weight: 600;
-}
-
+/* 课程操作按钮 */
 .course-actions {
   display: flex;
-  gap: 5px;
-  flex-shrink: 0;
+  gap: 8px;
+  padding: 0 16px 16px;
 }
 
 .course-actions button {
-  padding: 6px 12px;
+  flex: 1;
+  padding: 8px 12px;
   border: none;
   border-radius: 6px;
-  font-size: 12px;
   cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
   transition: all 0.3s ease;
 }
 
 .btn-continue {
-  background: #ffc107;
-  color: #333;
-}
-
-.btn-review {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-certificate {
   background: #28a745;
   color: white;
 }
 
-.btn-start {
-  background: #007bff;
-  color: white;
+.btn-draft {
+  background: #ffc107;
+  color: #333;
 }
 
-.btn-prerequisites {
+.btn-unavailable {
   background: #6c757d;
   color: white;
+  cursor: not-allowed;
 }
 
 .btn-favorite {
+  flex: 0 0 auto;
   background: transparent;
   color: #dc3545;
   border: 1px solid #dc3545;
+  padding: 6px 10px;
+  min-width: 40px;
 }
 
-.btn-favorite.active {
+.btn-favorite:hover {
   background: #dc3545;
   color: white;
 }
 
-.course-actions button:hover {
+.course-actions button:not(:disabled):hover {
   transform: translateY(-1px);
 }
 
-/* 学习路径 */
-.learning-paths {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+/* 空状态 */
+.empty-state {
+  grid-column: 1 / -1; /* 占满整行 */
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
 }
 
-.path-item {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #e9ecef;
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
 }
 
-.path-header {
+.empty-text {
+  font-size: 16px;
+}
+
+/* 分页器 */
+.pagination-wrapper {
+  margin-top: 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
-.path-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.path-progress {
+.pagination-info {
   color: #666;
   font-size: 14px;
 }
 
-.path-courses {
+.pagination-controls {
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
 }
 
-.path-course {
+.pagination-btn {
   padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  border: 2px solid #e9ecef;
+  border: 1px solid #ddd;
   background: white;
-}
-
-.path-course.completed {
-  background: #28a745;
-  color: white;
-  border-color: #28a745;
-}
-
-.path-course.current {
-  background: #ffc107;
-  color: #333;
-  border-color: #ffc107;
-}
-
-.btn-continue-path {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.btn-continue-path:hover {
-  transform: translateY(-2px);
+.pagination-btn:not(:disabled):hover {
+  background: #f8f9fa;
+  border-color: #667eea;
 }
 
-/* 响应式设计 */
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-current {
+  padding: 8px 12px;
+  background: #667eea;
+  color: white;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* 🔧 响应式设计优化 */
 @media (max-width: 768px) {
-  .course-item {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
+  .course-list {
+    grid-template-columns: 1fr; /* 移动端单列显示 */
+    gap: 16px;
   }
-  
-  .course-actions {
-    justify-content: center;
+
+  .course-cover {
+    height: 160px; /* 移动端稍微降低高度 */
   }
-  
+
   .course-filters {
     flex-wrap: wrap;
   }
-  
-  .path-courses {
-    justify-content: center;
+
+  .pagination-wrapper {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .recommended-course {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .course-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-cover {
+    height: 140px; /* 小屏幕进一步降低 */
+  }
+
+  .course-content {
+    padding: 12px;
+  }
+
+  .course-actions {
+    padding: 0 12px 12px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .course-actions button {
+    width: 100%;
   }
 }
 </style>
