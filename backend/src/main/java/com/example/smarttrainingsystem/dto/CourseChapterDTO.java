@@ -68,6 +68,8 @@ public class CourseChapterDTO {
      */
     @Data
     public static class UpdateRequest {
+        // 章节ID, 用于在课程更新时定位章节
+        private String id;
         @Size(max = 200, message = "章节标题长度不能超过200字符")
         private String title;
 
@@ -103,6 +105,9 @@ public class CourseChapterDTO {
         private String materialUrls;
 
         private String videoUrls;
+
+        // 章节状态: 0-草稿 1-已发布
+        private Integer status;
     }
 
     /**
