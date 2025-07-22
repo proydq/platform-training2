@@ -96,8 +96,9 @@ public class CourseDTO {
         @DecimalMin(value = "0.0", message = "课程价格不能为负数")
         private BigDecimal price;
 
-        @Min(value = 1, message = "难度级别必须在1-3之间")
-        @Max(value = 3, message = "难度级别必须在1-3之间")
+        // 与创建课程保持一致，允许1-5级难度
+        @Min(value = 1, message = "难度级别必须在1-5之间")
+        @Max(value = 5, message = "难度级别必须在1-5之间")
         private Integer difficultyLevel;
 
         @Min(value = 0, message = "预计学时不能为负数")
