@@ -80,4 +80,14 @@ public class UserRole {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_by", insertable = false, updatable = false)
     private User assignedByUser;
+
+    /**
+     * 在持久化前确保主键存在
+     */
+    @PrePersist
+    public void prePersist() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID().toString();
+        }
+    }
 }

@@ -6,6 +6,8 @@ import com.example.smarttrainingsystem.entity.User;
 import com.example.smarttrainingsystem.exception.BusinessException;
 import com.example.smarttrainingsystem.repository.RoleRepository;
 import com.example.smarttrainingsystem.repository.UserRepository;
+import com.example.smarttrainingsystem.repository.UserRoleRepository;
+import com.example.smarttrainingsystem.entity.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -24,6 +27,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -72,9 +76,15 @@ public class UserService {
         user.setDepartment(request.getDepartment());
         user.setActive("active".equalsIgnoreCase(request.getStatus()));
 
-        user.setRoles(new java.util.HashSet<>(java.util.Collections.singletonList(role)));
-
         User saved = userRepository.save(user);
+
+        UserRole userRole = new UserRole();
+        userRole.setUserId(saved.getId());
+        userRole.setRoleId(role.getId());
+        userRole.setAssignedAt(LocalDateTime.now());
+        userRoleRepository.save(userRole);
+
+        saved.setRoles(java.util.Collections.singleton(role));
         log.debug("保存用户ID: {}", saved.getId());
         return convertToListItem(saved);
     }
