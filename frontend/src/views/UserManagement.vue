@@ -268,9 +268,9 @@ function switchTab(name) {
 async function fetchUsers() {
   try {
     const res = await getUsersAPI(query)
-    const list = res.records || res.data || res.items || res.list || []
-    users.value = list
-    total.value = res.total || list.length
+    const { records = [], total: totalCount = 0 } = res.data || {}
+    users.value = records
+    total.value = totalCount
   } catch (e) {
     ElMessage.error('获取用户列表失败')
   }
