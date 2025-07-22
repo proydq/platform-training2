@@ -82,10 +82,10 @@ public class UserRole {
     private User assignedByUser;
 
     /**
-     * 在持久化前确保主键存在
+     * 在持久化前生成主键
      */
     @PrePersist
-    public void prePersist() {
+    public void preInsert() {
         if (this.id == null) {
             this.id = UUID.randomUUID().toString();
         }
