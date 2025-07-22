@@ -2,8 +2,10 @@ package com.example.smarttrainingsystem.service;
 
 import com.example.smarttrainingsystem.entity.Role;
 import com.example.smarttrainingsystem.entity.User;
+import com.example.smarttrainingsystem.entity.UserRole;
 import com.example.smarttrainingsystem.repository.RoleRepository;
 import com.example.smarttrainingsystem.repository.UserRepository;
+import com.example.smarttrainingsystem.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -11,9 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDateTime;
 
 /**
  * 数据初始化服务
@@ -30,6 +30,7 @@ public class DataInitService implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -86,12 +87,13 @@ public class DataInitService implements CommandLineRunner {
         admin.setPosition("系统管理员");
         admin.setStatus(1);
         
-        // 设置管理员角色
-        Set<Role> roles = new HashSet<>();
-        roles.add(adminRole);
-        admin.setRoles(roles);
-        
         userRepository.save(admin);
+
+        UserRole adminUserRole = new UserRole();
+        adminUserRole.setUserId(admin.getId());
+        adminUserRole.setRoleId(adminRole.getId());
+        adminUserRole.setAssignedAt(LocalDateTime.now());
+        userRoleRepository.save(adminUserRole);
         
         log.info("管理员账号创建成功！");
         log.info("登录信息 - 用户名: admin, 密码: 123456");
@@ -121,11 +123,14 @@ public class DataInitService implements CommandLineRunner {
             teacher.setPosition("高级讲师");
             teacher.setStatus(1);
             
-            Set<Role> teacherRoles = new HashSet<>();
-            teacherRoles.add(teacherRole);
-            teacher.setRoles(teacherRoles);
-            
             userRepository.save(teacher);
+
+            UserRole teacherUserRole = new UserRole();
+            teacherUserRole.setUserId(teacher.getId());
+            teacherUserRole.setRoleId(teacherRole.getId());
+            teacherUserRole.setAssignedAt(LocalDateTime.now());
+            userRoleRepository.save(teacherUserRole);
+
             log.info("测试讲师账号创建成功 - 用户名: teacher01, 密码: 123456");
         }
         
@@ -140,11 +145,14 @@ public class DataInitService implements CommandLineRunner {
             student.setPosition("销售专员");
             student.setStatus(1);
             
-            Set<Role> studentRoles = new HashSet<>();
-            studentRoles.add(studentRole);
-            student.setRoles(studentRoles);
-            
             userRepository.save(student);
+
+            UserRole studentUserRole = new UserRole();
+            studentUserRole.setUserId(student.getId());
+            studentUserRole.setRoleId(studentRole.getId());
+            studentUserRole.setAssignedAt(LocalDateTime.now());
+            userRoleRepository.save(studentUserRole);
+
             log.info("测试学员账号创建成功 - 用户名: student01, 密码: 123456");
         }
     }
