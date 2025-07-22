@@ -267,21 +267,73 @@ const selectedMaterialsList = computed(() => {
   )
 })
 
-// 🔧 修复：初始化表单数据，包含 chapterType
+// 🔧 修复：初始化表单数据，重点修复资料选择状态
 const initFormData = (data) => {
+  console.log('🔧 ChapterForm 初始化数据:', data)
+
   Object.assign(form, {
     id: data.id || '',
     title: data.title || '',
     description: data.description || '',
-    chapterType: data.chapterType || data.type || 'document', // 🔧 确保有默认值
+    chapterType: data.chapterType || data.type || 'document',
     content: data.content || '',
     duration: data.duration || 0,
     order: data.order || (props.chapterIndex + 1) || 1,
     status: data.status || 0,
-    selectedMaterials: data.selectedMaterials ||
-      (data.materialUrls ? data.materialUrls.split(',').filter(url => url.trim()) : []) ||
-      data.materialIds || []
+    // 🔧 重要修复：正确处理资料选择状态
+    selectedMaterials: processSelectedMaterials(data)
   })
+
+  console.log('🔧 ChapterForm 初始化完成:', form)
+}
+
+// 🔧 新增：处理选中资料的映射函数
+const processSelectedMaterials = (data) => {
+  console.log('🔧 处理资料选择，原始数据:', data)
+
+  // 1. 如果已经有 selectedMaterials 数组，直接使用
+  if (data.selectedMaterials && Array.isArray(data.selectedMaterials)) {
+    console.log('📎 使用现有 selectedMaterials:', data.selectedMaterials)
+    return data.selectedMaterials
+  }
+
+  // 2. 如果有 materialUrls 字符串，需要转换为对应的文件ID
+  if (data.materialUrls && typeof data.materialUrls === 'string') {
+    const materialUrls = data.materialUrls.split(',').filter(url => url && url.trim())
+    console.log('📎 章节关联的资料URLs:', materialUrls)
+
+    // 🔧 关键修复：通过URL匹配找到对应的文件ID/UID
+    const selectedIds = []
+
+    materialUrls.forEach(url => {
+      const trimmedUrl = url.trim()
+      // 在可用资料列表中找到匹配的文件
+      const matchedMaterial = props.availableMaterials.find(material =>
+        material.url === trimmedUrl
+      )
+
+      if (matchedMaterial) {
+        // 使用文件的ID或UID作为选中标识
+        const fileId = matchedMaterial.id || matchedMaterial.uid
+        selectedIds.push(fileId)
+        console.log('📎 匹配到资料:', matchedMaterial.name, 'ID:', fileId)
+      } else {
+        console.warn('⚠️ 未找到匹配的资料文件:', trimmedUrl)
+      }
+    })
+
+    console.log('📎 最终选中的资料IDs:', selectedIds)
+    return selectedIds
+  }
+
+  // 3. 兼容其他格式
+  if (data.materialIds && Array.isArray(data.materialIds)) {
+    console.log('📎 使用 materialIds:', data.materialIds)
+    return data.materialIds
+  }
+
+  console.log('📎 无可用资料数据，返回空数组')
+  return []
 }
 
 // 监听器

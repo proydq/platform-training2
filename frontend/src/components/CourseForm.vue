@@ -375,7 +375,7 @@ const getChapterTypeTagType = (type) => {
   return tagTypeMap[type] || ''
 }
 
-// 🔧 修复：初始化表单数据
+// 🔧 修复：初始化表单数据，重点修复章节数据映射
 const initFormData = (data) => {
   console.log('🏗️ 初始化表单数据，原始数据:', data)
 
@@ -387,7 +387,8 @@ const initFormData = (data) => {
     level: data.level || getDifficultyLevelText(data.difficultyLevel),
     duration: data.duration || data.estimatedDuration || 0,
     isRequired: data.isRequired || false,
-    chapters: data.chapters || [],
+    // 🔧 重要修复：处理章节数据的字段映射
+    chapters: processChaptersData(data.chapters || []),
   })
 
   // 处理封面图片
@@ -399,28 +400,102 @@ const initFormData = (data) => {
       : []
   )
 
-  // 处理学习资料
+  // 🔧 修复：处理学习资料 - 优先使用新格式的 materialList
   let materialsList = []
-  if (data.materials && Array.isArray(data.materials) && data.materials.length > 0) {
+
+  // 1. 🔧 优先使用后端新格式返回的 materialList 字段
+  if (data.materialList && Array.isArray(data.materialList) && data.materialList.length > 0) {
+    console.log('📄 使用新格式 materialList:', data.materialList)
+    materialsList = data.materialList.map((material, index) => ({
+      name: material.name || material.originalName || `教学资料${index + 1}`,
+      url: material.url,
+      uid: Date.now() + index,
+      originalName: material.originalName || material.name,
+    }))
+  }
+  // 2. 🔧 兼容前端传入的 materials 字段
+  else if (data.materials && Array.isArray(data.materials) && data.materials.length > 0) {
+    console.log('📄 使用兼容格式 materials:', data.materials)
     materialsList = data.materials.map((material, index) => ({
       name: material.name || material.originalName || `教学资料${index + 1}`,
       url: material.url || material,
       uid: Date.now() + index,
       originalName: material.originalName || material.name,
     }))
-  } else if (data.materialUrls && typeof data.materialUrls === 'string') {
+  }
+  // 3. 🔧 兼容旧格式：只有 URL 字符串的 materialUrls 和 materialNames
+  else if (data.materialUrls && typeof data.materialUrls === 'string') {
+    console.log('📄 使用旧格式 materialUrls:', data.materialUrls)
     const urls = data.materialUrls.split(',').filter((url) => url && url.trim())
+    const names = data.materialNames ? data.materialNames.split(',') : []
+
     materialsList = urls.map((url, index) => ({
-      name: `教学资料${index + 1}`,
+      name: (names[index] && names[index].trim()) || `教学资料${index + 1}`,
       url: url.trim(),
       uid: Date.now() + index,
     }))
   }
 
+  console.log('📄 最终处理的学习资料列表:', materialsList)
   setFileList('materials', materialsList)
 
-  console.log('📊 章节数据:', data.chapters)
+  console.log('📊 章节数据处理前:', data.chapters)
+  console.log('📊 章节数据处理后:', form.chapters)
   console.log('✅ 数据初始化完成')
+}
+
+// 🔧 新增：处理章节数据的字段映射函数
+const processChaptersData = (chapters) => {
+  if (!chapters || !Array.isArray(chapters) || chapters.length === 0) {
+    console.log('📝 无章节数据需要处理')
+    return []
+  }
+
+  console.log('📝 开始处理章节数据，原始章节:', chapters)
+
+  const processedChapters = chapters.map((chapter, index) => {
+    // 🔧 重要：处理字段名映射，兼容数据库字段和前端字段
+    const processedChapter = {
+      id: chapter.id || '',
+      title: chapter.title || '',
+      description: chapter.description || '',
+
+      // 🔧 字段映射：chapterType 与 chapter_type
+      chapterType: chapter.chapterType || chapter.chapter_type || 'document',
+
+      // 🔧 字段映射：order 与 sortOrder 与 sort_order
+      order: chapter.order || chapter.sortOrder || chapter.sort_order || (index + 1),
+
+      duration: chapter.duration || 0,
+      content: chapter.content || '',
+
+      // 🔧 处理内容和视频URL
+      videoUrl: chapter.videoUrl || chapter.video_url || '',
+      contentUrl: chapter.contentUrl || chapter.content_url || chapter.videoUrl || chapter.video_url || '',
+
+      // 🔧 处理资料和要求
+      materialUrls: chapter.materialUrls || chapter.material_urls || '',
+      videoUrls: chapter.videoUrls || chapter.video_urls || '',
+      requirements: chapter.requirements || '',
+      learningObjectives: chapter.learningObjectives || chapter.learning_objectives || '',
+
+      // 🔧 处理状态和免费标志
+      status: chapter.status || 0,
+      isFree: Boolean(chapter.isFree || chapter.is_free),
+
+      // 🔧 处理文件信息
+      fileFormat: chapter.fileFormat || chapter.file_format || '',
+      fileSize: chapter.fileSize || chapter.file_size || null,
+      thumbnailUrl: chapter.thumbnailUrl || chapter.thumbnail_url || '',
+    }
+
+    console.log(`📝 章节 ${index + 1} 字段映射完成:`, processedChapter.title)
+
+    return processedChapter
+  })
+
+  console.log('📝 章节数据处理完成，最终结果:', processedChapters)
+  return processedChapters
 }
 
 // 监听器
