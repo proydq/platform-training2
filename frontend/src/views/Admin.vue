@@ -235,6 +235,7 @@
         </div>
       </el-card>
     </div>
+    <router-view />
   </div>
 </template>
 
