@@ -31,7 +31,7 @@ public class CourseDTO {
         @Size(max = 100, message = "课程分类长度不能超过100字符")
         private String category;
 
-        @NotBlank(message = "讲师ID不能为空")
+        //@NotBlank(message = "讲师ID不能为空")
         private String instructorId;
 
         @Size(max = 100, message = "讲师姓名长度不能超过100字符")
@@ -40,8 +40,8 @@ public class CourseDTO {
         @DecimalMin(value = "0.0", message = "课程价格不能为负数")
         private BigDecimal price = BigDecimal.ZERO;
 
-        @Min(value = 1, message = "难度级别必须在1-3之间")
-        @Max(value = 3, message = "难度级别必须在1-3之间")
+        @Min(value = 1, message = "难度级别必须在1-5之间")
+        @Max(value = 5, message = "难度级别必须在1-5之间")
         private Integer difficultyLevel;
 
         @Min(value = 0, message = "预计学时不能为负数")

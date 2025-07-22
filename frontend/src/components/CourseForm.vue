@@ -159,36 +159,45 @@
             :key="chapter.id || index"
             class="chapter-item"
           >
-            <div class="chapter-info">
-              <div class="chapter-title">
-                <span class="chapter-number">{{ chapter.order || index + 1 }}</span>
-                <span class="chapter-name">{{ chapter.title || '未命名章节' }}</span>
+            <div class="chapter-content">
+              <div class="chapter-info">
+                <div class="chapter-title">
+                  <span class="chapter-number">{{ index + 1 }}.</span>
+                  <span class="title-text">{{ chapter.title || '未命名章节' }}</span>
+                  <el-tag :type="getChapterTypeTagType(chapter.chapterType || 'document')" size="small">
+                    {{ getChapterTypeText(chapter.chapterType || 'document') }}
+                  </el-tag>
+                </div>
+                <div class="chapter-meta">
+                  <span>时长: {{ chapter.duration || 0 }}分钟</span>
+                  <span v-if="chapter.description">{{ chapter.description }}</span>
+                </div>
               </div>
-              <div class="chapter-meta">
-                <el-tag size="small" type="info">
-                  {{ chapter.duration || 0 }}分钟
-                </el-tag>
-                <span class="chapter-desc">{{ chapter.description || '暂无描述' }}</span>
+              <div class="chapter-actions">
+                <el-button size="small" @click="editChapter(index)" :icon="Edit">
+                  编辑
+                </el-button>
+                <el-button
+                  size="small"
+                  @click="moveChapterUp(index)"
+                  :disabled="index === 0"
+                  :icon="ArrowUp"
+                />
+                <el-button
+                  size="small"
+                  @click="moveChapterDown(index)"
+                  :disabled="index === sortedChapters.length - 1"
+                  :icon="ArrowDown"
+                />
+                <el-button
+                  size="small"
+                  type="danger"
+                  @click="removeChapter(index)"
+                  :icon="Delete"
+                >
+                  删除
+                </el-button>
               </div>
-            </div>
-            <div class="chapter-actions">
-              <el-button size="small" type="primary" @click="editChapter(index)" :icon="Edit">
-                编辑
-              </el-button>
-              <el-button size="small" @click="moveChapterUp(index)" :disabled="index === 0" :icon="ArrowUp">
-                上移
-              </el-button>
-              <el-button
-                size="small"
-                @click="moveChapterDown(index)"
-                :disabled="index === sortedChapters.length - 1"
-                :icon="ArrowDown"
-              >
-                下移
-              </el-button>
-              <el-button size="small" type="danger" @click="removeChapter(index)" :icon="Delete">
-                删除
-              </el-button>
             </div>
           </div>
         </div>
@@ -203,7 +212,7 @@
       </el-button>
     </div>
 
-    <!-- 章节编辑模态框 -->
+    <!-- 章节编辑弹窗 -->
     <el-dialog
       v-model="chapterModalVisible"
       :title="chapterModalTitle"
@@ -264,7 +273,7 @@ const {
   clearAllFiles,
 } = useFileUpload()
 
-// 表单数据 - 🔧 去掉 instructorId 和 price 字段
+// 表单数据
 const form = reactive({
   id: '',
   title: '',
@@ -281,11 +290,10 @@ const form = reactive({
 // 章节编辑
 const chapterModalVisible = ref(false)
 const chapterModalTitle = ref('添加章节')
-const chapterFormRef = ref()
 const editingChapter = ref(null)
 const editingChapterIndex = ref(-1)
 
-// 配置数据
+// 🔧 配置数据
 const courseCategories = ['技术培训', '产品培训', '安全培训', '管理培训', '营销培训']
 
 const difficultyLevels = [
@@ -296,7 +304,15 @@ const difficultyLevels = [
   { label: '专家级', value: 5 },
 ]
 
-// 表单验证规则 - 🔧 去掉 instructorId 和 price 的验证
+// 🔧 章节类型配置
+const chapterTypes = [
+  { label: '视频课程', value: 'video' },
+  { label: '文档资料', value: 'document' },
+  { label: '音频课程', value: 'audio' },
+  { label: '测验考试', value: 'quiz' }
+]
+
+// 表单验证规则
 const rules = {
   title: [
     { required: true, message: '请输入课程名称', trigger: 'blur' },
@@ -338,7 +354,28 @@ const getDifficultyLevelText = (level) => {
   return levelMap[level] || '入门级'
 }
 
-// 🔧 修复 initFormData 函数 - 去掉 instructorId 和 price
+// 🔧 章节类型显示函数
+const getChapterTypeText = (type) => {
+  const typeMap = {
+    video: '视频',
+    document: '文档',
+    audio: '音频',
+    quiz: '测验'
+  }
+  return typeMap[type] || '文档'
+}
+
+const getChapterTypeTagType = (type) => {
+  const tagTypeMap = {
+    video: 'primary',
+    document: '',
+    audio: 'warning',
+    quiz: 'success'
+  }
+  return tagTypeMap[type] || ''
+}
+
+// 🔧 修复：初始化表单数据
 const initFormData = (data) => {
   console.log('🏗️ 初始化表单数据，原始数据:', data)
 
@@ -353,7 +390,7 @@ const initFormData = (data) => {
     chapters: data.chapters || [],
   })
 
-  // 🔧 处理封面图片
+  // 处理封面图片
   const coverImageUrl = data.coverImage || data.coverImageUrl
   setFileList(
     'cover',
@@ -362,10 +399,9 @@ const initFormData = (data) => {
       : []
   )
 
-  // 🔧 处理学习资料
+  // 处理学习资料
   let materialsList = []
   if (data.materials && Array.isArray(data.materials) && data.materials.length > 0) {
-    // 新格式：包含文件名的对象数组
     materialsList = data.materials.map((material, index) => ({
       name: material.name || material.originalName || `教学资料${index + 1}`,
       url: material.url || material,
@@ -373,12 +409,7 @@ const initFormData = (data) => {
       originalName: material.originalName || material.name,
     }))
   } else if (data.materialUrls && typeof data.materialUrls === 'string') {
-    // 兼容旧格式：逗号分隔的URL字符串
-    const urls = (
-      Array.isArray(data.materialUrls) ? data.materialUrls :
-        data.materialUrls.split(',')
-    ).filter((url) => url && url.trim())
-
+    const urls = data.materialUrls.split(',').filter((url) => url && url.trim())
     materialsList = urls.map((url, index) => ({
       name: `教学资料${index + 1}`,
       url: url.trim(),
@@ -418,17 +449,23 @@ const beforeMaterialUpload = (file) => {
   return validateDocumentFile(file)
 }
 
-// 章节管理
+// 🔧 修复：章节管理 - 使用原来的 ChapterForm 组件结构
 const addChapter = () => {
   chapterModalTitle.value = '添加章节'
   editingChapter.value = {
     id: '',
     title: '',
     description: '',
+    chapterType: 'document', // 🔧 添加默认类型
     duration: 0,
     order: form.chapters.length + 1,
     content: '',
     videoUrl: '',
+    contentUrl: '',
+    requirements: '',
+    learningObjectives: '',
+    materialUrls: '',
+    videoUrls: ''
   }
   editingChapterIndex.value = -1
   chapterModalVisible.value = true
@@ -440,6 +477,23 @@ const editChapter = (index) => {
   editingChapter.value = { ...form.chapters[originalIndex] }
   editingChapterIndex.value = originalIndex
   chapterModalVisible.value = true
+}
+
+// 🔧 使用原来的 handleChapterSave 函数名
+const handleChapterSave = (chapterData) => {
+  console.log('📝 保存章节数据:', chapterData)
+
+  if (editingChapterIndex.value === -1) {
+    // 新增章节
+    chapterData.id = Date.now().toString()
+    form.chapters.push(chapterData)
+    ElMessage.success('章节添加成功')
+  } else {
+    // 更新章节
+    Object.assign(form.chapters[editingChapterIndex.value], chapterData)
+    ElMessage.success('章节更新成功')
+  }
+  closeChapterModal()
 }
 
 const removeChapter = (index) => {
@@ -484,34 +538,21 @@ const updateChapterOrder = () => {
   })
 }
 
-const handleChapterSave = (chapterData) => {
-  if (editingChapterIndex.value === -1) {
-    // 新增章节
-    chapterData.id = Date.now().toString()
-    form.chapters.push(chapterData)
-  } else {
-    // 更新章节
-    Object.assign(form.chapters[editingChapterIndex.value], chapterData)
-  }
-  closeChapterModal()
-}
-
 const closeChapterModal = () => {
   chapterModalVisible.value = false
   editingChapter.value = null
   editingChapterIndex.value = -1
 }
 
-// 🔧 修复表单保存函数 - 自动设置默认值
+// 🔧 完整修复后的表单保存函数
 const handleSave = async () => {
   if (saving.value) return
 
   try {
     saving.value = true
-
     console.log('📝 开始表单验证，当前表单数据:', form)
 
-    // 表单验证
+    // 1. 基础表单验证
     const isValid = await formRef.value.validate().catch((errors) => {
       console.error('表单验证失败:', errors)
       ElMessage.error('请完善必填信息')
@@ -523,34 +564,99 @@ const handleSave = async () => {
       return
     }
 
-    console.log('✅ 表单验证通过')
+    console.log('✅ 基础表单验证通过')
 
-    // 🔧 准备提交数据 - 自动设置后端需要的字段
+    // 2. 🔧 章节数据验证
+    if (form.chapters && form.chapters.length > 0) {
+      console.log('🔍 验证章节数据...')
+
+      for (let i = 0; i < form.chapters.length; i++) {
+        const chapter = form.chapters[i]
+
+        // 验证必填字段
+        if (!chapter.title?.trim()) {
+          ElMessage.error(`第 ${i + 1} 个章节的标题不能为空`)
+          return
+        }
+
+        if (!chapter.chapterType) {
+          ElMessage.error(`第 ${i + 1} 个章节的类型不能为空`)
+          return
+        }
+
+        if (!chapter.order || chapter.order < 1) {
+          ElMessage.error(`第 ${i + 1} 个章节的排序序号无效`)
+          return
+        }
+
+        // 🔧 确保 chapterType 是有效值
+        const validTypes = ['video', 'document', 'audio', 'quiz']
+        if (!validTypes.includes(chapter.chapterType)) {
+          console.warn(`章节 ${i + 1} 的类型 "${chapter.chapterType}" 无效，设置为默认类型`)
+          form.chapters[i].chapterType = 'document'
+        }
+
+        console.log(`✅ 章节 ${i + 1} 验证通过:`, {
+          title: chapter.title,
+          chapterType: chapter.chapterType,
+          order: chapter.order
+        })
+      }
+
+      console.log('✅ 所有章节验证通过')
+    }
+
+    // 3. 🔧 准备提交数据
     const submitData = {
       ...form,
-      // 🔧 自动设置讲师ID（后端需要）
-      instructorId: userStore.userInfo?.userId || userStore.userInfo?.id || userStore.userInfo?.username || 'default-instructor',
-      // 🔧 自动设置价格为0（后端需要）
-      price: 0,
+
+      // 基础字段验证
+      title: form.title?.trim(),
+      description: form.description?.trim(),
+      category: form.category?.trim(),
+
+      // 🔧 移除 instructorId，后端会自动从token设置
+      // instructorId: instructorId, // 删除这行
+
+      // 数值字段
+      price: Number(form.price) || 0,
+      duration: Number(form.duration) || 0,
+
+      // 文件相关
       coverImage: fileListState.cover[0]?.url || '',
-      // 改进材料数据格式
       materials: fileListState.materials.map((file) => ({
         name: file.name || file.originalName,
         url: file.url,
         originalName: file.originalName || file.name,
       })),
-      // 兼容字段
       materialUrls: fileListState.materials.map((file) => file.url).join(','),
     }
 
-    console.log('📤 提交数据:', submitData)
+    // 4. 🔧 最终验证必填字段
+    const requiredFields = {
+      title: submitData.title,
+      description: submitData.description,
+      category: submitData.category
+    }
 
-    // 发送保存事件
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key)
+
+    if (missingFields.length > 0) {
+      console.error('❌ 缺少必填字段:', missingFields)
+      ElMessage.error(`缺少必填字段: ${missingFields.join(', ')}`)
+      return
+    }
+
+    console.log('📤 最终提交数据:', submitData)
+
+    // 5. 发送保存事件
     emit('save', submitData)
 
   } catch (error) {
     console.error('保存课程出错:', error)
-    ElMessage.error('保存失败，请重试')
+    ElMessage.error(`保存失败: ${error.message || '请重试'}`)
   } finally {
     saving.value = false
   }
@@ -569,7 +675,7 @@ const handleCancel = () => {
 .form-section {
   margin-bottom: 30px;
   padding: 20px;
-  background-color: #f8f9fa;
+  background: #fafafa;
   border-radius: 8px;
 }
 
@@ -588,22 +694,6 @@ const handleCancel = () => {
   margin-top: 8px;
 }
 
-.course-cover-upload {
-  width: 100%;
-}
-
-.material-upload {
-  width: 100%;
-}
-
-.upload-progress {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
 .chapter-header {
   display: flex;
   justify-content: space-between;
@@ -617,17 +707,22 @@ const handleCancel = () => {
 }
 
 .chapters-list {
-  space-y: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .chapter-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  background: white;
+}
+
+.chapter-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background-color: white;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
 }
 
 .chapter-info {
@@ -637,23 +732,16 @@ const handleCancel = () => {
 .chapter-title {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
 .chapter-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background-color: #409eff;
-  color: white;
-  border-radius: 50%;
-  font-size: 12px;
-  margin-right: 12px;
+  font-weight: 600;
+  color: #409eff;
 }
 
-.chapter-name {
+.title-text {
   font-weight: 500;
   color: #303133;
 }
@@ -661,12 +749,9 @@ const handleCancel = () => {
 .chapter-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.chapter-desc {
+  gap: 16px;
+  font-size: 12px;
   color: #909399;
-  font-size: 14px;
 }
 
 .chapter-actions {
@@ -678,8 +763,14 @@ const handleCancel = () => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 20px 0;
-  border-top: 1px solid #e4e7ed;
   margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

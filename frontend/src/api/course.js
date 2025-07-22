@@ -34,61 +34,123 @@ export function getCourseDetailAPI(courseId) {
 }
 
 // 创建课程
-// 创建课程
+// 🔧 完整修复后的创建课程API
 export function createCourseAPI(data) {
+  // 数据验证
+  if (!data.title?.trim()) {
+    throw new Error('课程标题不能为空')
+  }
+  if (!data.category?.trim()) {
+    throw new Error('课程分类不能为空')
+  }
+  if (!data.description?.trim()) {
+    throw new Error('课程描述不能为空')
+  }
+
   const requestData = {
-    title: data.title,
-    description: data.description,
-    category: data.category,
-    difficultyLevel: Math.min(getDifficultyLevel(data.level), 3),
-    estimatedDuration: data.duration,
-    instructorId: data.instructorId,
-    price: data.price || 0,
-    isRequired: data.isRequired || false,
+    title: data.title.trim(),
+    description: data.description.trim(),
+    category: data.category.trim(),
+
+    // 🔧 关键修复1：移除 Math.min 限制，支持完整的1-5难度级别
+    difficultyLevel: getDifficultyLevel(data.level),
+
+    estimatedDuration: Number(data.duration) || 0,
+
+    // 🔧 关键修复2：移除前端设置 instructorId，由后端自动设置
+    // instructorId: data.instructorId, // 删除这行，后端会自动从token设置
+
+    price: Number(data.price) || 0,
+    isRequired: Boolean(data.isRequired),
     coverImageUrl: data.coverImage || '',
 
-    // 🔧 传递新格式的资料信息（包含文件名）
-    materials:
-      data.materials && data.materials.length > 0
-        ? data.materials.map((material) => ({
-            url: typeof material === 'string' ? material : material.url,
-            name:
-              typeof material === 'object'
-                ? material.originalName || material.name || '学习资料'
-                : '学习资料',
-          }))
-        : [],
+    // 🔧 材料信息处理
+    materials: data.materials && data.materials.length > 0
+      ? data.materials.map((material) => ({
+        url: typeof material === 'string' ? material : material.url,
+        name: typeof material === 'object'
+          ? material.originalName || material.name || '学习资料'
+          : '学习资料',
+      }))
+      : [],
 
     // 兼容旧格式
     materialUrls: data.materials
       ? data.materials.map((m) => (typeof m === 'string' ? m : m.url)).join(',')
       : '',
 
-    videos:
-      data.videos && data.videos.length > 0
-        ? data.videos.map((video) => ({
-            url: typeof video === 'string' ? video : video.url,
-            name:
-              typeof video === 'object'
-                ? video.originalName || video.name || '视频资料'
-                : '视频资料',
-          }))
-        : [],
+    // 🔧 视频信息处理
+    videos: data.videos && data.videos.length > 0
+      ? data.videos.map((video) => ({
+        url: typeof video === 'string' ? video : video.url,
+        name: typeof video === 'object'
+          ? video.originalName || video.name || '视频资料'
+          : '视频资料',
+      }))
+      : [],
 
     videoUrls: data.videos
       ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
       : '',
 
-    chapters: data.chapters
-      ? data.chapters.map((chapter) => ({
-          title: chapter.title,
+    // 🔧 关键修复3：章节数据映射
+    chapters: data.chapters && data.chapters.length > 0
+      ? data.chapters.map((chapter, index) => {
+        // 验证必填字段
+        if (!chapter.title?.trim()) {
+          throw new Error(`第 ${index + 1} 个章节的标题不能为空`)
+        }
+
+        return {
+          title: chapter.title.trim(),
           description: chapter.description || '',
-          duration: chapter.duration || 0,
-          order: chapter.order,
+
+          // 🔧 关键修复4：添加必填的 chapterType 字段
+          chapterType: chapter.chapterType || chapter.type || 'document',
+
+          // 🔧 关键修复5：字段名映射 order -> sortOrder
+          sortOrder: Number(chapter.order || chapter.sortOrder) || (index + 1),
+
+          duration: Number(chapter.duration) || 0,
           content: chapter.content || '',
           videoUrl: chapter.videoUrl || '',
-        }))
+          contentUrl: chapter.contentUrl || chapter.videoUrl || '',
+
+          // 可选字段
+          isFree: Boolean(chapter.isFree),
+          requirements: chapter.requirements || '',
+          learningObjectives: chapter.learningObjectives || '',
+          fileSize: chapter.fileSize || null,
+          fileFormat: chapter.fileFormat || null,
+          thumbnailUrl: chapter.thumbnailUrl || '',
+          materialUrls: chapter.materialUrls || '',
+          videoUrls: chapter.videoUrls || ''
+        }
+      })
       : [],
+  }
+
+  // 🔧 详细验证日志
+  console.log('📤 最终提交数据:', requestData)
+  console.log('🔍 关键字段验证:', {
+    title: requestData.title,
+    category: requestData.category,
+    description: requestData.description,
+    difficultyLevel: requestData.difficultyLevel,
+    chaptersCount: requestData.chapters.length
+  })
+
+  // 验证章节数据
+  if (requestData.chapters.length > 0) {
+    console.log('📚 章节数据验证:')
+    requestData.chapters.forEach((chapter, index) => {
+      console.log(`章节 ${index + 1}:`, {
+        title: chapter.title,
+        chapterType: chapter.chapterType,
+        sortOrder: chapter.sortOrder,
+        isValid: !!(chapter.title && chapter.chapterType && chapter.sortOrder)
+      })
+    })
   }
 
   return request({
@@ -104,39 +166,37 @@ export function updateCourseAPI(courseId, data) {
     title: data.title,
     description: data.description,
     category: data.category,
-    difficultyLevel: Math.min(getDifficultyLevel(data.level), 3),
+
+    // 🔧 修复：移除 Math.min 限制
+    difficultyLevel: getDifficultyLevel(data.level),
+
     estimatedDuration: data.duration,
     price: data.price || 0,
     isRequired: data.isRequired || false,
     coverImageUrl: data.coverImage || '',
 
-    // 🔧 传递新格式的资料信息（包含文件名）
-    materials:
-      data.materials && data.materials.length > 0
-        ? data.materials.map((material) => ({
-            url: typeof material === 'string' ? material : material.url,
-            name:
-              typeof material === 'object'
-                ? material.originalName || material.name || '学习资料'
-                : '学习资料',
-          }))
-        : [],
+    // 材料信息处理（保持原逻辑）
+    materials: data.materials && data.materials.length > 0
+      ? data.materials.map((material) => ({
+        url: typeof material === 'string' ? material : material.url,
+        name: typeof material === 'object'
+          ? material.originalName || material.name || '学习资料'
+          : '学习资料',
+      }))
+      : [],
 
-    // 兼容旧格式
     materialUrls: data.materials
       ? data.materials.map((m) => (typeof m === 'string' ? m : m.url)).join(',')
       : '',
 
-    videos:
-      data.videos && data.videos.length > 0
-        ? data.videos.map((video) => ({
-            url: typeof video === 'string' ? video : video.url,
-            name:
-              typeof video === 'object'
-                ? video.originalName || video.name || '视频资料'
-                : '视频资料',
-          }))
-        : [],
+    videos: data.videos && data.videos.length > 0
+      ? data.videos.map((video) => ({
+        url: typeof video === 'string' ? video : video.url,
+        name: typeof video === 'object'
+          ? video.originalName || video.name || '视频资料'
+          : '视频资料',
+      }))
+      : [],
 
     videoUrls: data.videos
       ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
@@ -144,14 +204,15 @@ export function updateCourseAPI(courseId, data) {
 
     chapters: data.chapters
       ? data.chapters.map((chapter) => ({
-          id: chapter.id,
-          title: chapter.title,
-          description: chapter.description || '',
-          duration: chapter.duration || 0,
-          order: chapter.order,
-          content: chapter.content || '',
-          videoUrl: chapter.videoUrl || '',
-        }))
+        id: chapter.id,
+        title: chapter.title,
+        description: chapter.description || '',
+        chapterType: chapter.chapterType || 'document', // 🔧 添加
+        duration: chapter.duration || 0,
+        order: chapter.order,
+        content: chapter.content || '',
+        videoUrl: chapter.videoUrl || '',
+      }))
       : [],
   }
 
