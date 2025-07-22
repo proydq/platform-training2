@@ -56,7 +56,7 @@ export function useCourse() {
   })
 
   // ==================== 课程列表管理 ====================
-  
+
   /**
    * 加载课程列表
    * @param {Object} options - 额外的查询参数
@@ -64,28 +64,28 @@ export function useCourse() {
   const loadCourses = async (options = {}) => {
     try {
       loading.value = true
-      
+
       const params = {
         page: pagination.current - 1, // 后端从0开始
         size: pagination.size,
         ...filters,
         ...options
       }
-      
+
       console.log('请求课程列表参数:', params)
-      
+
       const response = await getCourseListAPI(params)
-      
+
       if (response.code === 200) {
         courses.value = response.data.content || []
         pagination.total = response.data.totalElements || 0
-        
+
         console.log('课程列表加载成功:', {
           总数: pagination.total,
           当前页: pagination.current,
           课程数: courses.value.length
         })
-        
+
         return response.data
       } else {
         ElMessage.error(response.message || '获取课程列表失败')
@@ -150,9 +150,9 @@ export function useCourse() {
     try {
       saving.value = true
       console.log('创建课程:', courseData)
-      
+
       const response = await createCourseAPI(courseData)
-      
+
       if (response.code === 200) {
         ElMessage.success('课程创建成功')
         await loadCourses() // 刷新列表
@@ -179,9 +179,9 @@ export function useCourse() {
     try {
       saving.value = true
       console.log('更新课程:', { courseId, courseData })
-      
+
       const response = await updateCourseAPI(courseId, courseData)
-      
+
       if (response.code === 200) {
         ElMessage.success('课程更新成功')
         await loadCourses() // 刷新列表
@@ -216,19 +216,19 @@ export function useCourse() {
           dangerouslyUseHTMLString: true
         }
       )
-      
+
       console.log('删除课程:', { courseId, courseName })
-      
+
       const response = await deleteCourseAPI(courseId)
-      
+
       if (response.code === 200) {
         ElMessage.success('课程删除成功')
-        
+
         // 如果当前页没有数据了，回到上一页
         if (courses.value.length === 1 && pagination.current > 1) {
           pagination.current -= 1
         }
-        
+
         await loadCourses() // 刷新列表
         return true
       } else {
@@ -252,9 +252,9 @@ export function useCourse() {
   const publishCourse = async (courseId, courseName = '') => {
     try {
       console.log('发布课程:', { courseId, courseName })
-      
+
       const response = await publishCourseAPI(courseId)
-      
+
       if (response.code === 200) {
         ElMessage.success(`课程"${courseName}"发布成功`)
         await loadCourses() // 刷新列表
@@ -286,11 +286,11 @@ export function useCourse() {
           type: 'warning'
         }
       )
-      
+
       console.log('下架课程:', { courseId, courseName })
-      
+
       const response = await unpublishCourseAPI(courseId)
-      
+
       if (response.code === 200) {
         ElMessage.success(`课程"${courseName}"下架成功`)
         await loadCourses() // 刷新列表
@@ -323,25 +323,25 @@ export function useCourse() {
           type: 'warning'
         }
       )
-      
+
       console.log('批量删除课程:', courseIds)
-      
+
       const deletePromises = courseIds.map(id => deleteCourseAPI(id))
       const results = await Promise.allSettled(deletePromises)
-      
-      const successCount = results.filter(result => 
+
+      const successCount = results.filter(result =>
         result.status === 'fulfilled' && result.value.code === 200
       ).length
-      
+
       const failCount = courseIds.length - successCount
-      
+
       if (successCount > 0) {
         ElMessage.success(`成功删除 ${successCount} 门课程${failCount > 0 ? `，${failCount} 门课程删除失败` : ''}`)
         await loadCourses()
       } else {
         ElMessage.error('批量删除失败')
       }
-      
+
       return { successCount, failCount }
     } catch (error) {
       if (error !== 'cancel') {
@@ -439,14 +439,14 @@ export function useCourse() {
    */
   const formatDuration = (minutes) => {
     if (!minutes || minutes === 0) return '--'
-    
+
     if (minutes < 60) {
       return `${minutes}分钟`
     }
-    
+
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
-    
+
     if (mins === 0) {
       return `${hours}小时`
     } else {
@@ -463,10 +463,10 @@ export function useCourse() {
       draft: 0,
       published: 0,
       unpublished: 0,
-      free: 0,
-      paid: 0
+      //free: 0,
+      //paid: 0
     }
-    
+
     courses.value.forEach(course => {
       // 统计状态
       switch (course.status) {
@@ -480,15 +480,15 @@ export function useCourse() {
           stats.unpublished++
           break
       }
-      
+
       // 统计价格
-      if (course.price === 0) {
+      /*if (course.price === 0) {
         stats.free++
       } else {
         stats.paid++
-      }
+      }*/
     })
-    
+
     return stats
   }
 
@@ -499,36 +499,36 @@ export function useCourse() {
   const exportCourses = (selectedCourses = null) => {
     try {
       const coursesToExport = selectedCourses || courses.value
-      
+
       const csvData = coursesToExport.map(course => ({
         课程名称: course.title,
         课程分类: course.category,
         难度级别: getDifficultyLevelText(course.difficultyLevel),
         课程时长: formatDuration(course.duration),
-        课程价格: formatPrice(course.price),
+        //课程价格: formatPrice(course.price),
         讲师: course.instructorName || course.instructorId,
         状态: getCourseStatusText(course.status),
         学员数量: course.studentCount || 0,
         评分: course.rating || 0,
         创建时间: formatDateTime(course.createTime)
       }))
-      
+
       // 生成CSV内容
       const headers = Object.keys(csvData[0])
       const csvContent = [
         headers.join(','),
-        ...csvData.map(row => 
+        ...csvData.map(row =>
           headers.map(header => `"${row[header] || ''}"`).join(',')
         )
       ].join('\n')
-      
+
       // 下载文件
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
       link.download = `课程数据_${new Date().toISOString().slice(0, 10)}.csv`
       link.click()
-      
+
       ElMessage.success('课程数据导出成功')
     } catch (error) {
       console.error('导出课程数据失败:', error)
@@ -544,18 +544,18 @@ export function useCourse() {
     courses,
     pagination,
     filters,
-    
+
     // 计算属性
     hasFilters,
     isEmpty,
     totalPages,
-    
+
     // 列表管理
     loadCourses,
     searchCourses,
     resetFilters,
     handlePagination,
-    
+
     // CRUD操作
     createCourse,
     updateCourse,
@@ -563,7 +563,7 @@ export function useCourse() {
     publishCourse,
     unpublishCourse,
     batchDeleteCourses,
-    
+
     // 工具方法
     formatDate,
     formatDateTime,
@@ -573,7 +573,7 @@ export function useCourse() {
     formatDuration,
     getDifficultyLevelText,
     getCourseStatusText,
-    
+
     // 统计和导出
     getCourseStats,
     exportCourses
@@ -595,9 +595,9 @@ export function useCourseChapter() {
     try {
       loading.value = true
       console.log('加载课程章节:', { courseId, status })
-      
+
       const response = await getCourseChaptersAPI(courseId, status)
-      
+
       if (response.code === 200) {
         chapters.value = response.data || []
         console.log('章节列表加载成功:', chapters.value.length)
@@ -624,9 +624,9 @@ export function useCourseChapter() {
     try {
       saving.value = true
       console.log('创建章节:', { courseId, chapterData })
-      
+
       const response = await createChapterAPI(courseId, chapterData)
-      
+
       if (response.code === 200) {
         ElMessage.success('章节创建成功')
         await loadChapters(courseId) // 刷新章节列表
@@ -654,9 +654,9 @@ export function useCourseChapter() {
     try {
       saving.value = true
       console.log('更新章节:', { courseId, chapterId, chapterData })
-      
+
       const response = await updateChapterAPI(courseId, chapterId, chapterData)
-      
+
       if (response.code === 200) {
         ElMessage.success('章节更新成功')
         await loadChapters(courseId) // 刷新章节列表
@@ -691,11 +691,11 @@ export function useCourseChapter() {
           type: 'warning'
         }
       )
-      
+
       console.log('删除章节:', { courseId, chapterId, chapterTitle })
-      
+
       const response = await deleteChapterAPI(courseId, chapterId)
-      
+
       if (response.code === 200) {
         ElMessage.success('章节删除成功')
         await loadChapters(courseId) // 刷新章节列表
@@ -718,7 +718,7 @@ export function useCourseChapter() {
     loading,
     saving,
     chapters,
-    
+
     // 章节操作
     loadChapters,
     createChapter,

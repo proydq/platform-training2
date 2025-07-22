@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 文件上传控制器
+ * 文件上传控制器 - 修复版
  *
  * @author 开发者
  * @version 1.0
@@ -42,9 +42,6 @@ public class FileController {
 
     /**
      * 获取当前用户ID
-     *
-     * @param request HTTP请求
-     * @return 用户ID
      */
     private String getCurrentUserId(HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
@@ -55,14 +52,6 @@ public class FileController {
         return userId;
     }
 
-    /**
-     * 通用文件上传接口
-     *
-     * @param file 上传的文件
-     * @param category 文件分类
-     * @param request HTTP请求
-     * @return 文件访问URL
-     */
     /**
      * 🔧 通用文件上传接口 - 增强返回信息
      */
@@ -94,8 +83,8 @@ public class FileController {
 
         Map<String, Object> result = new HashMap<>();
         result.put("url", fileUrl);
-        result.put("originalName", file.getOriginalFilename()); // 🔧 原始文件名
-        result.put("name", file.getOriginalFilename()); // 🔧 文件名
+        result.put("originalName", file.getOriginalFilename());
+        result.put("name", file.getOriginalFilename());
         result.put("size", file.getSize());
         result.put("type", file.getContentType());
 
@@ -104,10 +93,6 @@ public class FileController {
 
     /**
      * 上传课程封面图片
-     *
-     * @param file 图片文件
-     * @param request HTTP请求
-     * @return 文件访问URL
      */
     @PostMapping("/upload/course-cover")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
@@ -131,10 +116,6 @@ public class FileController {
 
     /**
      * 上传课程视频
-     *
-     * @param file 视频文件
-     * @param request HTTP请求
-     * @return 文件访问URL
      */
     @PostMapping("/upload/course-video")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
@@ -158,10 +139,6 @@ public class FileController {
 
     /**
      * 上传课程文档
-     *
-     * @param file 文档文件
-     * @param request HTTP请求
-     * @return 文件访问URL
      */
     @PostMapping("/upload/course-document")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
@@ -177,8 +154,8 @@ public class FileController {
 
         Map<String, Object> result = new HashMap<>();
         result.put("url", fileUrl);
-        result.put("originalName", file.getOriginalFilename()); // 🔧 返回原始文件名
-        result.put("name", file.getOriginalFilename()); // 🔧 添加name字段
+        result.put("originalName", file.getOriginalFilename());
+        result.put("name", file.getOriginalFilename());
         result.put("size", file.getSize());
 
         return Result.success(result);
@@ -186,10 +163,6 @@ public class FileController {
 
     /**
      * 上传用户头像
-     *
-     * @param file 头像文件
-     * @param request HTTP请求
-     * @return 文件访问URL
      */
     @PostMapping("/upload/avatar")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('STUDENT')")
@@ -211,16 +184,71 @@ public class FileController {
         return Result.success(result);
     }
 
+    // ==================== 🔧 修复的文件访问接口 ====================
+
     /**
-     * 文件下载/访问接口
-     *
-     * @param category 文件分类
-     * @param userId 用户ID
-     * @param year 年份
-     * @param month 月份
-     * @param filename 文件名
-     * @param request HTTP请求
-     * @return 文件资源
+     * 🔧 修复：支持多级分类的文件访问接口
+     * 路径格式: /files/course/covers/{userId}/{year}/{month}/{filename}
+     */
+    @GetMapping("/files/course/covers/{userId}/{year}/{month}/{filename}")
+    public ResponseEntity<Resource> downloadCourseCover(
+            @PathVariable String userId,
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String filename,
+            HttpServletRequest request) {
+
+        return downloadFileInternal("course/covers", userId, year, month, filename, request);
+    }
+
+    /**
+     * 🔧 修复：支持课程视频访问
+     * 路径格式: /files/course/videos/{userId}/{year}/{month}/{filename}
+     */
+    @GetMapping("/files/course/videos/{userId}/{year}/{month}/{filename}")
+    public ResponseEntity<Resource> downloadCourseVideo(
+            @PathVariable String userId,
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String filename,
+            HttpServletRequest request) {
+
+        return downloadFileInternal("course/videos", userId, year, month, filename, request);
+    }
+
+    /**
+     * 🔧 修复：支持课程文档访问
+     * 路径格式: /files/course/documents/{userId}/{year}/{month}/{filename}
+     */
+    @GetMapping("/files/course/documents/{userId}/{year}/{month}/{filename}")
+    public ResponseEntity<Resource> downloadCourseDocument(
+            @PathVariable String userId,
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String filename,
+            HttpServletRequest request) {
+
+        return downloadFileInternal("course/documents", userId, year, month, filename, request);
+    }
+
+    /**
+     * 🔧 修复：支持用户头像访问
+     * 路径格式: /files/avatars/{userId}/{year}/{month}/{filename}
+     */
+    @GetMapping("/files/avatars/{userId}/{year}/{month}/{filename}")
+    public ResponseEntity<Resource> downloadAvatar(
+            @PathVariable String userId,
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String filename,
+            HttpServletRequest request) {
+
+        return downloadFileInternal("avatars", userId, year, month, filename, request);
+    }
+
+    /**
+     * 🔧 原有的单级分类文件访问接口（保持兼容性）
+     * 路径格式: /files/{category}/{userId}/{year}/{month}/{filename}
      */
     @GetMapping("/files/{category}/{userId}/{year}/{month}/{filename}")
     public ResponseEntity<Resource> downloadFile(
@@ -231,6 +259,20 @@ public class FileController {
             @PathVariable String filename,
             HttpServletRequest request) {
 
+        return downloadFileInternal(category, userId, year, month, filename, request);
+    }
+
+    /**
+     * 🔧 内部方法：统一的文件下载处理逻辑
+     */
+    private ResponseEntity<Resource> downloadFileInternal(
+            String category,
+            String userId,
+            String year,
+            String month,
+            String filename,
+            HttpServletRequest request) {
+
         try {
             // 构建文件路径
             Path filePath = Paths.get(uploadPath)
@@ -239,6 +281,8 @@ public class FileController {
                     .resolve(year)
                     .resolve(month)
                     .resolve(filename);
+
+            log.info("尝试访问文件: {}", filePath.toAbsolutePath());
 
             Resource resource = new UrlResource(filePath.toUri());
 
@@ -281,10 +325,6 @@ public class FileController {
 
     /**
      * 简化的文件访问接口（兼容性）
-     *
-     * @param filename 文件名
-     * @param request HTTP请求
-     * @return 文件资源
      */
     @GetMapping("/files/{filename}")
     public ResponseEntity<Resource> downloadSimpleFile(

@@ -1,120 +1,114 @@
-<!-- frontend/src/views/CourseManagement.vue -->
 <template>
   <div class="course-management-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>🎓 课程管理</h2>
+        <h2>📚 课程管理</h2>
         <div class="stats-info">
           <span>共 {{ pagination.total }} 门课程</span>
-          <span v-if="filters.category" class="filter-indicator">
-            {{ filters.category }}
-          </span>
-          <span v-if="filters.status !== undefined" class="filter-indicator">
-            {{ getStatusText(filters.status) }}
-          </span>
+          <span v-if="hasFilters" class="filter-indicator">已筛选</span>
         </div>
       </div>
-      <div>
-        <el-button 
-          type="primary" 
-          size="large" 
+    </div>
+
+    <!-- 筛选条件 -->
+    <div class="course-filter">
+      <div class="filter-item">
+        <span class="filter-label">搜索</span>
+        <el-input
+          v-model="filters.keyword"
+          placeholder="搜索课程名称或描述"
+          @keyup.enter="searchCourses"
+          style="width: 250px"
+        >
+          <template #append>
+            <el-button :icon="Search" @click="searchCourses" />
+          </template>
+        </el-input>
+      </div>
+
+      <div class="filter-item">
+        <span class="filter-label">分类</span>
+        <el-select v-model="filters.category" placeholder="全部分类" style="width: 120px" clearable>
+          <el-option
+            v-for="category in courseCategories"
+            :key="category"
+            :label="category"
+            :value="category"
+          />
+        </el-select>
+      </div>
+
+      <div class="filter-item">
+        <span class="filter-label">难度</span>
+        <el-select v-model="filters.difficultyLevel" placeholder="全部难度" style="width: 120px" clearable>
+          <el-option
+            v-for="level in difficultyLevels"
+            :key="level.value"
+            :label="level.label"
+            :value="level.value"
+          />
+        </el-select>
+      </div>
+
+      <div class="filter-item">
+        <span class="filter-label">状态</span>
+        <el-select v-model="filters.status" placeholder="全部状态" style="width: 120px" clearable>
+          <el-option
+            v-for="status in courseStatuses"
+            :key="status.value"
+            :label="status.label"
+            :value="status.value"
+          />
+        </el-select>
+      </div>
+
+      <div class="filter-buttons">
+        <el-button type="primary" @click="searchCourses" :icon="Search">搜索</el-button>
+        <el-button @click="resetFilters">重置</el-button>
+        <el-button
+          type="primary"
           @click="showAddCourseModal"
+          :icon="Plus"
           v-if="userStore.userRole === 'ADMIN' || userStore.userRole === 'TEACHER'"
         >
-          <el-icon><Plus /></el-icon>
           新增课程
         </el-button>
       </div>
     </div>
 
-    <!-- 筛选器 -->
-    <div class="course-filter">
-      <div class="filter-item">
-        <span class="filter-label">关键词:</span>
-        <el-input
-          v-model="filters.keyword"
-          placeholder="搜索课程标题..."
-          style="width: 200px;"
-          clearable
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-      </div>
-      
-      <div class="filter-item">
-        <span class="filter-label">分类:</span>
-        <el-select v-model="filters.category" placeholder="请选择分类" clearable style="width: 150px;">
-          <el-option label="全部分类" value="" />
-          <el-option v-for="category in courseCategories" :key="category" :label="category" :value="category" />
-        </el-select>
-      </div>
-      
-      <div class="filter-item">
-        <span class="filter-label">难度:</span>
-        <el-select v-model="filters.difficultyLevel" placeholder="请选择难度" clearable style="width: 120px;">
-          <el-option label="全部难度" value="" />
-          <el-option v-for="level in difficultyLevels" :key="level.value" :label="level.label" :value="level.value" />
-        </el-select>
-      </div>
-      
-      <div class="filter-item" v-if="userStore.userRole === 'ADMIN'">
-        <span class="filter-label">状态:</span>
-        <el-select v-model="filters.status" placeholder="请选择状态" clearable style="width: 120px;">
-          <el-option label="全部状态" value="" />
-          <el-option v-for="status in courseStatuses" :key="status.value" :label="status.label" :value="status.value" />
-        </el-select>
-      </div>
-      
-      <div class="filter-buttons">
-        <el-button type="primary" @click="searchCourses" :loading="loading">搜索</el-button>
-        <el-button @click="resetFilters" :loading="loading">重置</el-button>
-      </div>
-    </div>
-
-    <!-- 课程网格 -->
+    <!-- 课程列表 -->
     <div v-loading="loading" class="course-grid">
-      <div
-        v-for="course in courses"
-        :key="course.id"
-        class="course-card"
-      >
-        <!-- 课程封面 - 使用AuthImage组件 -->
+      <div v-for="course in courses" :key="course.id" class="course-card">
         <div class="course-cover">
-          <AuthImage 
-            v-if="course.coverImage" 
-            :src="course.coverImage" 
-            :alt="course.title"
-            :style="{ width: '100%', height: '100%' }"
-            default-image="📚"
-          />
+          <img v-if="course.coverImageUrl" :src="course.coverImageUrl" alt="课程封面" />
           <div v-else class="default-cover">📚</div>
-          <div class="course-status-badge" :style="{ backgroundColor: getStatusColor(course.status) }">
+          <div
+            class="course-status-badge"
+            :style="{ backgroundColor: getStatusColor(course.status) }"
+          >
             {{ getStatusText(course.status) }}
           </div>
         </div>
 
-        <!-- 课程信息 -->
         <div class="course-content">
-          <div class="course-title">{{ course.title }}</div>
-          <div class="course-description">{{ course.description }}</div>
-          
+          <h3 class="course-title">{{ course.title }}</h3>
+          <p class="course-description">{{ course.description }}</p>
+
           <div class="course-meta">
             <el-tag size="small">{{ course.category }}</el-tag>
             <el-tag size="small" :type="getDifficultyType(course.difficultyLevel)">
               {{ getDifficultyText(course.difficultyLevel) }}
             </el-tag>
             <el-tag size="small" type="info">{{ formatDuration(course.duration) }}</el-tag>
-            <el-tag size="small" type="warning">{{ formatPrice(course.price) }}</el-tag>
+            <!-- 🔧 去掉价格标签 -->
           </div>
-          
+
           <div class="course-instructor">
             <el-icon><User /></el-icon>
             <span>{{ course.instructorName || course.instructorId }}</span>
           </div>
-          
+
           <div class="course-stats">
             <div class="stat-item">
               <el-icon><View /></el-icon>
@@ -129,32 +123,32 @@
               <span>{{ course.chapterCount || 0 }}章</span>
             </div>
           </div>
-          
+
           <div class="course-actions">
             <el-button size="small" @click="viewCourse(course.id)">
               <el-icon><View /></el-icon>
               详情
             </el-button>
-            <el-button 
-              size="small" 
-              type="primary" 
+            <el-button
+              size="small"
+              type="primary"
               @click="editCourse(course)"
               v-if="userStore.userRole === 'ADMIN' || course.instructorId === userStore.userInfo.id"
             >
               <el-icon><Edit /></el-icon>
               编辑
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               :type="course.status === 1 ? 'warning' : 'success'"
               @click="toggleCourseStatus(course)"
               v-if="userStore.userRole === 'ADMIN' || course.instructorId === userStore.userInfo.id"
             >
               {{ course.status === 1 ? '下架' : '发布' }}
             </el-button>
-            <el-button 
-              size="small" 
-              type="danger" 
+            <el-button
+              size="small"
+              type="danger"
               @click="deleteCourse(course)"
               v-if="userStore.userRole === 'ADMIN'"
             >
@@ -208,10 +202,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Plus, Search, Edit, Delete, View, User, Star, Document 
+import {
+  Plus, Search, Edit, Delete, View, User, Star, Document
 } from '@element-plus/icons-vue'
 
 // 导入组件
@@ -248,7 +242,7 @@ const editingCourse = ref(null)
 // 配置数据
 const courseCategories = [
   '技术培训',
-  '产品培训', 
+  '产品培训',
   '安全培训',
   '管理培训',
   '营销培训'
@@ -267,6 +261,11 @@ const courseStatuses = [
   { label: '已发布', value: 1 },
   { label: '已下架', value: 2 }
 ]
+
+// 计算属性
+const hasFilters = computed(() => {
+  return filters.keyword || filters.category || filters.difficultyLevel || filters.status
+})
 
 // 工具函数
 const getStatusColor = (status) => {
@@ -319,10 +318,7 @@ const formatDuration = (duration) => {
   return `${duration}分钟`
 }
 
-const formatPrice = (price) => {
-  if (!price || price === 0) return '免费'
-  return `¥${price}`
-}
+// 🔧 删除 formatPrice 函数，因为不再显示价格
 
 // 分页处理
 const handleSizeChange = (size) => {
@@ -348,22 +344,33 @@ onMounted(() => {
 // 方法
 const showAddCourseModal = () => {
   courseModalTitle.value = '新增课程'
-  editingCourse.value = null
+
+  // 🔧 为新增课程预设基础数据（包含后端需要的字段）
+  const teacherInstructorId = userStore.userInfo?.userId ||
+    userStore.userInfo?.id ||
+    userStore.userInfo?.username ||
+    'default-instructor'
+
+  editingCourse.value = {
+    instructorId: teacherInstructorId,
+    price: 0 // 预设价格为0
+  }
+
   courseModalVisible.value = true
 }
 
 const editCourse = async (course) => {
   console.log('🔧 点击编辑按钮，课程数据:', course)
-  
+
   try {
     // 设置基本课程信息
     courseModalTitle.value = '编辑课程'
     editingCourse.value = { ...course }
-    
+
     // 🔧 新增：获取课程章节数据
     console.log('📖 开始获取章节数据...')
     const chaptersResponse = await getCourseChaptersAPI(course.id)
-    
+
     if (chaptersResponse.code === 200) {
       // 将章节数据添加到编辑数据中
       editingCourse.value.chapters = chaptersResponse.data || []
@@ -377,9 +384,9 @@ const editCourse = async (course) => {
     editingCourse.value.chapters = []
     ElMessage.warning('获取章节数据失败，但可以继续编辑课程')
   }
-  
+
   console.log('📝 最终设置的编辑数据:', editingCourse.value)
-  
+
   // 显示模态框
   courseModalVisible.value = true
   console.log('👁️ 模态框可见性:', courseModalVisible.value)
@@ -400,7 +407,7 @@ const deleteCourse = async (course) => {
         cancelButtonText: '取消'
       }
     )
-    
+
     const success = await deleteCourseById(course.id, course.title)
     if (success) {
       ElMessage.success('课程删除成功')
@@ -419,29 +426,51 @@ const closeCourseModal = () => {
   editingCourse.value = null
 }
 
-// 处理课程保存
+// 🔧 修复处理课程保存
 const handleCourseSave = async (courseData) => {
   try {
+    console.log('📥 接收到课程保存数据:', courseData)
+
     let result
-    
+
     if (courseModalTitle.value === '新增课程') {
-      // 如果是讲师，自动设置讲师ID
-      if (userStore.userRole === 'TEACHER') {
-        courseData.instructorId = userStore.userInfo.id || userStore.userInfo.username
+      // 🔧 确保后端需要的字段有默认值
+      const dataWithDefaults = {
+        ...courseData,
+        // 自动设置讲师ID
+        instructorId: courseData.instructorId ||
+          userStore.userInfo?.userId ||
+          userStore.userInfo?.id ||
+          userStore.userInfo?.username ||
+          'default-instructor',
+        // 自动设置价格为0
+        price: 0
       }
-      result = await createCourse(courseData)
+
+      console.log('📝 创建新课程，数据:', dataWithDefaults)
+      result = await createCourse(dataWithDefaults)
     } else {
-      result = await updateCourse(editingCourse.value.id, courseData)
+      // 编辑模式 - 也确保有默认值
+      const dataWithDefaults = {
+        ...courseData,
+        instructorId: courseData.instructorId || editingCourse.value.instructorId,
+        price: 0 // 强制设置为0
+      }
+
+      console.log('📝 更新课程，ID:', editingCourse.value.id, '数据:', dataWithDefaults)
+      result = await updateCourse(editingCourse.value.id, dataWithDefaults)
     }
-    
+
     if (result) {
       ElMessage.success(courseModalTitle.value === '新增课程' ? '课程创建成功' : '课程更新成功')
       closeCourseModal()
-      await loadCourses() // 刷新列表
+      loadCourses() // 刷新列表
+    } else {
+      ElMessage.error('保存失败，请重试')
     }
   } catch (error) {
     console.error('保存课程失败:', error)
-    ElMessage.error('保存课程失败，请重试')
+    ElMessage.error('保存失败，请检查网络连接')
   }
 }
 </script>
@@ -541,6 +570,12 @@ const handleCourseSave = async (courseData) => {
   overflow: hidden;
 }
 
+.course-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .default-cover {
   width: 100%;
   height: 100%;
@@ -600,23 +635,23 @@ const handleCourseSave = async (courseData) => {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 12px;
   color: #666;
   font-size: 14px;
-  margin-bottom: 16px;
 }
 
 .course-stats {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  color: #888;
+  color: #999;
+  font-size: 14px;
 }
 
 .course-actions {
@@ -627,20 +662,21 @@ const handleCourseSave = async (courseData) => {
 
 .empty-state {
   text-align: center;
-  padding: 80px 20px;
-  color: white;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  margin-top: 20px;
 }
 
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
-  opacity: 0.6;
 }
 
 .empty-text {
-  font-size: 18px;
-  margin-bottom: 24px;
-  opacity: 0.8;
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 20px;
 }
 
 .pagination-wrapper {
@@ -648,30 +684,7 @@ const handleCourseSave = async (courseData) => {
   justify-content: center;
   margin-top: 40px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .course-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .course-filter {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .filter-buttons {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .course-actions {
-    justify-content: center;
-  }
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
 }
 </style>
