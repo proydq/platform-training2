@@ -1,6 +1,32 @@
 <template>
   <div class="user-management-page">
-    <h1 class="page-title">用户管理</h1>
+    <div class="header-card">
+      <div class="header-info">
+        <h2 class="header-title">用户管理</h2>
+        <p class="header-desc">管理系统用户和权限设置</p>
+      </div>
+      <el-button type="primary" @click="openAddUser">添加用户</el-button>
+    </div>
+
+    <div class="stats-overview">
+      <div class="stat-item">
+        <div class="stat-number">{{ stats.total }}</div>
+        <div class="stat-label">总用户数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ stats.online }}</div>
+        <div class="stat-label">在线用户</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ stats.new }}</div>
+        <div class="stat-label">新增用户</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ stats.pending }}</div>
+        <div class="stat-label">待审核</div>
+      </div>
+    </div>
+
     <el-form :inline="true" class="search-form">
       <el-form-item>
         <el-input
@@ -14,14 +40,6 @@
         <el-select v-model="query.role" placeholder="全部角色" clearable @change="handleSearch">
           <el-option label="全部角色" value="" />
           <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-select v-model="query.status" placeholder="全部状态" clearable>
-          <el-option label="全部状态" value="" />
-          <el-option label="正常" value="active" />
-          <el-option label="停用" value="inactive" />
-          <el-option label="锁定" value="locked" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -152,7 +170,8 @@ import {
 
 const users = ref([])
 const total = ref(0)
-const query = reactive({ page: 1, pageSize: 10, role: '', keyword: '', status: '' })
+const stats = reactive({ total: 0, online: 0, new: 0, pending: 0 })
+const query = reactive({ page: 1, pageSize: 10, role: '', keyword: '' })
 const roleOptions = ref([])
 
 const showModal = ref(false)
@@ -170,15 +189,17 @@ const form = reactive({
   description: ''
 })
 
-const filteredUsers = computed(() => {
-  return users.value.filter(u => !query.status || u.status === query.status)
-})
+const filteredUsers = computed(() => users.value)
 
 async function fetchUsers() {
   try {
     const res = await getUsersAPI(query)
     users.value = res?.data?.data || []
     total.value = res?.data?.total || 0
+    stats.total = total.value
+    stats.online = users.value.filter(u => u.status === 'active').length
+    stats.pending = users.value.filter(u => u.status === 'pending').length
+    stats.new = users.value.filter(u => u.isNew).length
   } catch (e) {
     ElMessage.error('获取用户列表失败')
   }
@@ -305,10 +326,51 @@ onMounted(() => {
   margin: 0 auto;
   padding: 20px;
 }
-.page-title {
+.header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-title {
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
+}
+
+.header-desc {
+  margin: 4px 0 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
   margin-bottom: 20px;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 14px;
 }
 .search-form {
   margin-bottom: 20px;
@@ -463,5 +525,12 @@ onMounted(() => {
 }
 .btn-primary:hover {
   background: #66b1ff;
+}
+
+@media (max-width: 768px) {
+  .stats-overview {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
 }
 </style>
