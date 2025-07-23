@@ -31,7 +31,7 @@ export const useUserStore = defineStore('user', () => {
   // 检查后端状态
   const checkBackendStatus = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/login`, {
         method: 'HEAD',
         timeout: 3000
       })
@@ -49,7 +49,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       console.log('使用真实后端登录:', username)
       
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
