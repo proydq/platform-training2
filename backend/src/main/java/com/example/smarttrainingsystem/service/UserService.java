@@ -137,6 +137,8 @@ public class UserService {
         dto.setName(user.getRealName() != null ? user.getRealName() : user.getNickname());
         dto.setEmail(user.getEmail());
         dto.setStatus(Boolean.TRUE.equals(user.getActive()) ? "active" : "inactive");
+        dto.setDepartment(user.getDepartment());
+        dto.setPhone(user.getPhone());
         dto.setLastLogin(user.getEffectiveLastLoginTime());
         roleRepository.findRolesByUserId(user.getId()).stream().findFirst()
                 .ifPresent(r -> dto.setRole(r.getRoleCode()));
