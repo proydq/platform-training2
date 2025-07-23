@@ -39,4 +39,17 @@ public class UserController {
         UserDTO.ListItem user = userService.createUser(request);
         return Result.success("创建用户成功", user);
     }
+
+    @PutMapping("/{id}")
+    public Result<UserDTO.ListItem> updateUser(@PathVariable("id") String id,
+                                               @Valid @RequestBody UserDTO.CreateRequest request) {
+        UserDTO.ListItem user = userService.updateUser(id, request);
+        return Result.success("更新用户成功", user);
+    }
+
+    @DeleteMapping("/{id}")
+    public Result<String> deleteUser(@PathVariable("id") String id) {
+        userService.deleteUser(id);
+        return Result.success("删除用户成功", null);
+    }
 }
