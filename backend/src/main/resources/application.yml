@@ -1,6 +1,6 @@
 # 智能培训系统配置文件
 server:
-  port: 8080
+  port: 10087
   servlet:
     context-path: /
 
@@ -58,6 +58,6 @@ logging:
 app:
   # 文件上传路径
   upload:
-    path: H:/smart-training-uploads/
+    path: E:/smart-training-uploads/
   # 允许的文件类型
   allowed-file-types: jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,mp4,avi,mov
