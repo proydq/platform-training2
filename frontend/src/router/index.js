@@ -79,16 +79,6 @@ const routes = [
           roles: ['ADMIN', 'TEACHER'] // 权限控制
         }
       },
-      {
-        path: 'admin',
-        name: 'Admin',
-        component: Admin,
-        meta: {
-          title: '管理后台',
-          icon: '⚙️',
-          roles: ['ADMIN'] // 仅管理员可访问
-        }
-      }
     ]
   },
   {
@@ -98,10 +88,31 @@ const routes = [
     meta: { title: '页面未找到' }
   },
   {
-    path: '/user-management',
-    name: 'UserManagement',
-    component: () => import('@/views/UserManagement.vue'),
-    meta: { title: '用户管理', icon: '👤' }
+    path: '/admin',
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Admin',
+        component: Admin,
+        meta: {
+          title: '管理后台',
+          icon: '⚙️',
+          roles: ['ADMIN']
+        }
+      },
+      {
+        path: 'user-management',
+        name: 'UserManagement',
+        component: () => import('@/views/UserManagement.vue'),
+        meta: {
+          title: '用户管理',
+          icon: '👤',
+          roles: ['ADMIN']
+        }
+      }
+    ]
   },
   {
     path: '/:pathMatch(.*)*',
@@ -140,7 +151,7 @@ export const generateMenus = (userRole) => {
     hidden: userRole !== 'ADMIN'
   },
   {
-    path: '/user-management',
+    path: '/admin/user-management',
     title: '用户管理',
     icon: '👤',
     hidden: userRole !== 'ADMIN'
