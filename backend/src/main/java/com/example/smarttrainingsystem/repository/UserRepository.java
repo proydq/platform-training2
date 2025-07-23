@@ -134,7 +134,9 @@ public interface UserRepository extends JpaRepository<User, String> {
      * @param roleCode 角色代码
      * @return 用户列表
      */
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.roleCode = :roleCode AND u.active = true")
+    @Query("SELECT u FROM User u JOIN UserRole ur ON u.id = ur.userId " +
+            "JOIN Role r ON ur.roleId = r.id " +
+            "WHERE r.roleCode = :roleCode AND u.active = true")
     List<User> findActiveUsersByRoleCode(@Param("roleCode") String roleCode);
 
     /**
@@ -155,7 +157,9 @@ public interface UserRepository extends JpaRepository<User, String> {
      * @param pageable 分页参数
      * @return 用户分页列表
      */
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN u.roles r WHERE " +
+    @Query("SELECT DISTINCT u FROM User u " +
+            "LEFT JOIN UserRole ur ON u.id = ur.userId " +
+            "LEFT JOIN Role r ON ur.roleId = r.id WHERE " +
             "(:keyword IS NULL OR " +
             " u.username LIKE %:keyword% OR " +
             " u.nickname LIKE %:keyword% OR " +
@@ -208,7 +212,10 @@ public interface UserRepository extends JpaRepository<User, String> {
      *
      * @return 统计结果
      */
-    @Query("SELECT r.roleCode, r.roleName, COUNT(u) FROM User u JOIN u.roles r WHERE u.active = true GROUP BY r.roleCode, r.roleName")
+    @Query("SELECT r.roleCode, r.roleName, COUNT(u) FROM User u " +
+            "JOIN UserRole ur ON u.id = ur.userId " +
+            "JOIN Role r ON ur.roleId = r.id " +
+            "WHERE u.active = true GROUP BY r.roleCode, r.roleName")
     List<Object[]> countUsersByRole();
 
     /**

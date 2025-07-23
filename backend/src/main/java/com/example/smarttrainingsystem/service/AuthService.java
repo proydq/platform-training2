@@ -5,6 +5,7 @@ import com.example.smarttrainingsystem.entity.Role;
 import com.example.smarttrainingsystem.entity.User;
 import com.example.smarttrainingsystem.exception.BusinessException;
 import com.example.smarttrainingsystem.repository.UserRepository;
+import com.example.smarttrainingsystem.repository.RoleRepository;
 import com.example.smarttrainingsystem.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
@@ -62,7 +64,8 @@ public class AuthService {
         userRepository.save(user);
 
         // 5. 生成JWT Token
-        List<String> roleCodes = user.getRoles().stream()
+        List<String> roleCodes = roleRepository.findRolesByUserId(user.getId())
+                .stream()
                 .map(Role::getRoleCode)
                 .collect(Collectors.toList());
 
@@ -223,12 +226,11 @@ public class AuthService {
         userInfo.setLastLoginTime(user.getLastLoginTime());
 
         // 构建角色信息
-        if (user.getRoles() != null) {
-            List<AuthDTO.RoleInfo> roleInfos = user.getRoles().stream()
-                    .map(this::buildRoleInfo)
-                    .collect(Collectors.toList());
-            userInfo.setRoles(roleInfos);
-        }
+        List<AuthDTO.RoleInfo> roleInfos = roleRepository.findRolesByUserId(user.getId())
+                .stream()
+                .map(this::buildRoleInfo)
+                .collect(Collectors.toList());
+        userInfo.setRoles(roleInfos);
 
         return userInfo;
     }

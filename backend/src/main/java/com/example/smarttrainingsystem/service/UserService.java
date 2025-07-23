@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -66,8 +65,6 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException(1011, "角色不存在"));
 
         User user = new User();
-        // 主键依然使用字段初始化，但需显式调用setId以触发插入
-        user.setId(UUID.randomUUID().toString());
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRealName(request.getName());
@@ -84,9 +81,53 @@ public class UserService {
         userRole.setAssignedAt(LocalDateTime.now());
         userRoleRepository.save(userRole);
 
-        saved.setRoles(java.util.Collections.singleton(role));
         log.debug("保存用户ID: {}", saved.getId());
         return convertToListItem(saved);
+    }
+
+    /**
+     * 更新用户
+     */
+    @Transactional
+    public UserDTO.ListItem updateUser(String userId, UserDTO.CreateRequest request) {
+        log.info("更新用户: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(1012, "用户不存在"));
+
+        Role role = roleRepository.findByRoleCode(request.getRole())
+                .orElseThrow(() -> new BusinessException(1011, "角色不存在"));
+
+        user.setUsername(request.getUsername());
+        if (StringUtils.hasText(request.getPassword())) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        user.setRealName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setDepartment(request.getDepartment());
+        user.setActive("active".equalsIgnoreCase(request.getStatus()));
+
+        User saved = userRepository.save(user);
+
+        userRoleRepository.deleteByUserId(userId);
+        UserRole userRole = new UserRole();
+        userRole.setUserId(userId);
+        userRole.setRoleId(role.getId());
+        userRole.setAssignedAt(LocalDateTime.now());
+        userRoleRepository.save(userRole);
+
+        return convertToListItem(saved);
+    }
+
+    /**
+     * 删除用户
+     */
+    @Transactional
+    public void deleteUser(String userId) {
+        log.info("删除用户: {}", userId);
+        userRoleRepository.deleteByUserId(userId);
+        userRepository.deleteById(userId);
     }
 
     private UserDTO.ListItem convertToListItem(User user) {
@@ -97,10 +138,8 @@ public class UserService {
         dto.setEmail(user.getEmail());
         dto.setStatus(Boolean.TRUE.equals(user.getActive()) ? "active" : "inactive");
         dto.setLastLogin(user.getEffectiveLastLoginTime());
-        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            Role first = user.getRoles().iterator().next();
-            dto.setRole(first.getRoleCode());
-        }
+        roleRepository.findRolesByUserId(user.getId()).stream().findFirst()
+                .ifPresent(r -> dto.setRole(r.getRoleCode()));
         return dto;
     }
 }

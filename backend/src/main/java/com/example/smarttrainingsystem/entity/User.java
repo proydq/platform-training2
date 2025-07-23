@@ -3,12 +3,11 @@ package com.example.smarttrainingsystem.entity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * 用户实体类
@@ -27,8 +26,10 @@ public class User {
      * 用户ID - 使用UUID
      */
     @Id
+    @GeneratedValue(generator = "uuid")
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
     @Column(name = "id", length = 36)
-    private String id = UUID.randomUUID().toString();
+    private String id;
 
     /**
      * 用户名 - 登录账号，唯一
@@ -159,16 +160,6 @@ public class User {
     @Column(name = "update_time")
     private LocalDateTime updateTime;
 
-    /**
-     * 用户角色关联 - 多对多关系
-     */
-    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH)
-    @JoinTable(
-            name = "t_user_role",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles;
 
     /**
      * 性别枚举

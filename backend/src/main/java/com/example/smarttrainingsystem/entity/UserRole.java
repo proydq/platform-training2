@@ -3,10 +3,10 @@ package com.example.smarttrainingsystem.entity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * 用户角色关联实体
@@ -26,8 +26,10 @@ public class UserRole {
      * 主键ID
      */
     @Id
+    @GeneratedValue(generator = "uuid")
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
     @Column(name = "id", length = 36)
-    private String id = UUID.randomUUID().toString();
+    private String id;
 
     /**
      * 用户ID
@@ -60,34 +62,4 @@ public class UserRole {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**
-     * 用户实体关联
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    private User user;
-
-    /**
-     * 角色实体关联
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", insertable = false, updatable = false)
-    private Role role;
-
-    /**
-     * 分配者实体关联
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assigned_by", insertable = false, updatable = false)
-    private User assignedByUser;
-
-    /**
-     * 在持久化前生成主键
-     */
-    @PrePersist
-    public void preInsert() {
-        if (this.id == null) {
-            this.id = UUID.randomUUID().toString();
-        }
-    }
 }
