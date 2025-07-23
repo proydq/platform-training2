@@ -47,38 +47,62 @@
       </el-form-item>
     </el-form>
 
-    <el-table :data="filteredUsers" stripe class="user-table">
-      <el-table-column prop="username" label="用户名" width="120" />
-      <el-table-column prop="name" label="姓名" width="120" />
-      <el-table-column prop="email" label="邮箱" />
-      <el-table-column label="角色" width="120">
-        <template #default="{ row }">
-          <el-tag :type="getRoleTagClass(row.role)">{{ getRoleText(row.role) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="120">
-        <template #default="{ row }">
-          <el-tag :type="getStatusTagClass(row.status)">{{ getStatusText(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="lastLogin" label="最近登录" width="180" />
-      <el-table-column label="操作" width="220" align="center">
-        <template #default="{ row }">
-          <el-button size="small" link type="primary" @click="openEditUser(row)">编辑</el-button>
-          <el-button size="small" link type="warning" @click="resetPassword(row)">重置密码</el-button>
-          <el-button size="small" link type="danger" @click="deleteUser(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <table class="user-table">
+      <thead>
+        <tr>
+          <th>用户</th>
+          <th>角色</th>
+          <th>状态</th>
+          <th>最近登录</th>
+          <th style="text-align: center;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in filteredUsers" :key="row.id">
+          <td>
+            <div class="user-info">
+              <div class="user-avatar">{{ (row.name || row.username).charAt(0) }}</div>
+              <div class="user-details">
+                <div class="user-name">{{ row.name }}</div>
+                <div class="user-email">{{ row.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="tag" :class="getRoleTagClass(row.role)">{{ getRoleText(row.role) }}</span>
+          </td>
+          <td>
+            <span class="tag" :class="getStatusTagClass(row.status)">{{ getStatusText(row.status) }}</span>
+          </td>
+          <td>{{ row.lastLogin }}</td>
+          <td style="text-align: center;">
+            <div class="action-buttons">
+              <button class="action-btn" @click="openEditUser(row)">✏️ 编辑</button>
+              <button class="action-btn warning" @click="resetPassword(row)">🔒 重置密码</button>
+              <button class="action-btn danger" @click="deleteUser(row)">🗑️ 删除</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    <div class="pagination-container">
-      <el-pagination
-        v-model:current-page="query.page"
-        :page-size="query.pageSize"
-        :total="total"
-        layout="prev, pager, next"
-        @current-change="changePage"
-      />
+    <div class="pagination">
+      <span>显示 {{ displayStart }}-{{ displayEnd }}，共 {{ total }} 条记录</span>
+      <button class="page-btn" :disabled="query.page === 1" @click="changePage(query.page - 1)">
+        上一页
+      </button>
+      <button
+        v-for="p in totalPages"
+        :key="p"
+        class="page-btn"
+        :class="{ active: p === query.page }"
+        @click="changePage(p)"
+      >
+        {{ p }}
+      </button>
+      <button class="page-btn" :disabled="query.page === totalPages" @click="changePage(query.page + 1)">
+        下一页
+      </button>
     </div>
 
     <div class="modal-overlay" :class="{ show: showModal }" @click.self="closeModal">
@@ -190,6 +214,9 @@ const form = reactive({
 })
 
 const filteredUsers = computed(() => users.value)
+const totalPages = computed(() => Math.ceil(total.value / query.pageSize))
+const displayStart = computed(() => (total.value === 0 ? 0 : (query.page - 1) * query.pageSize + 1))
+const displayEnd = computed(() => Math.min(query.page * query.pageSize, total.value))
 
 async function fetchUsers() {
   try {
@@ -375,10 +402,6 @@ onMounted(() => {
 .search-form {
   margin-bottom: 20px;
 }
-.pagination-container {
-  margin-top: 20px;
-  text-align: center;
-}
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -525,6 +548,134 @@ onMounted(() => {
 }
 .btn-primary:hover {
   background: #66b1ff;
+}
+
+/* 表格样式 */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.user-table th {
+  background: #f5f7fa;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ebeef5;
+  font-weight: 500;
+  color: #909399;
+  font-size: 14px;
+}
+
+.user-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ebeef5;
+  font-size: 14px;
+}
+
+.user-table tbody tr:hover {
+  background-color: #f5f7fa;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tag.primary { background: #ecf5ff; color: #409eff; }
+.tag.success { background: #f0f9ff; color: #67c23a; }
+.tag.danger { background: #fef0f0; color: #f56c6c; }
+.tag.warning { background: #fdf6ec; color: #e6a23c; }
+.tag.info { background: #f4f4f5; color: #909399; }
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
+  padding: 5px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 5px;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-btn:hover { border-color: #409eff; color: #409eff; }
+.action-btn.warning:hover { border-color: #e6a23c; color: #e6a23c; }
+.action-btn.danger:hover { border-color: #f56c6c; color: #f56c6c; }
+
+/* 分页 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.page-btn {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.page-btn:hover,
+.page-btn.active {
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.page-btn.active {
+  background: #409eff;
+  color: white;
 }
 
 @media (max-width: 768px) {
