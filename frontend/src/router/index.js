@@ -87,19 +87,7 @@ const routes = [
           title: '管理后台',
           icon: '⚙️',
           roles: ['ADMIN'] // 仅管理员可访问
-        },
-        children: [
-          {
-            path: 'user-management',
-            name: 'UserManagement',
-            component: () => import('@/views/UserManagement.vue'),
-            meta: {
-              title: '用户管理',
-              icon: '👤',
-              roles: ['ADMIN']
-            }
-          }
-        ]
+        }
       }
     ]
   },
@@ -108,6 +96,12 @@ const routes = [
     name: 'NotFound',
     component: NotFound,
     meta: { title: '页面未找到' }
+  },
+  {
+    path: '/user-management',
+    name: 'UserManagement',
+    component: () => import('@/views/UserManagement.vue'),
+    meta: { title: '用户管理', icon: '👤' }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -139,18 +133,18 @@ export const generateMenus = (userRole) => {
       icon: '👥',
       hidden: !['ADMIN', 'TEACHER'].includes(userRole)
     },
-    {
-      path: '/admin',
-      title: '管理后台',
-      icon: '⚙️',
-      hidden: userRole !== 'ADMIN'
-    },
-    {
-      path: '/admin/user-management',
-      title: '用户管理',
-      icon: '👤',
-      hidden: userRole !== 'ADMIN'
-    }
+  {
+    path: '/admin',
+    title: '管理后台',
+    icon: '⚙️',
+    hidden: userRole !== 'ADMIN'
+  },
+  {
+    path: '/user-management',
+    title: '用户管理',
+    icon: '👤',
+    hidden: userRole !== 'ADMIN'
+  }
   ]
 
   return allMenus.filter(menu => !menu.hidden)
