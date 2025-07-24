@@ -241,8 +241,8 @@ export function deleteCourseAPI(courseId) {
 // 发布课程
 export function publishCourseAPI(courseId) {
   return request({
-    url: `/api/v1/courses/${courseId}/publish`,
-    method: 'POST',
+    url: `/api/courses/${courseId}/publish`,
+    method: 'PUT',
   })
 }
 
