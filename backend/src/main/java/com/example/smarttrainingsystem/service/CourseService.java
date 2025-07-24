@@ -214,6 +214,19 @@ public class CourseService {
         return convertToResponse(savedCourse);
     }
 
+    /**
+     * 发布课程 - 简化接口
+     */
+    @Transactional
+    public boolean publishCourse(String courseId) {
+        log.info("发布课程(简化): courseId={}", courseId);
+        return courseRepository.findById(courseId).map(course -> {
+            course.publish();
+            courseRepository.save(course);
+            return true;
+        }).orElse(false);
+    }
+
     // ==================== 课程搜索和筛选 ====================
 
     /**

@@ -16,6 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 /**
  * 课程API控制器
@@ -26,7 +28,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/courses")
+@RequestMapping({"/api/v1/courses", "/api/courses"})
 @RequiredArgsConstructor
 @Validated
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -134,6 +136,22 @@ public class CourseController {
 
         CourseDTO.Response response = courseService.publishCourse(courseId, userId);
         return Result.success(response);
+    }
+
+    /**
+     * 发布课程 (新接口) - 提供给前端PUT方式
+     */
+    @PutMapping("/{courseId}/publish")
+    public ResponseEntity<?> publishCourseByPut(@PathVariable String courseId) {
+        try {
+            boolean success = courseService.publishCourse(courseId);
+            if (success) {
+                return ResponseEntity.ok().build();
+            }
+        } catch (Exception e) {
+            log.error("发布课程失败", e);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("发布失败");
     }
 
     /**
