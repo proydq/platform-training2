@@ -6,19 +6,19 @@
         <div class="logo-icon">🎓</div>
         <h1>智能培训系统</h1>
       </div>
-      
+
       <div class="nav-menu">
-        <div 
-          v-for="menu in visibleMenus" 
+        <div
+          v-for="menu in visibleMenus"
           :key="menu.path"
           class="nav-item"
-          :class="{ active: activeMenu === menu.path }"
+          :class="{ active: isMenuActive(menu.path) }"
           @click="handleMenuSelect(menu.path)"
         >
           {{ menu.title }}
         </div>
       </div>
-      
+
       <div class="user-info">
         <div class="user-name">{{ userName }}</div>
         <div class="avatar">{{ userAvatar }}</div>
@@ -48,10 +48,37 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-// 当前激活的菜单
-const activeMenu = computed(() => {
-  return route.path
-})
+// 修复：改进菜单激活状态判断逻辑
+const isMenuActive = (menuPath) => {
+  const currentPath = route.path
+
+  // 精确匹配
+  if (currentPath === menuPath) {
+    return true
+  }
+
+  // 特殊处理：学习页面应该激活"我的课程"菜单
+  if (menuPath === '/courses' && currentPath.startsWith('/learning/')) {
+    return true
+  }
+
+  // 特殊处理：课程管理页面应该激活"课程管理"菜单
+  if (menuPath === '/course-management' && currentPath.startsWith('/course-management')) {
+    return true
+  }
+
+  // 特殊处理：学员管理页面应该激活"学员管理"菜单
+  if (menuPath === '/students' && currentPath.startsWith('/students')) {
+    return true
+  }
+
+  // 特殊处理：管理后台页面应该激活"管理后台"菜单
+  if (menuPath === '/admin' && currentPath.startsWith('/admin')) {
+    return true
+  }
+
+  return false
+}
 
 // 用户信息
 const userName = computed(() => {
@@ -100,7 +127,7 @@ const handleLogout = async () => {
         type: 'warning'
       }
     )
-    
+
     await userStore.logout()
     ElMessage.success('已退出登录')
     router.replace('/login')
@@ -122,10 +149,8 @@ onMounted(() => {
 .layout-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  /* 移除max-width限制，让背景平铺整个屏幕 */
   width: 100%;
   padding: 20px;
-  /* 使用固定定位确保背景覆盖整个视口 */
   position: relative;
 }
 
@@ -269,23 +294,23 @@ onMounted(() => {
   .layout-container {
     padding: 10px;
   }
-  
+
   .header {
     flex-direction: column;
     gap: 20px;
     padding: 20px;
   }
-  
+
   .nav-menu {
     flex-wrap: wrap;
     gap: 15px;
     justify-content: center;
   }
-  
+
   .logo h1 {
     font-size: 20px;
   }
-  
+
   .user-name {
     display: none;
   }
@@ -295,7 +320,7 @@ onMounted(() => {
   .nav-menu {
     gap: 10px;
   }
-  
+
   .nav-item {
     padding: 8px 15px;
     font-size: 14px;
