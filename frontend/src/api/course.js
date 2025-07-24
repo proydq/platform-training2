@@ -252,6 +252,7 @@ export function unpublishCourseAPI(courseId) {
   return request({
     url: `/api/v1/courses/${courseId}/unpublish`,
     method: 'PUT',
+    rawResponse: true
   })
 }
 

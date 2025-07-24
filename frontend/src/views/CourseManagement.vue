@@ -420,11 +420,11 @@ const toggleCourseStatus = async (course) => {
   try {
     if (course.status === 1) {
       const res = await unpublishCourseAPI(course.id)
-      if (res.code === 200) {
-        ElMessage.success('下架成功')
+      if (res.status === 200) {
+        ElMessage.success(res.data?.message || '下架成功')
         course.status = 2
       } else {
-        ElMessage.error(res.message || '下架失败')
+        ElMessage.error(res.data?.message || '下架失败')
       }
     } else {
       const res = await publishCourseAPI(course.id)

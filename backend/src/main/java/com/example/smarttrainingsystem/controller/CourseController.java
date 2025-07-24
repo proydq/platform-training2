@@ -16,6 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
@@ -177,12 +179,18 @@ public class CourseController {
         try {
             boolean success = courseService.unpublishCourse(courseId);
             if (success) {
-                return ResponseEntity.ok().build();
+                Map<String, Object> body = new HashMap<>();
+                body.put("success", true);
+                body.put("message", "课程已下架");
+                return ResponseEntity.ok(body);
             }
         } catch (Exception e) {
             log.error("下架课程失败", e);
         }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("下架失败");
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("success", false);
+        errorBody.put("message", "下架失败");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody);
     }
 
     /**
