@@ -170,6 +170,22 @@ public class CourseController {
     }
 
     /**
+     * 下架课程 (新接口) - 提供给前端PUT方式
+     */
+    @PutMapping("/{courseId}/unpublish")
+    public ResponseEntity<?> unpublishCourseByPut(@PathVariable String courseId) {
+        try {
+            boolean success = courseService.unpublishCourse(courseId);
+            if (success) {
+                return ResponseEntity.ok().build();
+            }
+        } catch (Exception e) {
+            log.error("下架课程失败", e);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("下架失败");
+    }
+
+    /**
      * 搜索课程 - 所有已认证用户可访问
      */
     @GetMapping("/search")

@@ -215,7 +215,7 @@ import { useUserStore } from '@/stores/user'
 import { useCourse } from '@/composables/useCourse'
 
 // 🔧 添加这行导入
-import { getCourseChaptersAPI, publishCourseAPI } from '@/api/course'
+import { getCourseChaptersAPI, publishCourseAPI, unpublishCourseAPI } from '@/api/course'
 
 // 状态管理
 const userStore = useUserStore()
@@ -418,15 +418,25 @@ const deleteCourse = async (course) => {
 
 const toggleCourseStatus = async (course) => {
   try {
-    const res = await publishCourseAPI(course.id)
-    if (res && res.status === 200) {
-      ElMessage.success('发布成功')
-      course.status = 1
+    if (course.status === 1) {
+      const res = await unpublishCourseAPI(course.id)
+      if (res.code === 200) {
+        ElMessage.success('下架成功')
+        course.status = 2
+      } else {
+        ElMessage.error(res.message || '下架失败')
+      }
     } else {
-      ElMessage.error('发布失败')
+      const res = await publishCourseAPI(course.id)
+      if (res && res.status === 200) {
+        ElMessage.success('发布成功')
+        course.status = 1
+      } else {
+        ElMessage.error('发布失败')
+      }
     }
   } catch (error) {
-    ElMessage.error(error.message || '发布失败')
+    ElMessage.error(error.message || (course.status === 1 ? '下架失败' : '发布失败'))
   }
 }
 
