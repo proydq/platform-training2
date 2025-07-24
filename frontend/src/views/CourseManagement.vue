@@ -419,11 +419,11 @@ const deleteCourse = async (course) => {
 const toggleCourseStatus = async (course) => {
   try {
     const res = await publishCourseAPI(course.id)
-    if (res.code === 200) {
+    if (res && res.status === 200) {
       ElMessage.success('发布成功')
       course.status = 1
     } else {
-      ElMessage.error(res.message || '发布失败')
+      ElMessage.error('发布失败')
     }
   } catch (error) {
     ElMessage.error(error.message || '发布失败')

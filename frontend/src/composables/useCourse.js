@@ -255,12 +255,12 @@ export function useCourse() {
 
       const response = await publishCourseAPI(courseId)
 
-      if (response.code === 200) {
+      if (response && response.status === 200) {
         ElMessage.success(`课程"${courseName}"发布成功`)
         await loadCourses() // 刷新列表
         return true
       } else {
-        ElMessage.error(response.message || '课程发布失败')
+        ElMessage.error('课程发布失败')
         return false
       }
     } catch (error) {
