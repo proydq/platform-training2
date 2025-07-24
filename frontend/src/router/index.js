@@ -10,6 +10,7 @@ import CourseManagement from '@/views/CourseManagement.vue'
 import Exams from '@/views/Exams.vue'
 import StudentManagement from '@/views/StudentManagement.vue'
 import Admin from '@/views/Admin.vue'
+import UserManagement from '@/views/UserManagement.vue' // ✅ 必须添加这个导入
 import NotFound from '@/views/NotFound.vue'
 import LearningPage from '@/views/LearningPage.vue'
 
@@ -79,7 +80,17 @@ const routes = [
           roles: ['ADMIN']
         }
       },
-      // ✨ 修复：将学习页面也放入Layout内，使用公共导航
+      // ✅ 这是关键！添加用户管理路由
+      {
+        path: 'admin/user-management',
+        name: 'UserManagement',
+        component: UserManagement,
+        meta: {
+          title: '用户管理',
+          icon: '👤',
+          roles: ['ADMIN']
+        }
+      },
       {
         path: 'learning/:courseId',
         name: 'LearningPage',
@@ -134,13 +145,6 @@ export const generateMenus = (userRole) => {
       icon: '👤',
       hidden: !['ADMIN'].includes(userRole)
     }
-    // 管理后台页面隐藏，不在导航中显示
-    // {
-    //   path: '/admin',
-    //   title: '管理后台',
-    //   icon: '⚙️',
-    //   hidden: true
-    // }
   ]
 
   console.log('用户角色:', userRole, '生成菜单:', allMenus.filter(menu => !menu.hidden))
