@@ -11,6 +11,7 @@ declare module 'vue' {
     AuthImage: typeof import('./src/components/AuthImage.vue')['default']
     ChapterForm: typeof import('./src/components/ChapterForm.vue')['default']
     CourseForm: typeof import('./src/components/CourseForm.vue')['default']
+    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']
     ElCard: typeof import('element-plus/es')['ElCard']

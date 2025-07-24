@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品基础知识培训 - 智能培训系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 头部导航 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .course-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .course-breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .course-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .course-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        /* 主要学习区域 */
+        .learning-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+
+        /* 课程章节侧边栏 */
+        .course-sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chapter-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .chapter-item {
+            padding: 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .chapter-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .chapter-header:hover {
+            background: #e9ecef;
+        }
+
+        .chapter-header.active {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .chapter-progress {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .lesson-list {
+            display: none;
+            padding: 0;
+        }
+
+        .lesson-list.expanded {
+            display: block;
+        }
+
+        .lesson-item {
+            padding: 12px 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .lesson-item.current {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+            font-weight: 500;
+        }
+
+        .lesson-item.completed {
+            color: #28a745;
+        }
+
+        .lesson-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            background: #e9ecef;
+            color: #666;
+        }
+
+        .lesson-icon.completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .lesson-icon.current {
+            background: #667eea;
+            color: white;
+        }
+
+        .lesson-duration {
+            margin-left: auto;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 主学习内容区 */
+        .learning-main {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .lesson-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .lesson-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .lesson-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .lesson-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 视频播放器区域 */
+        .video-container {
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .video-player {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            position: relative;
+        }
+
+        .video-placeholder {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .play-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .play-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 20px;
+            display: none;
+        }
+
+        .video-controls.show {
+            display: block;
+        }
+
+        .progress-bar-container {
+            margin-bottom: 15px;
+        }
+
+        .video-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .video-progress-fill {
+            height: 100%;
+            background: #667eea;
+            border-radius: 3px;
+            width: 35%;
+            transition: width 0.3s ease;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-left, .control-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .time-display {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .speed-selector {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* 学习内容标签页 */
+        .content-tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .tab-button {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .tab-button:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .tab-panel {
+            display: none;
+            padding: 30px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* 课程介绍内容 */
+        .course-intro {
+            line-height: 1.8;
+        }
+
+        .course-intro h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            margin-top: 25px;
+        }
+
+        .course-intro h3:first-child {
+            margin-top: 0;
+        }
+
+        .course-intro p {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .course-intro ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .course-intro li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        /* 笔记功能 */
+        .notes-section {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notes-toolbar {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .note-search {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-right: 15px;
+        }
+
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        .note-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .note-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .note-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .note-timestamp {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .note-content {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .note-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .note-btn {
+            padding: 4px 8px;
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .note-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .add-note-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .add-note-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        /* 测验功能 */
+        .quiz-section {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .quiz-header {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .quiz-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .quiz-progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+
+        .quiz-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 40%;
+            transition: width 0.3s ease;
+        }
+
+        .quiz-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .question-type {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-item {
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option-item:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .option-item.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .option-letter {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .option-item.selected .option-letter {
+            background: #667eea;
+            color: white;
+        }
+
+        .quiz-actions {
+            padding: 20px 30px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        /* 导航按钮 */
+        .lesson-navigation {
+            padding: 20px 30px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .lesson-complete-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lesson-complete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .note-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .note-textarea {
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .learning-layout {
+                grid-template-columns: 300px 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .learning-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                height: auto;
+            }
+
+            .course-sidebar {
+                height: 300px;
+            }
+
+            .video-container {
+                min-height: 250px;
+            }
+
+            .lesson-header {
+                padding: 15px 20px;
+            }
+
+            .lesson-title {
+                font-size: 20px;
+            }
+
+            .tab-panel {
+                padding: 20px;
+            }
+
+            .add-note-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-card {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 成功提示样式 */
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .success-message.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <div class="course-breadcrumb">
+                <a href="#" onclick="goBack()">📚 我的课程</a>
+                <span>></span>
+                <span>产品基础知识培训</span>
+                <span>></span>
+                <span>第1章：产品概述</span>
+            </div>
+            <div class="course-header-actions">
+                <div class="progress-info">
+                    <span>总进度：</span>
+                    <div style="width: 100px; height: 6px; background: #e0e0e0; border-radius: 3px; margin: 0 8px;">
+                        <div style="width: 35%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 3px;"></div>
+                    </div>
+                    <span>35%</span>
+                </div>
+                <button class="btn btn-secondary" onclick="toggleBookmark()">🔖 收藏</button>
+                <button class="btn btn-secondary" onclick="showSettings()">⚙️ 设置</button>
+            </div>
+        </header>
+
+        <!-- 主要学习区域 -->
+        <div class="learning-layout">
+            <!-- 课程章节侧边栏 -->
+            <div class="course-sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">产品基础知识培训</div>
+                    <div class="sidebar-subtitle">共4章 · 12节课 · 预计2小时</div>
+                </div>
+                
+                <div class="chapter-list">
+                    <!-- 第1章 -->
+                    <div class="chapter-item">
+                        <div class="chapter-header active" onclick="toggleChapter(1)">
+                            <span>📘 第1章：产品概述</span>
+                            <div>
+                                <span class="chapter-progress">2/3完成</span>
+                                <span style="margin-left: 8px;">▼</span>
+                            </div>
+                        </div>
+                        <div class="lesson-list expanded">
+                            <div class="lesson-item completed" onclick="selectLesson(1, 1)">
+                                <div class="lesson-icon completed">✓</div>
+                                <span>什么是产品？</span>
+                                <span class="lesson-duration">8分钟</span>
+                            </div>
+                            <div class="lesson-item current" onclick="selectLesson(1, 2)">
+                                <div class="lesson-icon current">▶</div>
+                                <span>产品的生命周期</span>
+                                <span class="lesson-duration">12分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(1, 3)">
+                                <div class="lesson-icon">3</div>
+                                <span>产品经理的角色</span>
+                                <span class="lesson-duration">15分钟</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 第2章 -->
+                    <div class="chapter-item">
+                        <div class="chapter-header" onclick="toggleChapter(2)">
+                            <span>📊 第2章：市场分析</span>
+                            <div>
+                                <span class="chapter-progress">0/4完成</span>
+                                <span style="margin-left: 8px;">▶</span>
+                            </div>
+                        </div>
+                        <div class="lesson-list">
+                            <div class="lesson-item" onclick="selectLesson(2, 1)">
+                                <div class="lesson-icon">1</div>
+                                <span>市场调研方法</span>
+                                <span class="lesson-duration">18分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(2, 2)">
+                                <div class="lesson-icon">2</div>
+                                <span>竞品分析</span>
+                                <span class="lesson-duration">22分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(2, 3)">
+                                <div class="lesson-icon">3</div>
+                                <span>用户画像构建</span>
+                                <span class="lesson-duration">16分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(2, 4)">
+                                <div class="lesson-icon">4</div>
+                                <span>需求分析</span>
+                                <span class="lesson-duration">20分钟</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 第3章 -->
+                    <div class="chapter-item">
+                        <div class="chapter-header" onclick="toggleChapter(3)">
+                            <span>🎨 第3章：产品设计</span>
+                            <div>
+                                <span class="chapter-progress">0/3完成</span>
+                                <span style="margin-left: 8px;">▶</span>
+                            </div>
+                        </div>
+                        <div class="lesson-list">
+                            <div class="lesson-item" onclick="selectLesson(3, 1)">
+                                <div class="lesson-icon">1</div>
+                                <span>原型设计</span>
+                                <span class="lesson-duration">25分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(3, 2)">
+                                <div class="lesson-icon">2</div>
+                                <span>交互设计</span>
+                                <span class="lesson-duration">20分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(3, 3)">
+                                <div class="lesson-icon">3</div>
+                                <span>用户体验测试</span>
+                                <span class="lesson-duration">18分钟</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 第4章 -->
+                    <div class="chapter-item">
+                        <div class="chapter-header" onclick="toggleChapter(4)">
+                            <span>🚀 第4章：产品运营</span>
+                            <div>
+                                <span class="chapter-progress">0/2完成</span>
+                                <span style="margin-left: 8px;">▶</span>
+                            </div>
+                        </div>
+                        <div class="lesson-list">
+                            <div class="lesson-item" onclick="selectLesson(4, 1)">
+                                <div class="lesson-icon">1</div>
+                                <span>产品上线与推广</span>
+                                <span class="lesson-duration">30分钟</span>
+                            </div>
+                            <div class="lesson-item" onclick="selectLesson(4, 2)">
+                                <div class="lesson-icon">2</div>
+                                <span>数据分析与优化</span>
+                                <span class="lesson-duration">28分钟</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主学习内容区 -->
+            <div class="learning-main">
+                <!-- 课程标题 -->
+                <div class="lesson-header">
+                    <div class="lesson-title">产品的生命周期</div>
+                    <div class="lesson-meta">
+                        <span>📹 视频课程</span>
+                        <span>⏱️ 12分钟</span>
+                        <span>👁️ 已观看 4分钟</span>
+                        <span>📅 更新于 2025-01-15</span>
+                    </div>
+                </div>
+
+                <!-- 视频播放器 -->
+                <div class="video-container">
+                    <div class="video-player" id="videoPlayer">
+                        <div class="video-placeholder">
+                            <div class="play-button" onclick="playVideo()">▶</div>
+                            <h3 style="margin-bottom: 10px;">产品的生命周期</h3>
+                            <p style="opacity: 0.8;">了解产品从概念到退市的完整生命周期</p>
+                        </div>
+                        
+                        <div class="video-controls" id="videoControls">
+                            <div class="progress-bar-container">
+                                <div class="video-progress-bar" onclick="seekVideo(event)">
+                                    <div class="video-progress-fill" id="progressFill"></div>
+                                </div>
+                            </div>
+                            <div class="control-buttons">
+                                <div class="control-left">
+                                    <button class="control-btn" onclick="togglePlay()">⏸️</button>
+                                    <button class="control-btn" onclick="skipBackward()">⏪</button>
+                                    <button class="control-btn" onclick="skipForward()">⏩</button>
+                                    <div class="time-display">
+                                        <span id="currentTime">4:23</span> / <span id="totalTime">12:00</span>
+                                    </div>
+                                </div>
+                                <div class="control-right">
+                                    <select class="speed-selector" onchange="changeSpeed(this.value)">
+                                        <option value="0.5">0.5x</option>
+                                        <option value="1" selected>1.0x</option>
+                                        <option value="1.25">1.25x</option>
+                                        <option value="1.5">1.5x</option>
+                                        <option value="2">2.0x</option>
+                                    </select>
+                                    <button class="control-btn" onclick="toggleSubtitles()">CC</button>
+                                    <button class="control-btn" onclick="toggleFullscreen()">⛶</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 学习内容标签页 -->
+                <div class="content-tabs">
+                    <button class="tab-button active" onclick="showTab('intro')">📋 课程介绍</button>
+                    <button class="tab-button" onclick="showTab('notes')">📝 我的笔记 (3)</button>
+                    <button class="tab-button" onclick="showTab('quiz')">🧠 课堂测验</button>
+                    <button class="tab-button" onclick="showTab('resources')">📎 相关资料</button>
+                </div>
+
+                <div class="tab-content">
+                    <!-- 课程介绍 -->
+                    <div id="intro" class="tab-panel active">
+                        <div class="course-intro">
+                            <h3>📚 本节课程内容</h3>
+                            <p>在这节课中，我们将深入了解产品的完整生命周期，从概念诞生到最终退市的全过程。作为产品经理，理解产品生命周期对于制定合适的产品策略至关重要。</p>
+                            
+                            <div class="highlight-box">
+                                <strong>🎯 学习目标</strong>
+                                <ul style="margin-top: 10px;">
+                                    <li>掌握产品生命周期的四个主要阶段</li>
+                                    <li>了解每个阶段的特点和策略重点</li>
+                                    <li>学会分析产品当前所处的生命周期阶段</li>
+                                    <li>制定相应的产品管理策略</li>
+                                </ul>
+                            </div>
+
+                            <h3>🔄 产品生命周期的四个阶段</h3>
+                            
+                            <h4>1. 引入期 (Introduction Stage)</h4>
+                            <p>产品刚刚进入市场的阶段，特点包括：</p>
+                            <ul>
+                                <li>销量增长缓慢，市场接受度有限</li>
+                                <li>营销成本高，需要大量投入进行市场教育</li>
+                                <li>产品价格通常较高</li>
+                                <li>竞争对手较少</li>
+                                <li>技术和功能可能还不够完善</li>
+                            </ul>
+                            <p><strong>策略重点：</strong>专注于提高产品知名度，完善产品功能，建立初始用户群体。</p>
+
+                            <h4>2. 成长期 (Growth Stage)</h4>
+                            <p>产品开始被市场广泛接受，特点包括：</p>
+                            <ul>
+                                <li>销量快速增长</li>
+                                <li>利润率逐步提高</li>
+                                <li>开始出现竞争对手</li>
+                                <li>产品功能不断优化</li>
+                                <li>市场份额扩大</li>
+                            </ul>
+                            <p><strong>策略重点：</strong>扩大市场份额，改进产品质量，建立品牌忠诚度。</p>
+
+                            <h4>3. 成熟期 (Maturity Stage)</h4>
+                            <p>市场趋于饱和，增长放缓，特点包括：</p>
+                            <ul>
+                                <li>销量增长趋缓或停滞</li>
+                                <li>竞争激烈，价格战频发</li>
+                                <li>利润率可能下降</li>
+                                <li>产品差异化变得困难</li>
+                                <li>需要寻找新的增长点</li>
+                            </ul>
+                            <p><strong>策略重点：</strong>维护现有客户，寻找细分市场，考虑产品创新或多元化。</p>
+
+                            <h4>4. 衰退期 (Decline Stage)</h4>
+                            <p>产品销量和利润持续下降，特点包括：</p>
+                            <ul>
+                                <li>销量和市场份额不断缩小</li>
+                                <li>替代产品出现</li>
+                                <li>客户需求发生转变</li>
+                                <li>维护成本高于收益</li>
+                                <li>需要做出退出决策</li>
+                            </ul>
+                            <p><strong>策略重点：</strong>决定是否投入资源进行转型，或者准备退出市场。</p>
+
+                            <div class="highlight-box">
+                                <strong>💡 实践建议</strong>
+                                <p>每个产品的生命周期长度都不相同，作为产品经理需要密切关注市场数据，及时识别产品所处的阶段，并制定相应的策略。同时，要注意产品生命周期并非不可逆转，通过创新和市场策略，可以延长产品的成长期和成熟期。</p>
+                            </div>
+
+                            <h3>📊 如何判断产品生命周期阶段</h3>
+                            <p>可以通过以下指标来判断：</p>
+                            <ul>
+                                <li><strong>销售增长率：</strong>观察销售额的增长趋势</li>
+                                <li><strong>市场份额：</strong>产品在整个市场中的占比</li>
+                                <li><strong>竞争强度：</strong>竞争对手的数量和活跃程度</li>
+                                <li><strong>利润率：</strong>产品的盈利能力变化</li>
+                                <li><strong>客户反馈：</strong>用户满意度和需求变化</li>
+                                <li><strong>技术发展：</strong>是否有新技术威胁到现有产品</li>
+                            </ul>
+
+                            <h3>🎯 课后思考</h3>
+                            <p>请思考以下问题，我们会在下节课进行讨论：</p>
+                            <ul>
+                                <li>你能举出处在不同生命周期阶段的产品例子吗？</li>
+                                <li>如何通过产品创新来延长产品的生命周期？</li>
+                                <li>在衰退期，除了退出市场，还有哪些可能的策略？</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 我的笔记 -->
+                    <div id="notes" class="tab-panel">
+                        <div class="notes-section">
+                            <div class="notes-toolbar">
+                                <input type="text" class="note-search" placeholder="搜索笔记内容..." onkeyup="searchNotes()">
+                                <button class="btn btn-primary" onclick="showAddNoteModal()">➕ 添加笔记</button>
+                            </div>
+                            
+                            <div class="notes-list" id="notesList">
+                                <div class="note-item">
+                                    <div class="note-header">
+                                        <div class="note-time">2分钟前 · 第1章第2节</div>
+                                        <div class="note-timestamp" onclick="jumpToTime('2:15')">02:15</div>
+                                    </div>
+                                    <div class="note-content">
+                                        产品生命周期的四个阶段很重要，需要根据不同阶段制定不同的策略。引入期主要是市场教育，成长期要扩大份额。
+                                    </div>
+                                    <div class="note-actions">
+                                        <button class="note-btn" onclick="editNote(1)">编辑</button>
+                                        <button class="note-btn" onclick="deleteNote(1)">删除</button>
+                                        <button class="note-btn" onclick="shareNote(1)">分享</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="note-item">
+                                    <div class="note-header">
+                                        <div class="note-time">5分钟前 · 第1章第2节</div>
+                                        <div class="note-timestamp" onclick="jumpToTime('5:30')">05:30</div>
+                                    </div>
+                                    <div class="note-content">
+                                        成熟期的特点：竞争激烈、价格战、利润率下降。这时候需要寻找新的增长点，可能需要产品创新或进入新市场。
+                                    </div>
+                                    <div class="note-actions">
+                                        <button class="note-btn" onclick="editNote(2)">编辑</button>
+                                        <button class="note-btn" onclick="deleteNote(2)">删除</button>
+                                        <button class="note-btn" onclick="shareNote(2)">分享</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="note-item">
+                                    <div class="note-header">
+                                        <div class="note-time">昨天 · 第1章第1节</div>
+                                        <div class="note-timestamp" onclick="jumpToTime('8:45')">08:45</div>
+                                    </div>
+                                    <div class="note-content">
+                                        产品经理的核心职责是连接用户需求和技术实现，需要具备市场洞察力、沟通能力和项目管理能力。
+                                    </div>
+                                    <div class="note-actions">
+                                        <button class="note-btn" onclick="editNote(3)">编辑</button>
+                                        <button class="note-btn" onclick="deleteNote(3)">删除</button>
+                                        <button class="note-btn" onclick="shareNote(3)">分享</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 课堂测验 -->
+                    <div id="quiz" class="tab-panel">
+                        <div class="quiz-section">
+                            <div class="quiz-header">
+                                <h3 style="margin-bottom: 15px;">🧠 课堂测验 - 产品生命周期</h3>
+                                <div class="quiz-progress">
+                                    <span>题目 2 / 5</span>
+                                    <div class="quiz-progress-bar">
+                                        <div class="quiz-progress-fill"></div>
+                                    </div>
+                                    <span>剩余时间: 08:32</span>
+                                </div>
+                                <p style="color: #666; font-size: 14px;">请根据课程内容回答以下问题，巩固学习效果</p>
+                            </div>
+                            
+                            <div class="quiz-content">
+                                <div class="question-card">
+                                    <div class="question-header">
+                                        <div class="question-number">第 2 题</div>
+                                        <div class="question-type">单选题</div>
+                                    </div>
+                                    
+                                    <div class="question-text">
+                                        在产品生命周期的哪个阶段，通常会出现价格战和激烈竞争？
+                                    </div>
+                                    
+                                    <div class="options-list">
+                                        <div class="option-item" onclick="selectOption(this, 'A')">
+                                            <div class="option-letter">A</div>
+                                            <div class="option-text">引入期</div>
+                                        </div>
+                                        <div class="option-item" onclick="selectOption(this, 'B')">
+                                            <div class="option-letter">B</div>
+                                            <div class="option-text">成长期</div>
+                                        </div>
+                                        <div class="option-item selected" onclick="selectOption(this, 'C')">
+                                            <div class="option-letter">C</div>
+                                            <div class="option-text">成熟期</div>
+                                        </div>
+                                        <div class="option-item" onclick="selectOption(this, 'D')">
+                                            <div class="option-letter">D</div>
+                                            <div class="option-text">衰退期</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-actions">
+                                <button class="btn btn-secondary" onclick="previousQuestion()">← 上一题</button>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-secondary" onclick="skipQuestion()">跳过</button>
+                                    <button class="btn btn-primary" onclick="nextQuestion()">下一题 →</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 相关资料 -->
+                    <div id="resources" class="tab-panel">
+                        <div style="padding: 20px 0;">
+                            <h3 style="margin-bottom: 20px;">📎 课程相关资料</h3>
+                            
+                            <div style="display: grid; gap: 15px;">
+                                <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">
+                                    <div style="width: 48px; height: 48px; background: #e3f2fd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">📄</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; margin-bottom: 5px;">产品生命周期分析模板.xlsx</div>
+                                        <div style="color: #666; font-size: 14px;">Excel表格 · 285KB · 下载 156 次</div>
+                                    </div>
+                                    <button class="btn btn-primary">下载</button>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">
+                                    <div style="width: 48px; height: 48px; background: #fff3e0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">📊</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; margin-bottom: 5px;">经典产品案例分析.pdf</div>
+                                        <div style="color: #666; font-size: 14px;">PDF文档 · 2.1MB · 下载 203 次</div>
+                                    </div>
+                                    <button class="btn btn-primary">下载</button>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">
+                                    <div style="width: 48px; height: 48px; background: #f3e5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎥</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; margin-bottom: 5px;">产品生命周期管理最佳实践</div>
+                                        <div style="color: #666; font-size: 14px;">在线视频 · 45分钟 · 观看 89 次</div>
+                                    </div>
+                                    <button class="btn btn-primary">观看</button>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">
+                                    <div style="width: 48px; height: 48px; background: #e8f5e8; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🔗</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; margin-bottom: 5px;">延伸阅读：产品管理进阶指南</div>
+                                        <div style="color: #666; font-size: 14px;">外部链接 · 推荐文章 · 点击 67 次</div>
+                                    </div>
+                                    <button class="btn btn-primary">访问</button>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: 10px;">
+                                <h4 style="color: #667eea; margin-bottom: 15px;">💡 学习建议</h4>
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li>建议先完成课程视频学习，再下载相关资料进行深入研究</li>
+                                    <li>使用分析模板对你熟悉的产品进行生命周期分析练习</li>
+                                    <li>阅读案例分析文档，了解不同行业产品的生命周期特点</li>
+                                    <li>观看实践视频，学习业界最佳实践方法</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 课程导航 -->
+                <div class="lesson-navigation">
+                    <button class="btn btn-secondary nav-btn" onclick="previousLesson()">
+                        ← 上一节：什么是产品？
+                    </button>
+                    
+                    <button class="lesson-complete-btn" onclick="completeLesson()">
+                        ✓ 标记为已完成
+                    </button>
+                    
+                    <button class="btn btn-primary nav-btn" onclick="nextLesson()">
+                        下一节：产品经理的角色 →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮动添加笔记按钮 -->
+    <button class="add-note-btn" onclick="showAddNoteModal()" title="添加笔记">✎</button>
+
+    <!-- 添加笔记弹窗 -->
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📝 添加学习笔记</div>
+                <button class="modal-close" onclick="hideNoteModal()">×</button>
+            </div>
+            
+            <form class="note-form" onsubmit="saveNote(event)">
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">时间点</label>
+                        <input type="text" id="noteTimestamp" value="04:23" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">标签</label>
+                        <select style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option>重要概念</option>
+                            <option>疑问</option>
+                            <option>心得体会</option>
+                            <option>实践要点</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">笔记内容</label>
+                    <textarea id="noteContent" class="note-textarea" placeholder="在这里记录你的学习心得、疑问或重要知识点..." required></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="hideNoteModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存笔记</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 成功提示 -->
+    <div id="successMessage" class="success-message"></div>
+
+    <script>
+        // 当前学习状态
+        let currentChapter = 1;
+        let currentLesson = 2;
+        let isPlaying = false;
+        let currentProgress = 35; // 当前进度百分比
+        let videoCurrentTime = 263; // 4:23 = 263秒
+        let videoTotalTime = 720; // 12:00 = 720秒
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateVideoProgress();
+            updateLessonProgress();
+            
+            // 模拟视频播放进度更新
+            setInterval(updateVideoTime, 1000);
+        });
+
+        // 章节展开/收起
+        function toggleChapter(chapterNum) {
+            const chapterHeader = document.querySelector(`[onclick="toggleChapter(${chapterNum})"]`);
+            const lessonList = chapterHeader.nextElementSibling;
+            const arrow = chapterHeader.querySelector('span:last-child');
+            
+            if (lessonList.classList.contains('expanded')) {
+                lessonList.classList.remove('expanded');
+                arrow.textContent = '▶';
+            } else {
+                lessonList.classList.add('expanded');
+                arrow.textContent = '▼';
+            }
+        }
+
+        // 选择课程
+        function selectLesson(chapter, lesson) {
+            // 移除当前课程标记
+            document.querySelectorAll('.lesson-item').forEach(item => {
+                item.classList.remove('current');
+                const icon = item.querySelector('.lesson-icon');
+                if (!item.classList.contains('completed')) {
+                    icon.classList.remove('current');
+                    icon.textContent = icon.textContent.replace('▶', lesson);
+                }
+            });
+
+            // 添加新的当前课程标记
+            const newCurrent = document.querySelector(`[onclick="selectLesson(${chapter}, ${lesson})"]`);
+            if (newCurrent) {
+                newCurrent.classList.add('current');
+                const icon = newCurrent.querySelector('.lesson-icon');
+                if (!newCurrent.classList.contains('completed')) {
+                    icon.classList.add('current');
+                    icon.textContent = '▶';
+                }
+            }
+
+            currentChapter = chapter;
+            currentLesson = lesson;
+            
+            // 更新课程信息
+            updateLessonInfo(chapter, lesson);
+            showSuccessMessage(`已切换到第${chapter}章第${lesson}节`);
+        }
+
+        // 更新课程信息
+        function updateLessonInfo(chapter, lesson) {
+            // 这里可以根据章节和课程号更新标题、时长等信息
+            const lessons = {
+                '1-1': { title: '什么是产品？', duration: '8分钟' },
+                '1-2': { title: '产品的生命周期', duration: '12分钟' },
+                '1-3': { title: '产品经理的角色', duration: '15分钟' },
+                '2-1': { title: '市场调研方法', duration: '18分钟' },
+                // ... 其他课程
+            };
+            
+            const lessonKey = `${chapter}-${lesson}`;
+            const lessonData = lessons[lessonKey];
+            
+            if (lessonData) {
+                document.querySelector('.lesson-title').textContent = lessonData.title;
+                // 更新其他相关信
