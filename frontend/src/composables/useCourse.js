@@ -291,12 +291,12 @@ export function useCourse() {
 
       const response = await unpublishCourseAPI(courseId)
 
-      if (response.code === 200) {
+      if (response.status === 200) {
         ElMessage.success(`课程"${courseName}"下架成功`)
         await loadCourses() // 刷新列表
         return true
       } else {
-        ElMessage.error(response.message || '课程下架失败')
+        ElMessage.error(response.data?.message || '课程下架失败')
         return false
       }
     } catch (error) {
