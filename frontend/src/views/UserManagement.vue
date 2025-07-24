@@ -384,6 +384,9 @@ async function saveUser() {
       ...form,
       role: typeof form.role === 'object' ? form.role.value : form.role
     }
+    if (isEdit.value && (!form.password || form.password.trim() === '')) {
+      delete payload.password
+    }
     if (isEdit.value) {
       await updateUserAPI(form.id, payload)
       ElMessage.success('用户更新成功')
