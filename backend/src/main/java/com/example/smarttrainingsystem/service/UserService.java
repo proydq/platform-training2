@@ -130,6 +130,15 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+    @Transactional
+    public void resetPassword(String userId) {
+        log.info("重置用户密码: {}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(404, "用户不存在"));
+        user.setPassword(passwordEncoder.encode("123456"));
+        userRepository.save(user);
+    }
+
     private UserDTO.ListItem convertToListItem(User user) {
         UserDTO.ListItem dto = new UserDTO.ListItem();
         dto.setId(user.getId());
