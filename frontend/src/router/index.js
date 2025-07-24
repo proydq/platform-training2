@@ -155,8 +155,8 @@ export const generateMenus = (userRole) => {
     path: '/admin/user-management',
     title: '用户管理',
     icon: '👤',
-    // 子菜单同样隐藏，仍保留访问能力
-    hidden: true
+    // 子菜单仅在ADMIN角色下显示
+    hidden: !['ADMIN'].includes(userRole)
   }
   ]
 
