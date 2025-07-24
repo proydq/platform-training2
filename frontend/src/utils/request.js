@@ -37,6 +37,9 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     console.log('收到响应:', response.status, response.data)
+    if (response.config && response.config.rawResponse) {
+      return response
+    }
     return response.data
   },
   error => {

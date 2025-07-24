@@ -28,7 +28,7 @@ import org.springframework.http.HttpStatus;
  */
 @Slf4j
 @RestController
-@RequestMapping({"/api/v1/courses", "/api/courses"})
+@RequestMapping("/api/v1/courses")
 @RequiredArgsConstructor
 @Validated
 @CrossOrigin(origins = "*", maxAge = 3600)
