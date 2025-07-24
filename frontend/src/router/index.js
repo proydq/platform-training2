@@ -11,6 +11,8 @@ import Exams from '@/views/Exams.vue'
 import StudentManagement from '@/views/StudentManagement.vue'
 import Admin from '@/views/Admin.vue'
 import NotFound from '@/views/NotFound.vue'
+// ✨ 新增：导入学习页面组件
+import LearningPage from '@/views/LearningPage.vue'
 
 // 🔧 备选方案：如果需要懒加载，使用绝对路径
 // const Login = () => import('/src/views/Login.vue')
@@ -22,6 +24,7 @@ import NotFound from '@/views/NotFound.vue'
 // const StudentManagement = () => import('/src/views/StudentManagement.vue')
 // const Admin = () => import('/src/views/Admin.vue')
 // const NotFound = () => import('/src/views/NotFound.vue')
+// const LearningPage = () => import('/src/views/LearningPage.vue')
 
 // 路由配置
 const routes = [
@@ -34,6 +37,16 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: { title: '登录', requiresAuth: false }
+  },
+  // ✨ 新增：学习页面路由 - 独立布局，不在Layout内
+  {
+    path: '/learning/:courseId',
+    name: 'LearningPage',
+    component: LearningPage,
+    meta: {
+      title: '课程学习',
+      requiresAuth: true
+    }
   },
   {
     path: '/',
@@ -144,20 +157,20 @@ export const generateMenus = (userRole) => {
       icon: '👥',
       hidden: !['ADMIN', 'TEACHER'].includes(userRole)
     },
-  {
-    path: '/admin',
-    title: '管理后台',
-    icon: '⚙️',
-    // 强制隐藏导航入口，但保留路由权限
-    hidden: true
-  },
-  {
-    path: '/admin/user-management',
-    title: '用户管理',
-    icon: '👤',
-    // 子菜单仅在ADMIN角色下显示
-    hidden: !['ADMIN'].includes(userRole)
-  }
+    {
+      path: '/admin',
+      title: '管理后台',
+      icon: '⚙️',
+      // 强制隐藏导航入口，但保留路由权限
+      hidden: true
+    },
+    {
+      path: '/admin/user-management',
+      title: '用户管理',
+      icon: '👤',
+      // 子菜单仅在ADMIN角色下显示
+      hidden: !['ADMIN'].includes(userRole)
+    }
   ]
 
   return allMenus.filter(menu => !menu.hidden)
