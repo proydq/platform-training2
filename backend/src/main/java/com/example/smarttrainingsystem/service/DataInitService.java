@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * 数据初始化服务
@@ -90,6 +91,7 @@ public class DataInitService implements CommandLineRunner {
         userRepository.save(admin);
 
         UserRole adminUserRole = new UserRole();
+        adminUserRole.setId(UUID.randomUUID().toString());
         adminUserRole.setUserId(admin.getId());
         adminUserRole.setRoleId(adminRole.getId());
         adminUserRole.setAssignedAt(LocalDateTime.now());
@@ -126,6 +128,7 @@ public class DataInitService implements CommandLineRunner {
             userRepository.save(teacher);
 
             UserRole teacherUserRole = new UserRole();
+            teacherUserRole.setId(UUID.randomUUID().toString());
             teacherUserRole.setUserId(teacher.getId());
             teacherUserRole.setRoleId(teacherRole.getId());
             teacherUserRole.setAssignedAt(LocalDateTime.now());
@@ -148,6 +151,7 @@ public class DataInitService implements CommandLineRunner {
             userRepository.save(student);
 
             UserRole studentUserRole = new UserRole();
+            studentUserRole.setId(UUID.randomUUID().toString());
             studentUserRole.setUserId(student.getId());
             studentUserRole.setRoleId(studentRole.getId());
             studentUserRole.setAssignedAt(LocalDateTime.now());

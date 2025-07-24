@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -76,6 +77,7 @@ public class UserService {
         User saved = userRepository.save(user);
 
         UserRole userRole = new UserRole();
+        userRole.setId(UUID.randomUUID().toString());
         userRole.setUserId(saved.getId());
         userRole.setRoleId(role.getId());
         userRole.setAssignedAt(LocalDateTime.now());
@@ -112,6 +114,7 @@ public class UserService {
 
         userRoleRepository.deleteByUserId(userId);
         UserRole userRole = new UserRole();
+        userRole.setId(UUID.randomUUID().toString());
         userRole.setUserId(userId);
         userRole.setRoleId(role.getId());
         userRole.setAssignedAt(LocalDateTime.now());
