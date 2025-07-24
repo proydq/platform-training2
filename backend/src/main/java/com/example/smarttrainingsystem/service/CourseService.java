@@ -227,6 +227,19 @@ public class CourseService {
         }).orElse(false);
     }
 
+    /**
+     * 下架课程 - 简化接口
+     */
+    @Transactional
+    public boolean unpublishCourse(String courseId) {
+        log.info("下架课程(简化): courseId={}", courseId);
+        return courseRepository.findById(courseId).map(course -> {
+            course.unpublish();
+            courseRepository.save(course);
+            return true;
+        }).orElse(false);
+    }
+
     // ==================== 课程搜索和筛选 ====================
 
     /**
