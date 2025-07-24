@@ -71,4 +71,10 @@ public class UserController {
         userService.deleteUser(id);
         return Result.success("删除用户成功", null);
     }
+
+    @PostMapping("/{id}/reset-password")
+    public Result<?> resetPassword(@PathVariable String id) {
+        userService.resetPassword(id);
+        return Result.success("密码已重置", null);
+    }
 }
