@@ -7,7 +7,7 @@
       </div>
       <div class="course-overview">
         <p class="course-description">
-          {{ lessonData.description || '本课程将为您详细介绍相关知识点，通过理论学习和实践操作帮助您快速掌握核心技能。' }}
+          {{ (lessonData && lessonData.description) || '本课程将为您详细介绍相关知识点，通过理论学习和实践操作帮助您快速掌握核心技能。' }}
         </p>
 
         <!-- 课程信息卡片 -->
@@ -16,21 +16,21 @@
             <div class="card-icon">⏱️</div>
             <div class="card-content">
               <h4>课程时长</h4>
-              <p>{{ lessonData.duration || '45分钟' }}</p>
+              <p>{{ (lessonData && lessonData.duration) || '45分钟' }}</p>
             </div>
           </div>
           <div class="info-card">
             <div class="card-icon">🎯</div>
             <div class="card-content">
               <h4>难度等级</h4>
-              <p>{{ lessonData.difficulty || '中级' }}</p>
+              <p>{{ (lessonData && lessonData.difficulty) || '中级' }}</p>
             </div>
           </div>
           <div class="info-card">
             <div class="card-icon">👥</div>
             <div class="card-content">
               <h4>适用对象</h4>
-              <p>{{ lessonData.target || '全体员工' }}</p>
+              <p>{{ (lessonData && lessonData.target) || '全体员工' }}</p>
             </div>
           </div>
         </div>
@@ -108,13 +108,16 @@ import { computed } from 'vue'
 const props = defineProps({
   lessonData: {
     type: Object,
-    required: true
+    default: () => ({}) // 提供默认空对象，避免undefined错误
   }
 })
 
-// 学习目标
+// 学习目标 - 使用安全的访问方式
 const objectives = computed(() => {
-  return props.lessonData.objectives || [
+  if (props.lessonData && props.lessonData.objectives) {
+    return props.lessonData.objectives
+  }
+  return [
     '掌握产品设计的基本原理和方法',
     '了解用户体验设计的核心概念',
     '学会使用相关工具进行产品原型设计',
@@ -180,6 +183,9 @@ const extendedReading = [
 .course-intro {
   color: #333;
   line-height: 1.6;
+  padding: 30px;
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 /* 章节样式 */
@@ -273,51 +279,57 @@ const extendedReading = [
 }
 
 .objective-number {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   background: #667eea;
   color: white;
   border-radius: 50%;
+  font-size: 12px;
   font-weight: 600;
-  font-size: 14px;
   margin-right: 15px;
   flex-shrink: 0;
 }
 
 .objective-text {
-  font-size: 15px;
-  color: #444;
+  flex: 1;
+  color: #2c3e50;
+  font-weight: 500;
 }
 
 /* 学习建议 */
 .study-tips {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
 
 .tip-card {
   display: flex;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
 }
 
 .tip-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  border-color: #667eea;
 }
 
 .tip-icon {
   font-size: 32px;
   margin-right: 15px;
   flex-shrink: 0;
+}
+
+.tip-content {
+  flex: 1;
 }
 
 .tip-title {
@@ -329,68 +341,82 @@ const extendedReading = [
 
 .tip-description {
   margin: 0;
-  font-size: 14px;
   color: #666;
   line-height: 1.6;
+  font-size: 14px;
 }
 
 /* 课后思考 */
 .reflection-questions {
-  space-y: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .question-card {
   display: flex;
   align-items: flex-start;
-  background: linear-gradient(135deg, #ffecd2, #fcb69f);
   padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border-radius: 12px;
-  margin-bottom: 15px;
-  box-shadow: 0 3px 15px rgba(252, 182, 159, 0.2);
+  border-left: 4px solid #ffc107;
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  background: linear-gradient(135deg, #fff3cd, #ffffff);
+  transform: translateX(5px);
 }
 
 .question-number {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 35px;
-  height: 35px;
-  background: #ff6b6b;
+  width: 32px;
+  height: 32px;
+  background: #ffc107;
   color: white;
   border-radius: 50%;
-  font-weight: 600;
   font-size: 12px;
+  font-weight: 600;
   margin-right: 15px;
   flex-shrink: 0;
 }
 
 .question-text {
   margin: 0;
-  font-size: 15px;
   color: #2c3e50;
   font-weight: 500;
+  line-height: 1.6;
 }
 
 /* 延伸阅读 */
+.extended-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
 .reading-item {
   display: flex;
   align-items: center;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
   padding: 20px;
-  margin-bottom: 15px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
 }
 
 .reading-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   border-color: #667eea;
-  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.1);
 }
 
 .reading-icon {
-  font-size: 24px;
-  margin-right: 15px;
+  font-size: 32px;
+  margin-right: 20px;
   flex-shrink: 0;
 }
 
@@ -399,19 +425,22 @@ const extendedReading = [
 }
 
 .reading-title {
-  margin: 0 0 5px 0;
+  margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
   color: #2c3e50;
 }
 
 .reading-description {
-  margin: 0 0 10px 0;
-  font-size: 14px;
+  margin: 0 0 12px 0;
   color: #666;
+  line-height: 1.6;
+  font-size: 14px;
 }
 
 .reading-link {
+  display: inline-flex;
+  align-items: center;
   color: #667eea;
   text-decoration: none;
   font-weight: 500;
@@ -420,7 +449,8 @@ const extendedReading = [
 }
 
 .reading-link:hover {
-  color: #764ba2;
+  color: #5a6fd8;
+  text-decoration: underline;
 }
 
 .link-arrow {
@@ -434,6 +464,10 @@ const extendedReading = [
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  .course-intro {
+    padding: 20px;
+  }
+
   .info-cards {
     grid-template-columns: 1fr;
   }
@@ -450,18 +484,6 @@ const extendedReading = [
 
   .tip-icon,
   .reading-icon {
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
-
-  .objective-item,
-  .question-card {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .objective-number,
-  .question-number {
     margin-right: 0;
     margin-bottom: 10px;
   }
