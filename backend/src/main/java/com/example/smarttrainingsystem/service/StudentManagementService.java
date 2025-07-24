@@ -138,6 +138,7 @@ public class StudentManagementService {
                 .orElseThrow(() -> new RuntimeException("学员角色不存在"));
 
         UserRole userRole = new UserRole();
+        userRole.setId(UUID.randomUUID().toString());
         userRole.setUserId(user.getId());
         userRole.setRoleId(studentRole.getId());
         userRole.setAssignedBy(createdBy);
