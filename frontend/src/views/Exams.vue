@@ -1,36 +1,6 @@
 <template>
   <div class="exams-container">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h1>考试中心</h1>
-      <p>选择考试开始答题</p>
-    </div>
-
-    <!-- 筛选器 -->
-    <el-card class="filter-card">
-      <div class="filter-section">
-        <el-button-group class="filter-buttons">
-          <el-button
-            v-for="filter in filters"
-            :key="filter.key"
-            :type="activeFilter === filter.key ? 'primary' : ''"
-            @click="setActiveFilter(filter.key)"
-          >
-            {{ filter.label }}
-          </el-button>
-        </el-button-group>
-
-        <div class="search-box">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索考试..."
-            prefix-icon="Search"
-            clearable
-            @input="handleSearch"
-          />
-        </div>
-      </div>
-    </el-card>
+    <!-- 页面标题及筛选器已移除，直接展示考试列表 -->
 
     <!-- 考试列表 -->
     <div class="exams-grid" v-loading="loading">
@@ -132,7 +102,9 @@
     </div>
 
     <!-- 空状态 -->
-    <el-empty v-if="!loading && filteredExams.length === 0" description="暂无考试数据" />
+    <div class="empty-container" v-if="!loading && filteredExams.length === 0">
+      <el-empty description="暂无考试数据" />
+    </div>
 
     <!-- 分页 -->
     <div class="pagination-container" v-if="filteredExams.length > 0">
@@ -153,7 +125,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Clock, Document, Calendar, Trophy, Search } from '@element-plus/icons-vue'
+import { Clock, Document, Calendar, Trophy } from '@element-plus/icons-vue'
 
 // 🔧 临时注释API导入，使用模拟数据
 // import { getExamListAPI, getExamStatusAPI } from '@/api/exam'
@@ -516,46 +488,11 @@ const viewDetails = (exam) => {
 </script>
 
 <style scoped>
+
 .exams-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  /* Layout已处理容器样式 */
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.page-header h1 {
-  margin: 0 0 10px 0;
-  color: #333;
-}
-
-.page-header p {
-  margin: 0;
-  color: #666;
-}
-
-.filter-card {
-  margin-bottom: 30px;
-}
-
-.filter-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
-
-.filter-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.search-box {
-  width: 300px;
-}
 
 .exams-grid {
   display: grid;
@@ -707,18 +644,15 @@ const viewDetails = (exam) => {
   margin-top: 30px;
 }
 
+.empty-container {
+  display: flex;
+  justify-content: center;
+  margin: 40px 0;
+}
+
 @media (max-width: 768px) {
   .exams-grid {
     grid-template-columns: 1fr;
-  }
-
-  .filter-section {
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .search-box {
-    width: 100%;
   }
 
   .exam-actions {
