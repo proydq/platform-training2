@@ -215,7 +215,7 @@ import { useUserStore } from '@/stores/user'
 import { useCourse } from '@/composables/useCourse'
 
 // 🔧 添加这行导入
-import { getCourseChaptersAPI } from '@/api/course'
+import { getCourseChaptersAPI, publishCourseAPI } from '@/api/course'
 
 // 状态管理
 const userStore = useUserStore()
@@ -416,8 +416,18 @@ const deleteCourse = async (course) => {
   }
 }
 
-const toggleCourseStatus = (course) => {
-  ElMessage.info('课程状态切换功能开发中')
+const toggleCourseStatus = async (course) => {
+  try {
+    const res = await publishCourseAPI(course.id)
+    if (res.code === 200) {
+      ElMessage.success('发布成功')
+      course.status = 1
+    } else {
+      ElMessage.error(res.message || '发布失败')
+    }
+  } catch (error) {
+    ElMessage.error(error.message || '发布失败')
+  }
 }
 
 const closeCourseModal = () => {
