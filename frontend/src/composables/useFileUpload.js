@@ -1,454 +1,330 @@
-// frontend/src/composables/useFileUpload.js - 文件上传逻辑复用
+// composables/useFileUpload.js
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { uploadCourseCoverAPI, uploadCourseMaterialAPI, uploadCourseVideoAPI } from '@/api/course'
+import {
+  uploadCourseCoverAPI,
+  uploadCourseMaterialAPI,
+  uploadCourseVideoAPI
+} from '@/api/course'
 
 export function useFileUpload() {
-  // ==================== 响应式数据 ====================
-  const uploading = ref(false)
-  const uploadProgress = ref(0)
+  // 上传状态
+  const uploading = reactive({
+    cover: false,
+    material: false,
+    video: false // 🆕 新增视频上传状态
+  })
+
+  const uploadProgress = reactive({
+    cover: 0,
+    material: 0,
+    video: 0 // 🆕 新增视频上传进度
+  })
+
+  // 🆕 视频上传专用状态
+  const uploadSpeed = ref('')
+  const estimatedTime = ref('')
 
   // 文件列表状态
   const fileListState = reactive({
     cover: [],
     materials: [],
-    videos: [],
+    videos: [] // 🆕 新增视频文件列表
   })
 
-  // ==================== 文件类型验证 ====================
-
-  /**
-   * 验证图片文件
-   */
+  // 🔧 文件验证函数
   const validateImageFile = (file) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    const isImage = file.type.startsWith('image/')
+    const isLt5M = file.size / 1024 / 1024 < 5
 
-    if (!validTypes.includes(file.type)) {
-      ElMessage.error('请上传 JPG、PNG、GIF 或 WEBP 格式的图片')
+    if (!isImage) {
+      ElMessage.error('只能上传图片格式的文件！')
       return false
     }
-
-    if (file.size > maxSize) {
-      ElMessage.error('图片大小不能超过 5MB')
+    if (!isLt5M) {
+      ElMessage.error('图片大小不能超过 5MB！')
       return false
     }
-
     return true
   }
 
-  /**
-   * 验证视频文件
-   */
-  const validateVideoFile = (file) => {
-    const validTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv']
-    const maxSize = 200 * 1024 * 1024 // 200MB
-
-    if (!validTypes.includes(file.type)) {
-      ElMessage.error('请上传 MP4、AVI、MOV、WMV 或 FLV 格式的视频')
-      return false
-    }
-
-    if (file.size > maxSize) {
-      ElMessage.error('视频大小不能超过 200MB')
-      return false
-    }
-
-    return true
-  }
-
-  /**
-   * 验证文档文件
-   */
   const validateDocumentFile = (file) => {
-    const validTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'application/zip',
-      'application/x-rar-compressed',
-    ]
-    const maxSize = 50 * 1024 * 1024 // 50MB
+    const allowedTypes = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.zip', '.rar']
+    const fileName = file.name.toLowerCase()
+    const isValidType = allowedTypes.some(type => fileName.endsWith(type))
 
-    if (!validTypes.includes(file.type)) {
-      ElMessage.error('请上传 PDF、Word、Excel、PPT、TXT、ZIP 或 RAR 格式的文件')
+    if (!isValidType) {
+      ElMessage.error('不支持的文件格式！')
       return false
     }
 
-    if (file.size > maxSize) {
-      ElMessage.error('文件大小不能超过 50MB')
+    const isLt50M = file.size / 1024 / 1024 < 50
+    if (!isLt50M) {
+      ElMessage.error('文件大小不能超过 50MB！')
       return false
     }
 
     return true
   }
 
-  // ==================== 文件上传处理 ====================
+  // 🆕 视频文件验证
+  const validateVideoFile = (file) => {
+    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/x-flv', 'video/webm', 'video/x-matroska']
+    const isValidType = allowedTypes.includes(file.type) || /\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(file.name)
 
-  /**
-   * 上传课程封面
-   */
-  const handleCoverUpload = async (options) => {
-    const { file, onSuccess, onError } = options
-
-    if (!validateImageFile(file)) {
-      onError(new Error('文件验证失败'))
-      return
+    if (!isValidType) {
+      ElMessage.error('只能上传 MP4、AVI、MOV、WMV、FLV、WebM、MKV 格式的视频文件！')
+      return false
     }
 
+    const isLt500M = file.size / 1024 / 1024 < 500
+    if (!isLt500M) {
+      ElMessage.error('视频文件大小不能超过 500MB！')
+      return false
+    }
+
+    return true
+  }
+
+  // 🔧 上传处理函数
+
+  // 封面上传
+  const handleCoverUpload = async (options) => {
+    const { file } = options
     try {
-      uploading.value = true
-      uploadProgress.value = 0
+      uploading.cover = true
+      uploadProgress.cover = 0
 
       const response = await uploadCourseCoverAPI(file)
 
-      if (response.code === 200) {
-        const fileInfo = {
+      console.log('📸 封面上传响应:', response)
+
+      // 🔧 修复：根据实际响应结构判断成功
+      if (response && (response.code === 0 || response.code === 200 || response.data)) {
+        const coverInfo = {
           name: file.name,
-          url: response.data.url,
-          size: file.size,
-          type: file.type,
-          uid: file.uid,
+          url: response.data?.url || response.url || URL.createObjectURL(file),
+          uid: Date.now()
         }
-
-        // 更新文件列表
-        fileListState.cover = [fileInfo]
-
-        ElMessage.success('封面上传成功')
-        onSuccess(response.data)
-        return fileInfo
+        fileListState.cover = [coverInfo]
+        ElMessage.success('封面上传成功！')
       } else {
-        throw new Error(response.message || '上传失败')
+        throw new Error(response?.message || '封面上传失败')
       }
     } catch (error) {
       console.error('封面上传失败:', error)
-      ElMessage.error(error.message || '封面上传失败')
-      onError(error)
-      return null
+      ElMessage.error('封面上传失败')
     } finally {
-      uploading.value = false
-      uploadProgress.value = 0
+      uploading.cover = false
+      uploadProgress.cover = 0
     }
   }
 
-  /**
-   * 上传教学资料
-   */
+  const handleCoverRemove = () => {
+    fileListState.cover = []
+  }
+
+  // 文档上传
   const handleMaterialUpload = async (options) => {
-    const { file, onSuccess, onError } = options
-
-    if (!validateDocumentFile(file)) {
-      onError(new Error('文件验证失败'))
-      return
-    }
-
+    const { file } = options
     try {
-      uploading.value = true
-      uploadProgress.value = 0
+      uploading.material = true
+      uploadProgress.material = 0
 
       const response = await uploadCourseMaterialAPI(file)
 
-      if (response.code === 200) {
-        const fileInfo = {
-          name: file.name, // 🔧 保存原始文件名
-          url: response.data.url,
+      console.log('📄 文档上传响应:', response)
+
+      // 🔧 修复：根据实际响应结构判断成功
+      if (response && (response.code === 0 || response.code === 200 || response.data)) {
+        const materialInfo = {
+          name: file.name,
+          originalName: file.name,
+          url: response.data?.url || response.url || URL.createObjectURL(file),
           size: file.size,
-          type: file.type,
-          uid: file.uid || Date.now(),
-          originalName: file.name, // 🔧 添加原始文件名字段
+          uid: Date.now()
         }
-
-        // 更新文件列表
-        fileListState.materials.push(fileInfo)
-
-        ElMessage.success(`${file.name} 上传成功`)
-        onSuccess(response.data)
-        return fileInfo
+        fileListState.materials.push(materialInfo)
+        ElMessage.success(`资料 "${file.name}" 上传成功！`)
       } else {
-        throw new Error(response.message || '上传失败')
+        throw new Error(response?.message || '文档上传失败')
       }
     } catch (error) {
-      console.error('教学资料上传失败:', error)
-      ElMessage.error(error.message || '教学资料上传失败')
-      onError(error)
-      return null
+      console.error('资料上传失败:', error)
+      ElMessage.error('资料上传失败')
     } finally {
-      uploading.value = false
-      uploadProgress.value = 0
+      uploading.material = false
+      uploadProgress.material = 0
     }
   }
 
-  /**
-   * 上传课程视频
-   */
-  const handleVideoUpload = async (options) => {
-    const { file, onSuccess, onError, onProgress } = options
-
-    if (!validateVideoFile(file)) {
-      onError(new Error('文件验证失败'))
-      return
+  const handleMaterialRemove = (file) => {
+    const index = fileListState.materials.findIndex(m => m.uid === file.uid)
+    if (index > -1) {
+      fileListState.materials.splice(index, 1)
     }
+  }
+
+  // 🆕 视频上传
+  const handleVideoUpload = async (options) => {
+    const { file, onProgress } = options
 
     try {
-      uploading.value = true
-      uploadProgress.value = 0
+      console.log('📹 开始上传视频:', file.name)
+      uploading.video = true
+      uploadProgress.video = 0
 
+      // 创建上传进度处理函数
       const progressHandler = (progressEvent) => {
         if (progressEvent.lengthComputable) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          uploadProgress.value = progress
-          onProgress && onProgress({ percent: progress })
+          uploadProgress.video = progress
+
+          // 计算上传速度
+          const timeElapsed = (Date.now() - startTime) / 1000 // 秒
+          const bytesPerSecond = progressEvent.loaded / timeElapsed
+          const mbPerSecond = (bytesPerSecond / (1024 * 1024)).toFixed(2)
+          uploadSpeed.value = `${mbPerSecond} MB/s`
+
+          // 估算剩余时间
+          const remainingBytes = progressEvent.total - progressEvent.loaded
+          const remainingSeconds = remainingBytes / bytesPerSecond
+          const minutes = Math.floor(remainingSeconds / 60)
+          const seconds = Math.floor(remainingSeconds % 60)
+          estimatedTime.value = `${minutes}:${seconds.toString().padStart(2, '0')}`
+
+          if (onProgress) {
+            onProgress({ percent: progress })
+          }
         }
       }
 
+      const startTime = Date.now()
+
+      // 调用视频上传API
       const response = await uploadCourseVideoAPI(file, progressHandler)
 
-      if (response.code === 200) {
-        const fileInfo = {
+      console.log('📹 视频上传响应:', response)
+
+      // 🔧 修复：根据实际响应结构判断成功
+      if (response && (response.code === 0 || response.code === 200 || response.data)) {
+        const videoInfo = {
           name: file.name,
-          url: response.data.url,
+          originalName: file.name,
+          url: response.data?.url || response.url || URL.createObjectURL(file),
           size: file.size,
-          type: file.type,
-          uid: file.uid,
+          uid: Date.now(),
+          status: 'success'
         }
 
-        // 添加到文件列表
-        fileListState.videos.push(fileInfo)
+        // 添加到视频列表
+        fileListState.videos.push(videoInfo)
 
-        ElMessage.success('视频上传成功')
-        onSuccess(response.data)
-        return fileInfo
+        ElMessage.success(`视频 "${file.name}" 上传成功！`)
+        console.log('✅ 视频上传成功:', videoInfo)
       } else {
-        throw new Error(response.message || '上传失败')
+        throw new Error(response?.message || '视频上传失败')
       }
     } catch (error) {
-      console.error('视频上传失败:', error)
-      ElMessage.error(error.message || '视频上传失败')
-      onError(error)
-      return null
+      console.error('❌ 视频上传失败:', error)
+      ElMessage.error(`视频上传失败: ${error.message}`)
+
+      // 上传失败时的处理
+      options.onError && options.onError(error)
     } finally {
-      uploading.value = false
-      uploadProgress.value = 0
+      uploading.video = false
+      uploadProgress.video = 0
+      uploadSpeed.value = ''
+      estimatedTime.value = ''
     }
   }
 
-  // ==================== 文件列表管理 ====================
-
-  /**
-   * 移除封面文件
-   */
-  const handleCoverRemove = (file) => {
-    fileListState.cover = fileListState.cover.filter((item) => item.uid !== file.uid)
-    ElMessage.success('封面已移除')
-  }
-
-  /**
-   * 移除资料文件
-   */
-  const handleMaterialRemove = (file) => {
-    const index = fileListState.materials.findIndex((item) => item.uid === file.uid)
-    if (index > -1) {
-      fileListState.materials.splice(index, 1)
-      ElMessage.success('资料已移除')
-    }
-  }
-
-  /**
-   * 移除视频文件
-   */
   const handleVideoRemove = (file) => {
-    const index = fileListState.videos.findIndex((item) => item.uid === file.uid)
+    console.log('🗑️ 移除视频:', file.name)
+
+    const index = fileListState.videos.findIndex(v => v.uid === file.uid || v.url === file.url)
     if (index > -1) {
       fileListState.videos.splice(index, 1)
       ElMessage.success('视频已移除')
     }
   }
 
-  /**
-   * 清空所有文件
-   */
+  // 🔧 工具函数
+  const setFileList = (type, files) => {
+    if (['cover', 'materials', 'videos'].includes(type)) {
+      fileListState[type] = files || []
+      console.log(`📁 设置${type}文件列表:`, fileListState[type])
+    }
+  }
+
   const clearAllFiles = () => {
     fileListState.cover = []
     fileListState.materials = []
     fileListState.videos = []
   }
 
-  /**
-   * 设置文件列表（用于编辑时回显）
-   */
-  const setFileList = (type, files) => {
-    if (fileListState.hasOwnProperty(type)) {
-      fileListState[type] = files || []
-    }
-  }
-
-  // ==================== 工具方法 ====================
-
-  /**
-   * 格式化文件大小
-   */
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes'
+    if (bytes === 0) return '0 B'
+
     const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  /**
-   * 获取文件扩展名
-   */
   const getFileExtension = (filename) => {
-    return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2)
+    return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2).toUpperCase()
   }
 
-  /**
-   * 获取文件类型图标
-   */
+  // 🆕 获取文件类型图标
   const getFileTypeIcon = (filename) => {
-    const ext = getFileExtension(filename).toLowerCase()
+    const ext = filename.toLowerCase().split('.').pop()
     const iconMap = {
-      pdf: '📄',
-      doc: '📝',
-      docx: '📝',
-      xls: '📊',
-      xlsx: '📊',
-      ppt: '📊',
-      pptx: '📊',
-      txt: '📄',
-      zip: '📦',
-      rar: '📦',
-      jpg: '🖼️',
-      jpeg: '🖼️',
-      png: '🖼️',
-      gif: '🖼️',
-      webp: '🖼️',
-      mp4: '🎬',
-      avi: '🎬',
-      mov: '🎬',
-      wmv: '🎬',
-      flv: '🎬',
+      // 图片
+      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', bmp: '🖼️',
+      // 视频
+      mp4: '🎥', avi: '🎥', mov: '🎥', wmv: '🎥', flv: '🎥', webm: '🎥', mkv: '🎥',
+      // 文档
+      pdf: '📄', doc: '📝', docx: '📝', txt: '📄',
+      // 表格
+      xls: '📊', xlsx: '📊',
+      // 演示
+      ppt: '📽️', pptx: '📽️',
+      // 压缩包
+      zip: '📦', rar: '📦', '7z': '📦',
+      // 音频
+      mp3: '🎵', wav: '🎵', flac: '🎵'
     }
-    return iconMap[ext] || '📄'
+    return iconMap[ext] || '📎'
   }
 
-  /**
-   * 检查文件是否为图片
-   */
-  const isImageFile = (file) => {
-    return file.type.startsWith('image/')
-  }
-
-  /**
-   * 检查文件是否为视频
-   */
-  const isVideoFile = (file) => {
-    return file.type.startsWith('video/')
-  }
-
-  /**
-   * 生成文件预览URL
-   */
-  const generatePreviewUrl = (file) => {
-    if (file.url) {
-      return file.url
-    }
-    if (file instanceof File) {
-      return URL.createObjectURL(file)
-    }
-    return ''
-  }
-
-  // ==================== 批量操作 ====================
-
-  /**
-   * 批量上传文件
-   */
-  const batchUpload = async (files, type = 'material') => {
-    const results = []
-    const errors = []
-
-    for (const file of files) {
-      try {
-        let result = null
-
-        switch (type) {
-          case 'cover':
-            result = await handleCoverUpload({
-              file,
-              onSuccess: () => {},
-              onError: () => {},
-            })
-            break
-          case 'material':
-            result = await handleMaterialUpload({
-              file,
-              onSuccess: () => {},
-              onError: () => {},
-            })
-            break
-          case 'video':
-            result = await handleVideoUpload({
-              file,
-              onSuccess: () => {},
-              onError: () => {},
-            })
-            break
-        }
-
-        if (result) {
-          results.push(result)
-        }
-      } catch (error) {
-        errors.push({ file: file.name, error: error.message })
-      }
-    }
-
-    if (errors.length > 0) {
-      console.warn('部分文件上传失败:', errors)
-    }
-
-    return { results, errors }
-  }
-
-  // ==================== 返回接口 ====================
   return {
-    // 响应式数据
+    // 状态
     uploading,
     uploadProgress,
+    uploadSpeed,
+    estimatedTime,
     fileListState,
 
-    // 文件上传
+    // 验证函数
+    validateImageFile,
+    validateDocumentFile,
+    validateVideoFile, // 🆕
+
+    // 上传处理函数
     handleCoverUpload,
-    handleMaterialUpload,
-    handleVideoUpload,
-
-    // 文件管理
     handleCoverRemove,
+    handleMaterialUpload,
     handleMaterialRemove,
-    handleVideoRemove,
-    clearAllFiles,
-    setFileList,
+    handleVideoUpload, // 🆕
+    handleVideoRemove, // 🆕
 
-    // 工具方法
+    // 工具函数
+    setFileList,
+    clearAllFiles,
     formatFileSize,
     getFileExtension,
-    getFileTypeIcon,
-    isImageFile,
-    isVideoFile,
-    generatePreviewUrl,
-
-    // 验证方法
-    validateImageFile,
-    validateVideoFile,
-    validateDocumentFile,
-
-    // 批量操作
-    batchUpload,
+    getFileTypeIcon // 🆕
   }
 }
