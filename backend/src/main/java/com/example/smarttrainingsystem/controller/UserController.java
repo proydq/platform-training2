@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.util.StringUtils;
 import javax.validation.Valid;
 
 import java.util.HashMap;
@@ -42,7 +43,25 @@ public class UserController {
 
     @PutMapping("/{id}")
     public Result<UserDTO.ListItem> updateUser(@PathVariable("id") String id,
-                                               @Valid @RequestBody UserDTO.CreateRequest request) {
+                                               @RequestBody UserDTO.CreateRequest request) {
+        if (!StringUtils.hasText(request.getUsername())) {
+            throw new IllegalArgumentException("用户名不能为空");
+        }
+        if (!StringUtils.hasText(request.getName())) {
+            throw new IllegalArgumentException("姓名不能为空");
+        }
+        if (!StringUtils.hasText(request.getRole())) {
+            throw new IllegalArgumentException("角色不能为空");
+        }
+        if (!StringUtils.hasText(request.getStatus())) {
+            throw new IllegalArgumentException("状态不能为空");
+        }
+        if (StringUtils.hasText(request.getPassword())) {
+            int len = request.getPassword().length();
+            if (len < 6 || len > 20) {
+                throw new IllegalArgumentException("密码长度必须在6-20字符之间");
+            }
+        }
         UserDTO.ListItem user = userService.updateUser(id, request);
         return Result.success("更新用户成功", user);
     }
