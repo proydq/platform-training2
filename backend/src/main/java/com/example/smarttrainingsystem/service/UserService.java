@@ -97,6 +97,11 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(1012, "用户不存在"));
 
+        // 先清除旧的角色绑定，避免插入时因主键重复导致报错
+        userRoleRepository.deleteByUserId(userId);
+        // 立即刷新删除操作，确保中间表记录已移除
+        userRoleRepository.flush();
+
         Role role = roleRepository.findByRoleCode(request.getRole())
                 .orElseThrow(() -> new BusinessException(1011, "角色不存在"));
 
@@ -111,8 +116,6 @@ public class UserService {
         user.setActive("active".equalsIgnoreCase(request.getStatus()));
 
         User saved = userRepository.save(user);
-
-        userRoleRepository.deleteByUserId(userId);
         UserRole userRole = new UserRole();
         userRole.setId(UUID.randomUUID().toString());
         userRole.setUserId(userId);
