@@ -1,134 +1,112 @@
 <template>
   <div class="lesson-navigation">
-    <!-- 课程完成状态 -->
-    <div class="completion-section">
-      <div class="completion-content">
-        <div class="completion-icon">
-          <div class="checkmark-container">
-            <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-              <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-              <path class="checkmark-check" fill="none" d="m14.1 27.2l7.1 7.2 16.7-16.8"/>
-            </svg>
-          </div>
-        </div>
-        <div class="completion-text">
-          <h3 class="completion-title">恭喜！课程学习完成</h3>
-          <p class="completion-description">您已经完成了本节课的全部内容，继续保持学习的热情！</p>
-        </div>
-        <button @click="$emit('completeLesson')" class="complete-btn">
-          <span class="btn-icon">🎉</span>
-          <span class="btn-text">标记为已完成</span>
-        </button>
-      </div>
-    </div>
-
     <!-- 导航按钮区域 -->
     <div class="navigation-controls">
-      <!-- 上一课 -->
-      <div class="nav-item prev-lesson">
+      <button
+        class="nav-btn prev-btn"
+        :disabled="!hasPrevious"
+        @click="$emit('previousLesson')"
+      >
+        <span class="nav-icon">←</span>
+        <div class="nav-content">
+          <div class="nav-label">上一节</div>
+          <div class="nav-title" v-if="previousTitle">{{ previousTitle }}</div>
+        </div>
+      </button>
+
+      <div class="lesson-actions">
+        <button class="action-btn bookmark-btn" @click="toggleBookmark">
+          <span class="action-icon">🔖</span>
+          <span class="action-text">收藏</span>
+        </button>
+
+        <button class="action-btn notes-btn" @click="showNotesPanel">
+          <span class="action-icon">📝</span>
+          <span class="action-text">笔记</span>
+        </button>
+
+        <button class="action-btn progress-btn" @click="toggleCourseMenu">
+          <span class="action-icon">📚</span>
+          <span class="action-text">课程目录</span>
+        </button>
+
         <button
-          @click="$emit('previousLesson')"
-          :disabled="!hasPrevious"
-          class="nav-btn prev-btn"
-          :class="{ disabled: !hasPrevious }"
+          class="complete-btn"
+          @click="$emit('completeLesson')"
         >
-          <div class="nav-btn-content">
-            <div class="nav-arrow">←</div>
-            <div class="nav-info">
-              <span class="nav-label">上一课</span>
-              <span v-if="hasPrevious" class="nav-title">{{ previousTitle }}</span>
-              <span v-else class="nav-title">已是第一课</span>
-            </div>
-          </div>
+          <span class="complete-icon">✓</span>
+          <span class="complete-text">完成学习</span>
         </button>
       </div>
 
-      <!-- 课程目录 -->
-      <div class="nav-item course-menu">
-        <button @click="toggleCourseMenu" class="nav-btn menu-btn">
-          <div class="nav-btn-content">
-            <div class="menu-icon">📚</div>
-            <div class="nav-info">
-              <span class="nav-label">课程目录</span>
-              <span class="nav-title">查看全部课程</span>
-            </div>
-          </div>
-        </button>
+      <button
+        class="nav-btn next-btn"
+        :disabled="!hasNext"
+        @click="$emit('nextLesson')"
+      >
+        <div class="nav-content">
+          <div class="nav-label">下一节</div>
+          <div class="nav-title" v-if="nextTitle">{{ nextTitle }}</div>
+        </div>
+        <span class="nav-icon">→</span>
+      </button>
+    </div>
 
-        <!-- 课程目录下拉菜单 -->
-        <transition name="menu-fade">
-          <div v-if="showCourseMenu" class="course-menu-dropdown">
-            <div class="menu-header">
-              <h4>课程章节</h4>
-              <button @click="showCourseMenu = false" class="close-menu-btn">✕</button>
-            </div>
-            <div class="menu-content">
-              <div class="chapter-list">
-                <div v-for="chapter in courseChapters" :key="chapter.id" class="chapter-item">
-                  <div class="chapter-header">
-                    <span class="chapter-title">{{ chapter.title }}</span>
-                    <span class="chapter-progress">{{ chapter.completedLessons }}/{{ chapter.totalLessons }}</span>
-                  </div>
-                  <div class="lesson-list">
-                    <div
-                      v-for="lesson in chapter.lessons"
-                      :key="lesson.id"
-                      class="lesson-item"
-                      :class="{
-                        active: lesson.id === currentLessonId,
-                        completed: lesson.completed
-                      }"
-                      @click="goToLesson(lesson)"
-                    >
-                      <div class="lesson-status">
-                        <span v-if="lesson.completed" class="status-icon completed">✓</span>
-                        <span v-else-if="lesson.id === currentLessonId" class="status-icon current">▶</span>
-                        <span v-else class="status-icon pending">○</span>
-                      </div>
-                      <div class="lesson-info">
-                        <span class="lesson-title">{{ lesson.title }}</span>
-                        <span class="lesson-duration">{{ lesson.duration }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+    <!-- 课程菜单面板 -->
+    <div v-if="showCourseMenu" class="course-menu-panel">
+      <div class="course-menu-header">
+        <h3>课程目录</h3>
+        <button @click="toggleCourseMenu" class="close-btn">×</button>
+      </div>
+
+      <div class="course-chapters">
+        <div
+          v-for="chapter in courseChapters"
+          :key="chapter.id"
+          class="chapter-section"
+        >
+          <div class="chapter-header">
+            <span class="chapter-title">{{ chapter.title }}</span>
+            <span class="chapter-progress">{{ chapter.completedLessons }}/{{ chapter.totalLessons }}</span>
+          </div>
+
+          <div class="lesson-list">
+            <div
+              v-for="lesson in chapter.lessons"
+              :key="lesson.id"
+              class="lesson-item"
+              :class="{
+                current: lesson.id === currentLessonId,
+                completed: lesson.completed
+              }"
+              @click="goToLesson(lesson)"
+            >
+              <div class="lesson-status">
+                <span v-if="lesson.completed" class="status-icon completed">✓</span>
+                <span v-else-if="lesson.id === currentLessonId" class="status-icon current">▶</span>
+                <span v-else class="status-icon">○</span>
+              </div>
+              <div class="lesson-info">
+                <div class="lesson-title">{{ lesson.title }}</div>
+                <div class="lesson-duration">{{ lesson.duration }}</div>
               </div>
             </div>
           </div>
-        </transition>
-      </div>
-
-      <!-- 下一课 -->
-      <div class="nav-item next-lesson">
-        <button
-          @click="$emit('nextLesson')"
-          :disabled="!hasNext"
-          class="nav-btn next-btn"
-          :class="{ disabled: !hasNext }"
-        >
-          <div class="nav-btn-content">
-            <div class="nav-info">
-              <span class="nav-label">下一课</span>
-              <span v-if="hasNext" class="nav-title">{{ nextTitle }}</span>
-              <span v-else class="nav-title">已是最后一课</span>
-            </div>
-            <div class="nav-arrow">→</div>
-          </div>
-        </button>
+        </div>
       </div>
     </div>
 
-    <!-- 学习统计 -->
+    <!-- 学习统计面板 -->
     <div class="learning-stats">
       <div class="stat-item">
-        <div class="stat-icon">📊</div>
+        <div class="stat-icon">📈</div>
         <div class="stat-content">
           <div class="stat-value">{{ learningProgress }}%</div>
-          <div class="stat-label">课程进度</div>
+          <div class="stat-label">学习进度</div>
         </div>
       </div>
       <div class="stat-item">
-        <div class="stat-icon">⏱️</div>
+        <div class="stat-icon">⏰</div>
         <div class="stat-content">
           <div class="stat-value">{{ totalLearningTime }}</div>
           <div class="stat-label">学习时长</div>
@@ -148,7 +126,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-const props = defineProps({
+// 修复：直接接收props，不赋值给变量
+defineProps({
   hasPrevious: {
     type: Boolean,
     default: false
@@ -228,273 +207,192 @@ const goToLesson = (lesson) => {
   // 这里可以实现实际的课程跳转逻辑
 }
 
-// 点击外部关闭菜单
-const handleClickOutside = (event) => {
-  if (!event.target.closest('.course-menu')) {
-    showCourseMenu.value = false
-  }
+// 切换收藏状态
+const toggleBookmark = () => {
+  console.log('切换收藏状态')
 }
 
-// 监听点击事件
-import { onMounted, onUnmounted } from 'vue'
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+// 显示笔记面板
+const showNotesPanel = () => {
+  console.log('显示笔记面板')
+}
 </script>
 
 <style scoped>
 .lesson-navigation {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 0 0 15px 15px;
-  padding: 30px 40px;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* 完成状态区域 */
-.completion-section {
-  margin-bottom: 30px;
-  padding: 25px;
-  background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
-  border-radius: 15px;
-  border: 1px solid #d4edda;
-}
-
-.completion-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.completion-icon {
-  flex-shrink: 0;
-}
-
-.checkmark-container {
-  width: 50px;
-  height: 50px;
-}
-
-.checkmark {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: block;
-  stroke-width: 2;
-  stroke: #28a745;
-  stroke-miterlimit: 10;
-}
-
-.checkmark-circle {
-  stroke-dasharray: 166;
-  stroke-dashoffset: 166;
-  stroke-width: 2;
-  stroke-miterlimit: 10;
-  stroke: #28a745;
-  fill: none;
-  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-}
-
-.checkmark-check {
-  transform-origin: 50% 50%;
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
-  stroke-width: 3;
-  stroke: #28a745;
-  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
-}
-
-@keyframes stroke {
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-.completion-text {
-  flex: 1;
-}
-
-.completion-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #155724;
-  margin: 0 0 5px 0;
-}
-
-.completion-description {
-  font-size: 14px;
-  color: #155724;
-  margin: 0;
-  opacity: 0.8;
-}
-
-.complete-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-}
-
-.complete-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  position: relative;
 }
 
 /* 导航控制区域 */
 .navigation-controls {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
   gap: 20px;
-  margin-bottom: 30px;
-  align-items: stretch;
-}
-
-.nav-item {
-  position: relative;
 }
 
 .nav-btn {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
   background: white;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
+  font-size: 14px;
+  min-width: 200px;
 }
 
-.nav-btn:hover:not(.disabled) {
+.nav-btn:hover:not(:disabled) {
+  background: #f8f9fa;
   border-color: #667eea;
-  background: #f8f9ff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
 
-.nav-btn.disabled {
+.nav-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f8f9fa;
 }
 
-.nav-btn-content {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  width: 100%;
-}
-
-.nav-arrow {
-  font-size: 20px;
-  font-weight: bold;
+.nav-icon {
+  font-size: 16px;
   color: #667eea;
 }
 
-.menu-icon {
-  font-size: 24px;
-}
-
-.nav-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.nav-content {
   flex: 1;
 }
 
 .nav-label {
   font-size: 12px;
   color: #666;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin-bottom: 2px;
 }
 
 .nav-title {
+  font-weight: 500;
+  color: #333;
+}
+
+.prev-btn {
+  justify-content: flex-start;
+}
+
+.next-btn {
+  justify-content: flex-end;
+  flex-direction: row-reverse;
+}
+
+/* 中间操作区域 */
+.lesson-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 13px;
+}
+
+.action-btn:hover {
+  background: #f8f9fa;
+  border-color: #667eea;
+}
+
+.action-icon {
   font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
 }
 
-/* 课程菜单样式 */
-.course-menu {
-  min-width: 200px;
+.complete-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
-.menu-btn .nav-btn-content {
-  justify-content: center;
-  text-align: center;
+.complete-btn:hover {
+  background: linear-gradient(135deg, #20c997, #28a745);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
-.course-menu-dropdown {
+/* 课程菜单面板 */
+.course-menu-panel {
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
+  width: 600px;
+  max-height: 400px;
   background: white;
-  border-radius: 15px;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
   border: 1px solid #e9ecef;
-  width: 350px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   overflow: hidden;
-  margin-top: 10px;
 }
 
-.menu-header {
+.course-menu-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 20px 25px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
 }
 
-.menu-header h4 {
+.course-menu-header h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
+  color: #333;
 }
 
-.close-menu-btn {
+.close-btn {
   background: none;
   border: none;
+  font-size: 20px;
   cursor: pointer;
-  padding: 5px;
   color: #666;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.close-menu-btn:hover {
+.close-btn:hover {
   background: #e9ecef;
 }
 
-.menu-content {
-  max-height: 400px;
+.course-chapters {
+  max-height: 300px;
   overflow-y: auto;
   padding: 15px 0;
 }
 
-.chapter-item {
+.chapter-section {
   margin-bottom: 20px;
 }
 
@@ -502,63 +400,52 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px 10px 20px;
-  border-bottom: 1px solid #f1f3f4;
-}
-
-.chapter-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
+  padding: 10px 25px;
+  background: #f8f9fa;
+  font-weight: 500;
+  color: #333;
 }
 
 .chapter-progress {
   font-size: 12px;
   color: #666;
-  background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 10px;
 }
 
 .lesson-list {
-  padding: 10px 0;
+  padding: 0;
 }
 
 .lesson-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 12px 25px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 .lesson-item:hover {
   background: #f8f9fa;
 }
 
-.lesson-item.active {
+.lesson-item.current {
   background: rgba(102, 126, 234, 0.1);
   border-left: 3px solid #667eea;
 }
 
 .lesson-item.completed {
-  opacity: 0.7;
-}
-
-.lesson-status {
-  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 .status-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 20px;
   height: 20px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .status-icon.completed {
@@ -571,27 +458,18 @@ onUnmounted(() => {
   color: white;
 }
 
-.status-icon.pending {
-  background: #f8f9fa;
-  color: #999;
-  border: 1px solid #e9ecef;
-}
-
 .lesson-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   flex: 1;
 }
 
 .lesson-title {
-  font-size: 13px;
   font-weight: 500;
-  color: #2c3e50;
+  color: #333;
+  margin-bottom: 2px;
 }
 
 .lesson-duration {
-  font-size: 11px;
+  font-size: 12px;
   color: #666;
 }
 
@@ -600,103 +478,65 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   gap: 40px;
-  padding-top: 20px;
-  border-top: 1px solid #f1f3f4;
+  padding: 15px 30px;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-top: 1px solid #e9ecef;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .stat-icon {
   font-size: 20px;
-  width: 40px;
-  height: 40px;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  text-align: center;
 }
 
 .stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1;
 }
 
 .stat-label {
   font-size: 12px;
   color: #666;
-}
-
-/* 动画 */
-.menu-fade-enter-active,
-.menu-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.menu-fade-enter-from,
-.menu-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-10px) scale(0.95);
+  margin-top: 2px;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .lesson-navigation {
-    padding: 20px;
-  }
-
-  .completion-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 15px;
-  }
-
   .navigation-controls {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 15px;
+    padding: 15px 20px;
   }
 
   .nav-btn {
-    padding: 15px;
+    min-width: auto;
+    width: 100%;
   }
 
-  .course-menu-dropdown {
-    width: 300px;
+  .lesson-actions {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .course-menu-panel {
+    width: 90vw;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .learning-stats {
-    flex-direction: column;
     gap: 20px;
-    align-items: center;
+    padding: 10px 20px;
   }
-}
-
-/* 滚动条样式 */
-.menu-content::-webkit-scrollbar {
-  width: 4px;
-}
-
-.menu-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.menu-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 2px;
-}
-
-.menu-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 }
 </style>

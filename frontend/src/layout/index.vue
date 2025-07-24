@@ -72,8 +72,13 @@ const isMenuActive = (menuPath) => {
     return true
   }
 
-  // 特殊处理：管理后台页面应该激活"管理后台"菜单
-  if (menuPath === '/admin' && currentPath.startsWith('/admin')) {
+  // 特殊处理：用户管理页面应该激活"用户管理"菜单
+  if (menuPath === '/admin/user-management' && currentPath.startsWith('/admin/user-management')) {
+    return true
+  }
+
+  // 特殊处理：管理后台页面（虽然不在导航中，但需要处理路由）
+  if (menuPath === '/admin' && currentPath === '/admin') {
     return true
   }
 
@@ -96,10 +101,11 @@ const visibleMenus = computed(() => {
     const userRole = userStore.userInfo?.role || 'STUDENT'
     console.log('当前用户角色:', userRole)
     const menus = generateMenus(userRole)
+    console.log('生成的菜单:', menus) // 添加调试日志
     return menus.filter(menu => !menu.hidden)
   } catch (error) {
     console.error('生成菜单失败:', error)
-    // 返回默认菜单
+    // 返回默认菜单，不包含管理后台
     return [
       { path: '/dashboard', title: '仪表板', hidden: false },
       { path: '/courses', title: '我的课程', hidden: false },

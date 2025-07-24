@@ -129,13 +129,21 @@ export const generateMenus = (userRole) => {
       hidden: !['ADMIN', 'TEACHER'].includes(userRole)
     },
     {
-      path: '/admin',
-      title: '管理后台',
-      icon: '⚙️',
+      path: '/admin/user-management',
+      title: '用户管理',
+      icon: '👤',
       hidden: !['ADMIN'].includes(userRole)
     }
+    // 管理后台页面隐藏，不在导航中显示
+    // {
+    //   path: '/admin',
+    //   title: '管理后台',
+    //   icon: '⚙️',
+    //   hidden: true
+    // }
   ]
 
+  console.log('用户角色:', userRole, '生成菜单:', allMenus.filter(menu => !menu.hidden))
   return allMenus.filter(menu => !menu.hidden)
 }
 
