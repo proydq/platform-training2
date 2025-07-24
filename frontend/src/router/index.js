@@ -148,13 +148,15 @@ export const generateMenus = (userRole) => {
     path: '/admin',
     title: '管理后台',
     icon: '⚙️',
-    hidden: userRole !== 'ADMIN'
+    // 强制隐藏导航入口，但保留路由权限
+    hidden: true
   },
   {
     path: '/admin/user-management',
     title: '用户管理',
     icon: '👤',
-    hidden: userRole !== 'ADMIN'
+    // 子菜单同样隐藏，仍保留访问能力
+    hidden: true
   }
   ]
 
