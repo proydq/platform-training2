@@ -248,7 +248,7 @@
               v-model:file-list="chapterMediaFileList"
               :show-file-list="false"
               action="/api/v1/upload/chapter-resource"
-              :http-request="handleMediaUpload"
+              :http-request="handleChapterUpload"
               :before-upload="beforeMediaUpload"
               accept="video/*,audio/*"
               drag
@@ -316,6 +316,12 @@ import {
 } from '@element-plus/icons-vue'
 import { useFileUpload } from '@/composables/useFileUpload'
 import request from '@/utils/request'
+import axios from 'axios'
+
+// 工具函数提前声明，供 watch 中安全使用
+function getFileName(url) {
+  return url?.split('/')?.pop() || '未命名资源'
+}
 
 // Props
 const props = defineProps({
@@ -374,6 +380,7 @@ const chapterForm = ref({
   sortOrder: 1,
   duration: 0,
   mediaUrl: '',
+  videoUrl: '',
   fileSize: 0
 })
 
@@ -423,14 +430,15 @@ const sortedChapters = computed(() => {
 watch(
   () => props.courseData,
   (newData) => {
-    if (newData && Object.keys(newData).length > 0) {
-      console.log('📥 CourseForm接收到courseData:', newData)
-      console.log('🖼️ 检查封面字段:', {
-        coverUrl: newData.coverUrl,
-        coverImageUrl: newData.coverImageUrl,
-        cover: newData.cover,
-        coverImage: newData.coverImage
-      })
+    try {
+      if (newData && Object.keys(newData).length > 0) {
+        console.log('📥 CourseForm接收到courseData:', newData)
+        console.log('🖼️ 检查封面字段:', {
+          coverUrl: newData.coverUrl,
+          coverImageUrl: newData.coverImageUrl,
+          cover: newData.cover,
+          coverImage: newData.coverImage
+        })
 
       // 处理章节数据映射
       const processedChapters = (newData.chapters || []).map((chapter, index) => {
@@ -441,6 +449,7 @@ watch(
           mediaUrl: chapter.mediaUrl
         })
 
+        const videoUrl = chapter.videoUrl || chapter.mediaUrl || chapter.contentUrl || ''
         return {
           id: chapter.id,
           title: chapter.title || '',
@@ -448,9 +457,11 @@ watch(
           duration: chapter.duration || 0,
           // 🔧 关键修复：多字段映射音视频URL
           mediaUrl: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl || '',
+          videoUrl,
           fileList: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl
             ? [{ name: getFileName(chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl), url: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl }]
             : [],
+          _fileList: videoUrl ? [{ name: getFileName(videoUrl), url: videoUrl }] : [],
           fileSize: chapter.fileSize || 0,
           chapterType: chapter.chapterType || 'video',
           description: chapter.description || '',
@@ -472,7 +483,10 @@ watch(
         ? [{ name: getFileName(form.value.coverImage), url: form.value.coverImage }]
         : []
 
-      form.value.chapters.forEach(ch => {
+      form.value.chapters.forEach((ch) => {
+        ch._fileList = ch.videoUrl
+          ? [{ name: getFileName(ch.videoUrl), url: ch.videoUrl }]
+          : []
         ch.fileList = ch.mediaUrl
           ? [{ name: getFileName(ch.mediaUrl), url: ch.mediaUrl }]
           : []
@@ -480,6 +494,9 @@ watch(
 
       console.log('✅ CourseForm数据处理完成:', form.value)
       console.log('🖼️ 最终封面URL:', form.value.coverImage)
+      }
+    } catch (err) {
+      console.error('初始化课程数据失败', err)
     }
   },
   { immediate: true, deep: true }
@@ -522,6 +539,7 @@ const editChapter = (index) => {
     duration: chapter.duration || 0,
     // 🔧 关键修复：获取实际的媒体URL
     mediaUrl: getMediaUrl(chapter),
+    videoUrl: getMediaUrl(chapter),
     fileSize: chapter.fileSize || 0
   })
 
@@ -603,6 +621,7 @@ const resetChapterForm = () => {
     sortOrder: 1,
     duration: 0,
     mediaUrl: '',
+    videoUrl: '',
     fileSize: 0
   })
   chapterMediaFileList.value = []
@@ -691,7 +710,7 @@ const beforeMediaUpload = (file) => {
   return true
 }
 
-const handleMediaUpload = async (options) => {
+const handleChapterUpload = async (options) => {
   const file = options.file
 
   // 显示计算中状态
@@ -720,12 +739,11 @@ const handleMediaUpload = async (options) => {
   const formData = new FormData()
   formData.append('file', file)
   try {
-    const res = await request.post('/api/v1/upload/chapter-resource', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    const url = res.url || res.data?.url
+    const res = await axios.post('/api/v1/upload/chapter-resource', formData)
+    const url = res.data?.url || res.url
     if (url) {
       chapterForm.value.mediaUrl = url
+      chapterForm.value.videoUrl = url
       chapterMediaFileList.value = [{ name: file.name, url }]
       ElMessage.success('文件上传成功')
     } else {
@@ -813,10 +831,6 @@ const isVideoFile = (url) => {
   return true
 }
 
-const getFileName = (url) => {
-  if (!url) return ''
-  return url.split('/').pop() || url.split('\\').pop() || 'media-file'
-}
 
 // 表单提交相关方法
 const handleSave = async () => {
