@@ -7,19 +7,19 @@
         <h2>📊 学习概览</h2>
         <div class="course-overview">
           <div class="overview-item blue">
-            <div class="overview-number">24</div>
+            <div class="overview-number">{{ overview.completed }}</div>
             <div class="overview-label">已完成</div>
           </div>
           <div class="overview-item orange">
-            <div class="overview-number">8</div>
+            <div class="overview-number">{{ overview.inProgress }}</div>
             <div class="overview-label">进行中</div>
           </div>
           <div class="overview-item purple">
-            <div class="overview-number">4</div>
+            <div class="overview-number">{{ overview.notStarted }}</div>
             <div class="overview-label">待开始</div>
           </div>
           <div class="overview-item green">
-            <div class="overview-number">156h</div>
+            <div class="overview-number">{{ formatHours(overview.totalTime) }}</div>
             <div class="overview-label">学习时长</div>
           </div>
         </div>
@@ -182,13 +182,20 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getStudyOverview } from '@/api/study'
 
 const router = useRouter()
 
 // 响应式数据
+const overview = ref({
+  completed: 0,
+  inProgress: 0,
+  notStarted: 0,
+  totalTime: 0
+})
 const searchKeyword = ref('')
 const activeFilter = ref('all')
 
@@ -200,6 +207,10 @@ const filterOptions = [
   { key: 'not-started', label: '待开始' },
   { key: 'favorites', label: '⭐ 收藏' },
 ]
+
+function formatHours(seconds) {
+  return `${Math.floor(seconds / 3600)}h`
+}
 
 // 推荐课程
 const recommended = {
@@ -351,6 +362,15 @@ const toggleFavorite = (course) => {
 const continuePath = (id) => {
   ElMessage.success(`继续学习路径: ${id}`)
 }
+
+onMounted(async () => {
+  try {
+    const res = await getStudyOverview()
+    overview.value = res?.data || res
+  } catch (e) {
+    console.error('获取学习概览失败:', e)
+  }
+})
 </script>
 
 <style scoped>
