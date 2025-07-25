@@ -247,7 +247,7 @@
               ref="mediaUploadRef"
               v-model:file-list="chapterMediaFileList"
               :show-file-list="false"
-              action="/api/v1/upload/chapter-resource"
+              action="/api/v1/upload/course-video"
               :http-request="handleChapterUpload"
               :before-upload="beforeMediaUpload"
               accept="video/*,audio/*"
@@ -741,7 +741,7 @@ const handleChapterUpload = async (options) => {
   try {
     const token = localStorage.getItem('token')
     const res = await axios.post(
-      '/api/v1/upload/chapter-resource',
+      '/api/v1/upload/course-video',
       formData,
       {
         headers: {
