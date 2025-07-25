@@ -1,6 +1,7 @@
 package com.example.smarttrainingsystem.repository;
 
 import com.example.smarttrainingsystem.entity.StudyRecord;
+import com.example.smarttrainingsystem.entity.Course;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -124,6 +125,18 @@ public interface StudyRecordRepository extends JpaRepository<StudyRecord, String
      */
     @Query("SELECT COUNT(*) FROM StudyRecord sr WHERE sr.userId = :userId AND sr.status = 'COMPLETED'")
     long countCompletedByUserId(@Param("userId") String userId);
+
+    /**
+     * 统计用户学习总时长(秒)
+     */
+    @Query("SELECT COALESCE(SUM(COALESCE(sr.studyDuration, sr.studyTime, 0)),0) FROM StudyRecord sr WHERE sr.userId = :userId")
+    Long sumDurationByUserId(@Param("userId") String userId);
+
+    /**
+     * 查询用户学习过的课程
+     */
+    @Query("SELECT sr.course FROM StudyRecord sr WHERE sr.userId = :userId")
+    List<Course> findCoursesByUserId(@Param("userId") String userId);
 
     /**
      * 统计用户正在学习的课程数量
