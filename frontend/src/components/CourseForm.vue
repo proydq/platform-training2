@@ -51,13 +51,15 @@
           </div>
           <div class="form-col">
             <el-form-item label="课程时长">
-              <div class="duration-display">
-                <div class="duration-main">
+              <el-input
+                :value="formatDuration(calculateTotalDuration())"
+                readonly
+                placeholder="基于章节时长自动计算"
+              >
+                <template #prefix>
                   <el-icon><Clock /></el-icon>
-                  <span>总时长：{{ formatDuration(calculateTotalDuration()) }}</span>
-                </div>
-                <div class="duration-note">基于所有章节音视频时长自动计算</div>
-              </div>
+                </template>
+              </el-input>
             </el-form-item>
           </div>
         </div>
@@ -414,14 +416,49 @@ watch(
   () => props.courseData,
   (newData) => {
     if (newData && Object.keys(newData).length > 0) {
+      console.log('📥 CourseForm接收到courseData:', newData)
+      console.log('🖼️ 检查封面字段:', {
+        coverUrl: newData.coverUrl,
+        coverImageUrl: newData.coverImageUrl,
+        cover: newData.cover,
+        coverImage: newData.coverImage
+      })
+
+      // 处理章节数据映射
+      const processedChapters = (newData.chapters || []).map((chapter, index) => {
+        console.log(`📁 处理第${index + 1}个章节:`, {
+          原始数据: chapter,
+          contentUrl: chapter.contentUrl,
+          videoUrl: chapter.videoUrl,
+          mediaUrl: chapter.mediaUrl
+        })
+
+        return {
+          id: chapter.id,
+          title: chapter.title || '',
+          sortOrder: chapter.sortOrder || chapter.order || (index + 1),
+          duration: chapter.duration || 0,
+          // 🔧 关键修复：多字段映射音视频URL
+          mediaUrl: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl || '',
+          fileSize: chapter.fileSize || 0,
+          chapterType: chapter.chapterType || 'video',
+          description: chapter.description || '',
+          status: chapter.status || 0
+        }
+      })
+
       Object.assign(form.value, {
         title: newData.title || '',
         description: newData.description || '',
         category: newData.category || '',
-        level: newData.level || 1,
-        coverUrl: newData.coverUrl || '',
-        chapters: newData.chapters || []
+        level: newData.level || newData.difficultyLevel || 1,
+        // 🔧 关键修复：多字段映射封面URL
+        coverUrl: newData.coverUrl || newData.coverImageUrl || newData.cover || newData.coverImage || '',
+        chapters: processedChapters
       })
+
+      console.log('✅ CourseForm数据处理完成:', form.value)
+      console.log('🖼️ 最终封面URL:', form.value.coverUrl)
     }
   },
   { immediate: true, deep: true }
@@ -438,13 +475,18 @@ const addChapter = () => {
 
 const editChapter = (index) => {
   const chapter = form.value.chapters[index]
+  console.log('📝 编辑章节数据:', chapter)
+
   Object.assign(chapterForm.value, {
     title: chapter.title || '',
     sortOrder: chapter.sortOrder || chapter.order || (index + 1),
     duration: chapter.duration || 0,
-    mediaUrl: chapter.mediaUrl || chapter.videoUrl || '',
+    // 🔧 关键修复：获取实际的媒体URL
+    mediaUrl: getMediaUrl(chapter),
     fileSize: chapter.fileSize || 0
   })
+
+  console.log('📝 章节表单数据:', chapterForm.value)
   chapterModalTitle.value = '编辑章节'
   editingChapterIndex.value = index
   chapterModalVisible.value = true
@@ -472,6 +514,9 @@ const saveChapter = async () => {
 
     const chapterData = {
       ...chapterForm.value,
+      // 🔧 关键修复：同时设置多个字段确保兼容性
+      videoUrl: chapterForm.value.mediaUrl,
+      contentUrl: chapterForm.value.mediaUrl,
       id: editingChapterIndex.value >= 0 ?
         form.value.chapters[editingChapterIndex.value].id :
         Date.now().toString()
@@ -638,6 +683,17 @@ const calculateTotalDuration = () => {
   }, 0)
 }
 
+// 🔧 新增：检查章节是否有媒体文件
+const hasMediaFile = (chapter) => {
+  const mediaUrl = getMediaUrl(chapter)
+  return mediaUrl && mediaUrl.trim() !== ''
+}
+
+// 🔧 新增：获取媒体文件URL的统一方法
+const getMediaUrl = (chapter) => {
+  return chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl || ''
+}
+
 const formatDuration = (seconds) => {
   if (!seconds || seconds === 0) return '0分钟'
   if (seconds === -1) return '计算中...'
@@ -666,8 +722,20 @@ const formatFileSize = (bytes) => {
 const isVideoFile = (url) => {
   if (!url) return false
   const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv']
-  const fileExtension = url.toLowerCase().split('.').pop()
-  return videoExtensions.includes(`.${fileExtension}`) || url.includes('video/')
+  const audioExtensions = ['.mp3', '.wav', '.aac', '.ogg', '.m4a']
+
+  const fileExtension = `.${url.toLowerCase().split('.').pop()}`
+
+  // 优先检查文件扩展名
+  if (videoExtensions.includes(fileExtension)) return true
+  if (audioExtensions.includes(fileExtension)) return false
+
+  // 检查URL中的类型标识
+  if (url.includes('video/') || url.includes('mp4') || url.includes('avi')) return true
+  if (url.includes('audio/') || url.includes('mp3') || url.includes('wav')) return false
+
+  // 默认当作视频处理
+  return true
 }
 
 const getFileName = (url) => {
@@ -747,35 +815,7 @@ const handleCancel = () => {
   flex: 1;
 }
 
-/* 课程时长显示 */
-.duration-display {
-  background: linear-gradient(135deg, #e8f4fd, #f0f9ff);
-  border: 2px solid #409eff;
-  border-radius: 6px;
-  padding: 12px 16px;
-  color: #409eff;
-  font-weight: 500;
-  height: auto;
-  min-height: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.duration-main {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.duration-note {
-  font-size: 11px;
-  color: #909399;
-  font-weight: normal;
-  margin-top: 4px;
-  line-height: 1.2;
-}
+/* 课程时长显示 - 移除不需要的自定义样式 */
 
 /* 封面上传样式 */
 .cover-upload-container {
