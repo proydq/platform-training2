@@ -756,7 +756,7 @@ const handleChapterUpload = async (options) => {
       chapterForm.value.mediaUrl = url
       chapterForm.value.videoUrl = url
       chapterMediaFileList.value = [{ name: file.name, url }]
-      if (options.onSuccess) options.onSuccess(res)
+      if (options.onSuccess) options.onSuccess(res.data || res, file)
       ElMessage.success('文件上传成功')
     } else {
       ElMessage.error('文件上传失败')
