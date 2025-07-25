@@ -247,6 +247,7 @@
               ref="mediaUploadRef"
               v-model:file-list="chapterMediaFileList"
               :show-file-list="false"
+              action="/api/v1/upload/chapter-resource"
               :http-request="handleMediaUpload"
               :before-upload="beforeMediaUpload"
               accept="video/*,audio/*"
@@ -690,41 +691,50 @@ const beforeMediaUpload = (file) => {
   return true
 }
 
-const handleMediaUpload = (options) => {
+const handleMediaUpload = async (options) => {
   const file = options.file
 
   // 显示计算中状态
   chapterForm.value.duration = -1 // 用-1表示计算中
   chapterForm.value.fileSize = file.size
 
-  // 创建媒体元素获取时长
-  const mediaElement = file.type.startsWith('video/') ?
-    document.createElement('video') :
-    document.createElement('audio')
+  // 先计算媒体时长
+  const tempUrl = URL.createObjectURL(file)
+  const mediaElement = file.type.startsWith('video/')
+    ? document.createElement('video')
+    : document.createElement('audio')
 
   mediaElement.preload = 'metadata'
   mediaElement.onloadedmetadata = () => {
-    // 获取时长（秒）
     const durationInSeconds = Math.floor(mediaElement.duration)
     chapterForm.value.duration = durationInSeconds
-
-    // 释放内存
-    window.URL.revokeObjectURL(mediaElement.src)
-
-    ElMessage.success(`文件上传成功！时长：${formatDuration(durationInSeconds)}`)
+    URL.revokeObjectURL(mediaElement.src)
   }
-
   mediaElement.onerror = () => {
     chapterForm.value.duration = 0
-    window.URL.revokeObjectURL(mediaElement.src)
+    URL.revokeObjectURL(mediaElement.src)
     ElMessage.warning('无法获取媒体时长，请检查文件格式')
   }
+  mediaElement.src = tempUrl
 
-  // 设置文件URL
-  const url = URL.createObjectURL(file)
-  mediaElement.src = url
-  chapterForm.value.mediaUrl = url
-  chapterMediaFileList.value = [{ name: file.name, url }]
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const res = await request.post('/api/v1/upload/chapter-resource', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    const url = res.url || res.data?.url
+    if (url) {
+      chapterForm.value.mediaUrl = url
+      chapterMediaFileList.value = [{ name: file.name, url }]
+      ElMessage.success('文件上传成功')
+    } else {
+      ElMessage.error('文件上传失败')
+    }
+  } catch (err) {
+    console.error('文件上传失败:', err)
+    ElMessage.error('文件上传失败')
+  }
 }
 
 const removeMedia = () => {
