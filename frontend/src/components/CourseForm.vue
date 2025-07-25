@@ -738,6 +738,7 @@ const handleChapterUpload = async (options) => {
 
   const formData = new FormData()
   formData.append('file', file)
+
   try {
     const token = localStorage.getItem('token')
     const res = await axios.post(
@@ -751,20 +752,60 @@ const handleChapterUpload = async (options) => {
         onUploadProgress: options.onProgress
       }
     )
-    const url = res.data?.url || res.url
-    if (url) {
-      chapterForm.value.mediaUrl = url
-      chapterForm.value.videoUrl = url
-      chapterMediaFileList.value = [{ name: file.name, url }]
-      if (options.onSuccess) options.onSuccess(res.data || res, file)
-      ElMessage.success('文件上传成功')
-    } else {
-      ElMessage.error('文件上传失败')
+
+    console.log('📹 章节视频上传响应:', res.data)
+
+    // 🔧 修复：正确解析后端响应格式
+    let fileUrl = null
+
+    if (res.data) {
+      // 检查 Result 格式响应
+      if (res.data.code === 0 || res.data.code === 200) {
+        // 成功响应，从 data 字段获取 URL
+        fileUrl = res.data.data?.url
+      } else if (res.data.url) {
+        // 直接包含 url 字段
+        fileUrl = res.data.url
+      }
     }
+
+    // 备用方案：检查其他可能的字段
+    if (!fileUrl) {
+      fileUrl = res.data?.data?.url || res.data?.url || res.url
+    }
+
+    if (fileUrl) {
+      chapterForm.value.mediaUrl = fileUrl
+      chapterForm.value.videoUrl = fileUrl
+      chapterMediaFileList.value = [{
+        name: file.name,
+        url: fileUrl,
+        originalName: file.name,
+        size: file.size
+      }]
+
+      if (options.onSuccess) {
+        options.onSuccess(res.data || res, file)
+      }
+
+      ElMessage.success('章节文件上传成功')
+      console.log('✅ 章节文件上传成功，URL:', fileUrl)
+    } else {
+      console.error('❌ 无法从响应中获取文件URL:', res.data)
+      throw new Error('无法获取文件访问地址')
+    }
+
   } catch (err) {
-    console.error('文件上传失败:', err)
-    if (options.onError) options.onError(err)
-    ElMessage.error('文件上传失败')
+    console.error('❌ 章节文件上传失败:', err)
+    console.error('错误详情:', err.response?.data || err.message)
+
+    if (options.onError) {
+      options.onError(err)
+    }
+
+    // 更详细的错误提示
+    const errorMsg = err.response?.data?.message || err.message || '章节文件上传失败'
+    ElMessage.error(errorMsg)
   }
 }
 
