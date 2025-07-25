@@ -739,18 +739,31 @@ const handleChapterUpload = async (options) => {
   const formData = new FormData()
   formData.append('file', file)
   try {
-    const res = await axios.post('/api/v1/upload/chapter-resource', formData)
+    const token = localStorage.getItem('token')
+    const res = await axios.post(
+      '/api/v1/upload/chapter-resource',
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: options.onProgress
+      }
+    )
     const url = res.data?.url || res.url
     if (url) {
       chapterForm.value.mediaUrl = url
       chapterForm.value.videoUrl = url
       chapterMediaFileList.value = [{ name: file.name, url }]
+      if (options.onSuccess) options.onSuccess(res)
       ElMessage.success('文件上传成功')
     } else {
       ElMessage.error('文件上传失败')
     }
   } catch (err) {
     console.error('文件上传失败:', err)
+    if (options.onError) options.onError(err)
     ElMessage.error('文件上传失败')
   }
 }
