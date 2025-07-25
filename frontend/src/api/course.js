@@ -217,6 +217,7 @@ export function updateCourseAPI(courseId, data) {
         isFree: Boolean(chapter.isFree),
         requirements: chapter.requirements || '',
         learningObjectives: chapter.learningObjectives || '',
+        fileSize: chapter.fileSize || null,
         materialUrls: chapter.materialUrls || '',
         videoUrls: chapter.videoUrls || ''
       }))
@@ -296,7 +297,9 @@ export function createChapterAPI(courseId, data) {
       materialUrls: data.materialUrls || '',
       isFree: Boolean(data.isFree),
       requirements: data.requirements || '',
-      learningObjectives: data.learningObjectives || ''
+      learningObjectives: data.learningObjectives || '',
+      fileSize: data.fileSize || null,
+      fileFormat: data.fileFormat || null
     },
   })
 }
@@ -320,7 +323,9 @@ export function updateChapterAPI(courseId, chapterId, data) {
       materialUrls: data.materialUrls || '',
       isFree: Boolean(data.isFree),
       requirements: data.requirements || '',
-      learningObjectives: data.learningObjectives || ''
+      learningObjectives: data.learningObjectives || '',
+      fileSize: data.fileSize || null,
+      fileFormat: data.fileFormat || null
     },
   })
 }

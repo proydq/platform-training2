@@ -86,7 +86,13 @@ public class FileController {
         result.put("originalName", file.getOriginalFilename());
         result.put("name", file.getOriginalFilename());
         result.put("size", file.getSize());
-        result.put("type", file.getContentType());
+        // 🔧 返回文件格式，如 mp4、pdf 等
+        String ext = "";
+        String original = file.getOriginalFilename();
+        if (original != null && original.contains(".")) {
+            ext = original.substring(original.lastIndexOf('.') + 1);
+        }
+        result.put("format", ext);
 
         return Result.success(result);
     }
@@ -110,6 +116,12 @@ public class FileController {
         result.put("url", fileUrl);
         result.put("originalName", file.getOriginalFilename());
         result.put("size", file.getSize());
+        String ext = "";
+        String original = file.getOriginalFilename();
+        if (original != null && original.contains(".")) {
+            ext = original.substring(original.lastIndexOf('.') + 1);
+        }
+        result.put("format", ext);
 
         return Result.success(result);
     }
@@ -133,6 +145,12 @@ public class FileController {
         result.put("url", fileUrl);
         result.put("originalName", file.getOriginalFilename());
         result.put("size", file.getSize());
+        String extVideo = "";
+        String originalVideo = file.getOriginalFilename();
+        if (originalVideo != null && originalVideo.contains(".")) {
+            extVideo = originalVideo.substring(originalVideo.lastIndexOf('.') + 1);
+        }
+        result.put("format", extVideo);
 
         return Result.success(result);
     }
@@ -157,6 +175,12 @@ public class FileController {
         result.put("originalName", file.getOriginalFilename());
         result.put("name", file.getOriginalFilename());
         result.put("size", file.getSize());
+        String extDoc = "";
+        String originalDoc = file.getOriginalFilename();
+        if (originalDoc != null && originalDoc.contains(".")) {
+            extDoc = originalDoc.substring(originalDoc.lastIndexOf('.') + 1);
+        }
+        result.put("format", extDoc);
 
         return Result.success(result);
     }
@@ -180,6 +204,12 @@ public class FileController {
         result.put("url", fileUrl);
         result.put("originalName", file.getOriginalFilename());
         result.put("size", file.getSize());
+        String extAvatar = "";
+        String originalAvatar = file.getOriginalFilename();
+        if (originalAvatar != null && originalAvatar.contains(".")) {
+            extAvatar = originalAvatar.substring(originalAvatar.lastIndexOf('.') + 1);
+        }
+        result.put("format", extAvatar);
 
         return Result.success(result);
     }

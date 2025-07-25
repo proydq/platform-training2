@@ -63,6 +63,8 @@ public class CourseChapterService {
         // 创建章节实体
         CourseChapter chapter = new CourseChapter();
         BeanUtils.copyProperties(request, chapter);
+        // 显式设置文件大小
+        chapter.setFileSize(request.getFileSize());
         
         // 保存章节
         chapter = chapterRepository.save(chapter);
