@@ -580,8 +580,12 @@ public class CourseService {
         item.setVideoList(convertVideoInfoList(course.getVideoInfoList()));
 
         // 设置统计信息
-        int chapterCount = courseChapterRepository.countByCourseId(course.getId());
-        item.setTotalChapters(chapterCount);
+        Long chapterCount = courseChapterRepository.countByCourseId(course.getId());
+        if (chapterCount != null) {
+            item.setTotalChapters(chapterCount.intValue());
+        } else {
+            item.setTotalChapters(0);
+        }
 
         if (course.getChapters() != null) {
             item.setTotalDuration(course.getChapters().stream()

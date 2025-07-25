@@ -215,6 +215,7 @@ public class CourseDTO {
         private List<VideoInfo> videoList;
 
         // 统计信息
+        @JsonProperty("chapterCount")
         private Integer totalChapters;
         private Integer totalDuration;
 
