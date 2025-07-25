@@ -25,7 +25,7 @@
         </div>
 
         <!-- 课程分类筛选 -->
-        <div class="course-filters">
+<!--        <div class="course-filters">
           <button
             v-for="filter in filterOptions"
             :key="filter.key"
@@ -35,10 +35,10 @@
           >
             {{ filter.label }}
           </button>
-        </div>
+        </div>-->
 
         <!-- 推荐课程 -->
-        <h3 class="recommend-title">🎯 为你推荐</h3>
+<!--        <h3 class="recommend-title">🎯 为你推荐</h3>
         <div class="recommended-course">
           <div class="rec-icon">{{ recommended.icon }}</div>
           <div class="rec-info">
@@ -46,7 +46,7 @@
             <div class="rec-desc">{{ recommended.reason }} | 讲师：{{ recommended.instructor }}</div>
           </div>
           <button class="rec-btn" @click="startCourse(recommended.id)">开始学习</button>
-        </div>
+        </div>-->
       </div>
 
       <!-- 我的课程 -->
