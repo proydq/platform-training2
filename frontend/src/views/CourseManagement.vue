@@ -101,7 +101,14 @@
               {{ getDifficultyText(course.difficultyLevel) }}
             </el-tag>
             <el-tag size="small" type="info">{{ formatDuration(course.duration) }}</el-tag>
+            <!-- 🔧 去掉价格标签 -->
           </div>
+
+          <div class="course-instructor">
+            <el-icon><User /></el-icon>
+            <span>{{ course.instructorName || course.instructorId }}</span>
+          </div>
+
           <div class="course-stats">
             <div class="stat-item">
               <el-icon><View /></el-icon>
