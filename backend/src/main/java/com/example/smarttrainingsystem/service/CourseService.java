@@ -587,11 +587,12 @@ public class CourseService {
         } else {
             item.setTotalChapters(0);
         }
-        if (course.getChapters() != null) {
-            item.setTotalDuration(course.getChapters().stream()
-                    .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
-                    .sum());
-        }
+        // 🔧 计算课程总时长
+        List<CourseChapter> chapters = courseChapterRepository.findByCourseId(course.getId());
+        int totalDuration = chapters.stream()
+                .mapToInt(chapter -> chapter.getDuration() != null ? chapter.getDuration() : 0)
+                .sum();
+        item.setTotalDuration(totalDuration);
 
         return item;
     }

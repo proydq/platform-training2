@@ -27,6 +27,11 @@ public interface CourseChapterRepository extends JpaRepository<CourseChapter, St
     List<CourseChapter> findByCourseIdOrderBySortOrderAsc(String courseId);
 
     /**
+     * 根据课程ID查找所有章节
+     */
+    List<CourseChapter> findByCourseId(String courseId);
+
+    /**
      * 根据课程ID和状态查找章节列表
      */
     List<CourseChapter> findByCourseIdAndStatusOrderBySortOrderAsc(String courseId, Integer status);

@@ -177,6 +177,7 @@ public class CourseDTO {
         // 统计信息
         @JsonProperty("chapterCount")
         private Integer totalChapters;
+        @JsonProperty("duration")
         private Integer totalDuration;
 
         private Long createTime;
@@ -217,6 +218,7 @@ public class CourseDTO {
         // 统计信息
         @JsonProperty("chapterCount")
         private Integer totalChapters;
+        @JsonProperty("duration")
         private Integer totalDuration;
 
         private Long createTime;
