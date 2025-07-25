@@ -25,28 +25,28 @@
         </div>
 
         <!-- 课程分类筛选 -->
-<!--        <div class="course-filters">
-          <button
-            v-for="filter in filterOptions"
-            :key="filter.key"
-            class="filter-btn"
-            :class="{ active: activeFilter === filter.key }"
-            @click="activeFilter = filter.key"
-          >
-            {{ filter.label }}
-          </button>
-        </div>-->
+        <!--        <div class="course-filters">
+                  <button
+                    v-for="filter in filterOptions"
+                    :key="filter.key"
+                    class="filter-btn"
+                    :class="{ active: activeFilter === filter.key }"
+                    @click="activeFilter = filter.key"
+                  >
+                    {{ filter.label }}
+                  </button>
+                </div>-->
 
         <!-- 推荐课程 -->
-<!--        <h3 class="recommend-title">🎯 为你推荐</h3>
-        <div class="recommended-course">
-          <div class="rec-icon">{{ recommended.icon }}</div>
-          <div class="rec-info">
-            <div class="rec-title">{{ recommended.title }}</div>
-            <div class="rec-desc">{{ recommended.reason }} | 讲师：{{ recommended.instructor }}</div>
-          </div>
-          <button class="rec-btn" @click="startCourse(recommended.id)">开始学习</button>
-        </div>-->
+        <!--        <h3 class="recommend-title">🎯 为你推荐</h3>
+                <div class="recommended-course">
+                  <div class="rec-icon">{{ recommended.icon }}</div>
+                  <div class="rec-info">
+                    <div class="rec-title">{{ recommended.title }}</div>
+                    <div class="rec-desc">{{ recommended.reason }} | 讲师：{{ recommended.instructor }}</div>
+                  </div>
+                  <button class="rec-btn" @click="startCourse(recommended.id)">开始学习</button>
+                </div>-->
       </div>
 
       <!-- 我的课程 -->
@@ -60,7 +60,7 @@
             v-model="searchKeyword"
             placeholder="搜索课程名称..."
             class="search-input"
-          >
+          />
         </div>
 
         <div class="course-list">
@@ -73,7 +73,10 @@
             <div class="course-icon" :style="{ background: course.bg }">{{ course.icon }}</div>
             <div class="course-info">
               <div class="course-title">{{ course.title }}</div>
-              <div class="course-meta">讲师：{{ course.instructor }} | 时长：{{ course.duration }}<span v-if="course.videos"> | 🎥 {{ course.videos }}个视频</span></div>
+              <div class="course-meta">
+                讲师：{{ course.instructor }} | 时长：{{ course.duration
+                }}<span v-if="course.videos"> | 🎥 {{ course.videos }}个视频</span>
+              </div>
 
               <!-- 进行中课程显示进度 -->
               <div v-if="course.status === 'in-progress'" class="course-progress">
@@ -99,19 +102,25 @@
               <!-- 进行中课程 -->
               <template v-if="course.status === 'in-progress'">
                 <button class="btn btn-primary" @click="continueCourse(course.id)">继续学习</button>
-                <button class="btn btn-secondary small" @click="toggleFavorite(course)">⭐ 收藏</button>
+                <button class="btn btn-secondary small" @click="toggleFavorite(course)">
+                  ⭐ 收藏
+                </button>
               </template>
 
               <!-- 已完成课程 -->
               <template v-else-if="course.status === 'completed'">
                 <button class="btn btn-secondary" @click="reviewCourse(course.id)">复习</button>
-                <button class="btn btn-secondary small" @click="downloadCertificate(course.id)">📜 证书</button>
+                <button class="btn btn-secondary small" @click="downloadCertificate(course.id)">
+                  📜 证书
+                </button>
               </template>
 
               <!-- 待开始课程 -->
               <template v-else-if="course.status === 'not-started'">
                 <button class="btn btn-disabled" disabled>暂未解锁</button>
-                <button class="btn btn-secondary small" @click="viewPrerequisites(course.id)">查看要求</button>
+                <button class="btn btn-secondary small" @click="viewPrerequisites(course.id)">
+                  查看要求
+                </button>
               </template>
             </div>
           </div>
@@ -189,7 +198,7 @@ const filterOptions = [
   { key: 'in-progress', label: '进行中' },
   { key: 'completed', label: '已完成' },
   { key: 'not-started', label: '待开始' },
-  { key: 'favorites', label: '⭐ 收藏' }
+  { key: 'favorites', label: '⭐ 收藏' },
 ]
 
 // 推荐课程
@@ -198,7 +207,7 @@ const recommended = {
   icon: '🚀',
   title: 'AI产品设计实战',
   reason: '🤖 基于你的学习记录推荐',
-  instructor: 'AI专家'
+  instructor: 'AI专家',
 }
 
 // 课程数据
@@ -213,7 +222,7 @@ const courses = ref([
     progress: 75,
     icon: '📱',
     bg: 'linear-gradient(135deg, #667eea, #764ba2)',
-    favorite: false
+    favorite: false,
   },
   {
     id: 'data-analysis',
@@ -225,7 +234,7 @@ const courses = ref([
     grade: '92',
     icon: '📊',
     bg: 'linear-gradient(135deg, #28a745, #20c997)',
-    favorite: true
+    favorite: true,
   },
   {
     id: 'advanced-research',
@@ -236,8 +245,8 @@ const courses = ref([
     prerequisite: '需要先完成"用户体验基础"课程',
     icon: '🔍',
     bg: 'linear-gradient(135deg, #6c757d, #495057)',
-    favorite: false
-  }
+    favorite: false,
+  },
 ])
 
 // 学习路径
@@ -249,10 +258,10 @@ const learningPaths = [
       { name: '产品基础知识', status: '已完成', icon: '✅' },
       { name: '用户研究方法', status: '进行中', icon: '🔄' },
       { name: '产品设计实战', status: '待开始', icon: '⏳' },
-      { name: '数据驱动决策', status: '待开始', icon: '⏳' }
+      { name: '数据驱动决策', status: '待开始', icon: '⏳' },
     ],
     progress: 40,
-    bg: 'linear-gradient(135deg, #667eea, #764ba2)'
+    bg: 'linear-gradient(135deg, #667eea, #764ba2)',
   },
   {
     id: 'data-analyst',
@@ -261,11 +270,11 @@ const learningPaths = [
       { name: '数据分析基础', status: '已完成', icon: '✅' },
       { name: 'Excel高级应用', status: '已完成', icon: '✅' },
       { name: 'Python数据分析', status: '进行中', icon: '🔄' },
-      { name: '机器学习入门', status: '待开始', icon: '⏳' }
+      { name: '机器学习入门', status: '待开始', icon: '⏳' },
     ],
     progress: 60,
-    bg: 'linear-gradient(135deg, #28a745, #20c997)'
-  }
+    bg: 'linear-gradient(135deg, #28a745, #20c997)',
+  },
 ]
 
 // 学习成就
@@ -275,27 +284,27 @@ const achievements = [
     title: '学习达人',
     condition: '连续学习30天',
     time: '获得时间：2025-01-15',
-    style: 'background:#fff3cd;border:2px solid #ffc107;'
+    style: 'background:#fff3cd;border:2px solid #ffc107;',
   },
   {
     icon: '📚',
     title: '知识大师',
     condition: '完成20门课程',
     time: '获得时间：2025-01-12',
-    style: 'background:#d4edda;border:2px solid #28a745;'
+    style: 'background:#d4edda;border:2px solid #28a745;',
   },
   {
     icon: '🎯',
     title: '考试王者',
     condition: '所有考试95分以上',
     time: '进度：8/10',
-    style: 'background:#f8f9fa;border:2px dashed #6c757d;opacity:0.7;'
-  }
+    style: 'background:#f8f9fa;border:2px dashed #6c757d;opacity:0.7;',
+  },
 ]
 
 // 计算属性
 const filteredCourses = computed(() => {
-  return courses.value.filter(course => {
+  return courses.value.filter((course) => {
     // 关键词搜索
     const matchKeyword = course.title.toLowerCase().includes(searchKeyword.value.toLowerCase())
 
@@ -390,10 +399,21 @@ const continuePath = (id) => {
   border-radius: 10px;
 }
 
-.overview-item.blue { background: #e3f2fd; }
-.overview-item.orange { background: #fff3e0; }
-.overview-item.purple { background: #f3e5f5; }
-.overview-item.green { background: #e8f5e8; }
+.overview-item.blue {
+  background: #e3f2fd;
+}
+
+.overview-item.orange {
+  background: #fff3e0;
+}
+
+.overview-item.purple {
+  background: #f3e5f5;
+}
+
+.overview-item.green {
+  background: #e8f5e8;
+}
 
 .overview-number {
   font-size: 24px;
@@ -401,10 +421,21 @@ const continuePath = (id) => {
   margin-bottom: 5px;
 }
 
-.overview-item.blue .overview-number { color: #1976d2; }
-.overview-item.orange .overview-number { color: #f57c00; }
-.overview-item.purple .overview-number { color: #7b1fa2; }
-.overview-item.green .overview-number { color: #2e7d32; }
+.overview-item.blue .overview-number {
+  color: #1976d2;
+}
+
+.overview-item.orange .overview-number {
+  color: #f57c00;
+}
+
+.overview-item.purple .overview-number {
+  color: #7b1fa2;
+}
+
+.overview-item.green .overview-number {
+  color: #2e7d32;
+}
 
 .overview-label {
   color: #666;
@@ -459,7 +490,7 @@ const continuePath = (id) => {
 .rec-icon {
   width: 60px;
   height: 60px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -482,7 +513,7 @@ const continuePath = (id) => {
 }
 
 .rec-btn {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
   padding: 8px 16px;
@@ -492,7 +523,7 @@ const continuePath = (id) => {
 }
 
 .rec-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* 课程卡片 */
@@ -760,7 +791,7 @@ const continuePath = (id) => {
 }
 
 .path-btn {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
   padding: 8px 16px;
@@ -770,7 +801,7 @@ const continuePath = (id) => {
 }
 
 .path-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* 学习成就 */
