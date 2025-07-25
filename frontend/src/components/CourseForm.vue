@@ -65,20 +65,20 @@
         </div>
 
         <!-- 课程封面 -->
-        <el-form-item label="课程封面" prop="coverUrl">
+        <el-form-item label="课程封面" prop="coverImage">
           <div class="cover-upload-container">
             <!-- 左侧：当前封面 -->
             <div class="cover-current" @click="selectCoverImage">
               <img
-                v-if="form.coverUrl"
-                :src="form.coverUrl"
+                v-if="form.coverImage"
+                :src="form.coverImage"
                 alt="课程封面"
                 class="cover-preview"
               />
               <div v-else class="cover-placeholder">
                 <span>暂无封面</span>
               </div>
-              <div v-if="form.coverUrl" class="cover-overlay">
+              <div v-if="form.coverImage" class="cover-overlay">
                 <div class="cover-actions">
                   <el-button type="primary" size="small" @click.stop="selectCoverImage">
                     <el-icon><Picture /></el-icon>
@@ -103,6 +103,7 @@
             ref="coverUploadRef"
             v-model:file-list="coverFileList"
             :show-file-list="false"
+            action="/api/v1/upload/course-cover"
             :http-request="handleCoverUpload"
             :before-upload="beforeCoverUpload"
             accept="image/*"
@@ -313,6 +314,7 @@ import {
   UploadFilled, Check, Warning
 } from '@element-plus/icons-vue'
 import { useFileUpload } from '@/composables/useFileUpload'
+import request from '@/utils/request'
 
 // Props
 const props = defineProps({
@@ -361,7 +363,7 @@ const form = ref({
   description: '',
   category: '',
   level: 1,
-  coverUrl: '',
+  coverImage: '',
   chapters: []
 })
 
@@ -461,12 +463,12 @@ watch(
         category: newData.category || '',
         level: newData.level || newData.difficultyLevel || 1,
         // 🔧 关键修复：多字段映射封面URL
-        coverUrl: newData.coverUrl || newData.coverImageUrl || newData.cover || newData.coverImage || '',
+        coverImage: newData.coverImageUrl || newData.coverImage || newData.coverUrl || newData.cover || '',
         chapters: processedChapters
       })
 
-      coverFileList.value = form.value.coverUrl
-        ? [{ name: getFileName(form.value.coverUrl), url: form.value.coverUrl }]
+      coverFileList.value = form.value.coverImage
+        ? [{ name: getFileName(form.value.coverImage), url: form.value.coverImage }]
         : []
 
       form.value.chapters.forEach(ch => {
@@ -476,7 +478,7 @@ watch(
       })
 
       console.log('✅ CourseForm数据处理完成:', form.value)
-      console.log('🖼️ 最终封面URL:', form.value.coverUrl)
+      console.log('🖼️ 最终封面URL:', form.value.coverImage)
     }
   },
   { immediate: true, deep: true }
@@ -486,7 +488,7 @@ watch(
 watch(
   coverFileList,
   (list) => {
-    form.value.coverUrl = list[0]?.url || ''
+    form.value.coverImage = list[0]?.url || ''
   },
   { deep: true }
 )
@@ -617,7 +619,9 @@ const selectCoverImage = () => {
 const handleCoverSelect = (event) => {
   const file = event.target.files[0]
   if (file) {
-    beforeCoverUpload(file)
+    if (beforeCoverUpload(file)) {
+      handleCoverUpload(file)
+    }
   }
 }
 
@@ -634,24 +638,33 @@ const beforeCoverUpload = (file) => {
     return false
   }
 
-  // 直接预览图片
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    form.value.coverUrl = e.target.result
-    coverFileList.value = [{ name: file.name, url: e.target.result }]
-  }
-  reader.readAsDataURL(file)
-
-  return false // 阻止自动上传
+  return true
 }
 
-const handleCoverUpload = (options) => {
-  // 这里可以实现实际的上传逻辑
-  console.log('上传封面:', options.file)
+const handleCoverUpload = async (options) => {
+  const file = options.file || options
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const res = await request.post('/api/v1/upload/course-cover', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    const url = res.url || res.data?.url
+    if (url) {
+      form.value.coverImage = url
+      coverFileList.value = [{ name: file.name, url }]
+      ElMessage.success('封面上传成功')
+    } else {
+      ElMessage.error('封面上传失败')
+    }
+  } catch (err) {
+    console.error('封面上传失败:', err)
+    ElMessage.error('封面上传失败')
+  }
 }
 
 const removeCover = () => {
-  form.value.coverUrl = ''
+  form.value.coverImage = ''
   coverFileList.value = []
 }
 
@@ -804,7 +817,7 @@ const handleSave = async () => {
     const courseData = {
       ...form.value,
       duration: calculateTotalDuration(),
-      coverUrl: coverFileList.value[0]?.url || form.value.coverUrl
+      coverImage: coverFileList.value[0]?.url || form.value.coverImage
     }
 
     courseData.chapters = form.value.chapters.map((ch) => {
