@@ -16,6 +16,8 @@
               />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="课程分类" prop="category">
               <el-select v-model="form.category" placeholder="请选择课程分类" style="width: 100%">
@@ -29,7 +31,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="难度级别" prop="level">
@@ -43,17 +44,8 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="课程价格">
-              <el-input-number
-                v-model="form.price"
-                :min="0"
-                :max="9999"
-                placeholder="元"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="课程时长" prop="duration">
               <el-input-number
@@ -66,7 +58,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-
         <el-form-item label="课程描述" prop="description">
           <el-input
             v-model="form.description"
@@ -77,7 +68,6 @@
             show-word-limit
           />
         </el-form-item>
-
         <el-form-item label="必修课程">
           <el-switch v-model="form.isRequired" active-text="是" inactive-text="否" />
         </el-form-item>
@@ -101,7 +91,9 @@
               list-type="picture-card"
               class="course-cover-upload"
             >
-              <el-icon v-if="!uploading.cover"><Plus /></el-icon>
+              <el-icon v-if="!uploading.cover">
+                <Plus />
+              </el-icon>
               <div v-else class="upload-progress">
                 <el-progress type="circle" :percentage="uploadProgress.cover" :width="50" />
               </div>
@@ -135,13 +127,14 @@
             </el-upload>
             <div class="upload-tip">
               <el-text type="info" size="small">
-                支持 PDF、Word、Excel、PPT、TXT、ZIP、RAR 格式，单个文件不超过 50MB，最多上传10个文件
+                支持 PDF、Word、Excel、PPT、TXT、ZIP、RAR 格式，单个文件不超过
+                50MB，最多上传10个文件
               </el-text>
             </div>
           </div>
         </el-form-item>
 
-        <!-- 🆕 教学视频 -->
+        <!-- 教学视频 -->
         <el-form-item label="教学视频">
           <div class="upload-wrapper">
             <el-upload
@@ -168,10 +161,13 @@
             </div>
 
             <!-- 视频上传进度 -->
-            <div v-if="uploadProgress.video > 0 && uploadProgress.video < 100" class="upload-progress-bar">
+            <div
+              v-if="uploadProgress.video > 0 && uploadProgress.video < 100"
+              class="upload-progress-bar"
+            >
               <el-progress
                 :percentage="uploadProgress.video"
-                :format="format => `${format}% (${uploadSpeed})`"
+                :format="(format) => `${format}% (${uploadSpeed})`"
               />
               <div class="progress-info">
                 <span>正在上传视频，请稍候...</span>
@@ -190,9 +186,7 @@
           <el-button type="primary" size="small" @click="addChapter" :icon="Plus">
             添加章节
           </el-button>
-          <el-text type="info" size="small">
-            {{ form.chapters.length }} 个章节
-          </el-text>
+          <el-text type="info" size="small"> {{ form.chapters.length }} 个章节</el-text>
         </div>
 
         <div v-if="form.chapters.length === 0" class="empty-chapters">
@@ -210,7 +204,6 @@
                 <div class="chapter-title">
                   <span class="chapter-number">{{ chapter.order }}</span>
                   <span class="title-text">{{ chapter.title }}</span>
-                  <!-- 🆕 章节类型标识 -->
                   <el-tag
                     :type="getChapterTypeTagType(chapter.chapterType)"
                     size="small"
@@ -226,11 +219,15 @@
               </div>
               <div class="chapter-actions">
                 <el-button type="primary" link size="small" @click="editChapter(index)">
-                  <el-icon><Edit /></el-icon>
+                  <el-icon>
+                    <Edit />
+                  </el-icon>
                   编辑
                 </el-button>
                 <el-button type="danger" link size="small" @click="removeChapter(index)">
-                  <el-icon><Delete /></el-icon>
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
                   删除
                 </el-button>
               </div>
@@ -248,7 +245,7 @@
       </div>
     </el-form>
 
-    <!-- 🆕 增强的章节编辑对话框 -->
+    <!-- 章节编辑对话框 -->
     <el-dialog
       v-model="chapterModalVisible"
       :title="chapterModalTitle"
@@ -277,30 +274,42 @@
           </el-col>
         </el-row>
 
-        <!-- 🆕 章节类型选择 -->
+        <!-- 章节类型选择 -->
         <el-form-item label="章节类型" prop="chapterType">
-          <el-radio-group v-model="chapterForm.chapterType" @change="onChapterTypeChange" class="chapter-type-group">
+          <el-radio-group
+            v-model="chapterForm.chapterType"
+            @change="onChapterTypeChange"
+            class="chapter-type-group"
+          >
             <el-radio value="video" class="type-radio">
               <div class="type-option">
-                <el-icon><VideoPlay /></el-icon>
+                <el-icon>
+                  <VideoPlay />
+                </el-icon>
                 <span>视频课程</span>
               </div>
             </el-radio>
             <el-radio value="document" class="type-radio">
               <div class="type-option">
-                <el-icon><Document /></el-icon>
+                <el-icon>
+                  <Document />
+                </el-icon>
                 <span>文档资料</span>
               </div>
             </el-radio>
             <el-radio value="audio" class="type-radio">
               <div class="type-option">
-                <el-icon><Microphone /></el-icon>
+                <el-icon>
+                  <Microphone />
+                </el-icon>
                 <span>音频课程</span>
               </div>
             </el-radio>
             <el-radio value="quiz" class="type-radio">
               <div class="type-option">
-                <el-icon><Edit /></el-icon>
+                <el-icon>
+                  <Edit />
+                </el-icon>
                 <span>在线测验</span>
               </div>
             </el-radio>
@@ -317,7 +326,7 @@
           />
         </el-form-item>
 
-        <!-- 🆕 根据章节类型显示不同的内容配置 -->
+        <!-- 根据章节类型显示不同的内容配置 -->
 
         <!-- 视频类型配置 -->
         <div v-if="chapterForm.chapterType === 'video'" class="chapter-content-config">
@@ -349,7 +358,7 @@
                 <video
                   :src="chapterForm.videoUrl"
                   controls
-                  style="width: 100%; max-height: 200px; border-radius: 8px; margin-top: 10px;"
+                  style="width: 100%; max-height: 200px; border-radius: 8px; margin-top: 10px"
                   preload="metadata"
                 >
                   您的浏览器不支持视频播放
@@ -389,7 +398,9 @@
                 >
                   <div class="document-option">
                     <span>{{ material.name }}</span>
-                    <el-tag size="small" type="success">{{ getFileExtension(material.name) }}</el-tag>
+                    <el-tag size="small" type="success"
+                    >{{ getFileExtension(material.name) }}
+                    </el-tag>
                   </div>
                 </el-option>
               </el-select>
@@ -487,25 +498,26 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Plus, Upload, Edit, Delete, VideoPlay, Document, Microphone
+  Plus,
+  Upload,
+  Edit,
+  Delete,
+  VideoPlay,
+  Document,
+  Microphone,
 } from '@element-plus/icons-vue'
-import { useUserStore } from '@/stores/user'
-import {
-  uploadCourseCoverAPI,
-  uploadCourseMaterialAPI,
-  uploadCourseVideoAPI
-} from '@/api/course'
+import { uploadCourseCoverAPI, uploadCourseMaterialAPI, uploadCourseVideoAPI } from '@/api/course'
 
 // Props & Emits
 const props = defineProps({
   courseData: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   isEditing: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['save', 'cancel'])
@@ -515,27 +527,27 @@ const formRef = ref()
 const chapterFormRef = ref()
 const saving = ref(false)
 
-// 🆕 上传状态管理
+// 上传状态管理
 const uploading = reactive({
   cover: false,
   material: false,
-  video: false
+  video: false,
 })
 
 const uploadProgress = reactive({
   cover: 0,
   material: 0,
-  video: 0
+  video: 0,
 })
 
 const uploadSpeed = ref('')
 const estimatedTime = ref('')
 
-// 🆕 文件列表状态（增加视频支持）
+// 文件列表状态
 const fileListState = reactive({
   cover: [],
   materials: [],
-  videos: [] // 新增视频文件列表
+  videos: [],
 })
 
 // 表单数据
@@ -550,7 +562,7 @@ const form = reactive({
   isRequired: false,
   coverImage: '',
   materials: [],
-  chapters: []
+  chapters: [],
 })
 
 // 章节对话框状态
@@ -559,7 +571,7 @@ const chapterModalTitle = ref('添加章节')
 const editingChapterIndex = ref(-1)
 const chapterSaving = ref(false)
 
-// 🆕 章节表单数据
+// 章节表单数据
 const chapterForm = reactive({
   title: '',
   description: '',
@@ -573,7 +585,7 @@ const chapterForm = reactive({
   isPublished: false,
   status: 0,
   requirements: '',
-  learningObjectives: ''
+  learningObjectives: '',
 })
 
 // 配置数据
@@ -584,40 +596,38 @@ const difficultyLevels = [
   { label: '初级', value: 2 },
   { label: '中级', value: 3 },
   { label: '高级', value: 4 },
-  { label: '专家级', value: 5 }
+  { label: '专家级', value: 5 },
 ]
 
 // 表单验证规则
 const rules = {
   title: [
     { required: true, message: '请输入课程名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '课程名称长度在 2 到 100 个字符', trigger: 'blur' }
+    { min: 2, max: 100, message: '课程名称长度在 2 到 100 个字符', trigger: 'blur' },
   ],
   description: [
     { required: true, message: '请输入课程描述', trigger: 'blur' },
-    { min: 10, max: 500, message: '课程描述长度在 10 到 500 个字符', trigger: 'blur' }
+    { min: 10, max: 500, message: '课程描述长度在 10 到 500 个字符', trigger: 'blur' },
   ],
   category: [{ required: true, message: '请选择课程分类', trigger: 'change' }],
   level: [{ required: true, message: '请选择难度级别', trigger: 'change' }],
   duration: [
     { required: true, message: '请输入课程时长', trigger: 'blur' },
-    { type: 'number', min: 1, message: '课程时长必须大于0', trigger: 'blur' }
-  ]
+    { type: 'number', min: 1, message: '课程时长必须大于0', trigger: 'blur' },
+  ],
 }
 
-// 🆕 章节表单验证规则
+// 章节表单验证规则
 const chapterRules = {
   title: [
     { required: true, message: '请输入章节标题', trigger: 'blur' },
-    { min: 2, max: 100, message: '章节标题长度在 2 到 100 个字符', trigger: 'blur' }
+    { min: 2, max: 100, message: '章节标题长度在 2 到 100 个字符', trigger: 'blur' },
   ],
-  chapterType: [
-    { required: true, message: '请选择章节类型', trigger: 'change' }
-  ],
+  chapterType: [{ required: true, message: '请选择章节类型', trigger: 'change' }],
   order: [
     { required: true, message: '请输入排序序号', trigger: 'blur' },
-    { type: 'number', min: 1, max: 100, message: '排序序号必须在 1-100 之间', trigger: 'blur' }
-  ]
+    { type: 'number', min: 1, max: 100, message: '排序序号必须在 1-100 之间', trigger: 'blur' },
+  ],
 }
 
 // 计算属性
@@ -625,7 +635,7 @@ const sortedChapters = computed(() => {
   return [...form.chapters].sort((a, b) => (a.order || 0) - (b.order || 0))
 })
 
-// 🆕 文件上传方法
+// 文件上传方法
 
 // 封面上传
 const beforeCoverUpload = (file) => {
@@ -651,12 +661,11 @@ const handleCoverUpload = async (options) => {
 
     console.log('📸 封面上传响应:', response)
 
-    // 🔧 修复：根据实际响应结构判断成功
     if (response && (response.code === 0 || response.code === 200 || response.data)) {
       const coverInfo = {
         name: file.name,
         url: response.data?.url || response.url || URL.createObjectURL(file),
-        uid: Date.now()
+        uid: Date.now(),
       }
       fileListState.cover = [coverInfo]
       ElMessage.success('封面上传成功！')
@@ -677,9 +686,20 @@ const handleCoverRemove = () => {
 
 // 文档上传
 const beforeMaterialUpload = (file) => {
-  const allowedTypes = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.zip', '.rar']
+  const allowedTypes = [
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.ppt',
+    '.pptx',
+    '.xls',
+    '.xlsx',
+    '.txt',
+    '.zip',
+    '.rar',
+  ]
   const fileName = file.name.toLowerCase()
-  const isValidType = allowedTypes.some(type => fileName.endsWith(type))
+  const isValidType = allowedTypes.some((type) => fileName.endsWith(type))
 
   if (!isValidType) {
     ElMessage.error('不支持的文件格式！')
@@ -703,14 +723,13 @@ const handleMaterialUpload = async (options) => {
 
     console.log('📄 文档上传响应:', response)
 
-    // 🔧 修复：根据实际响应结构判断成功
     if (response && (response.code === 0 || response.code === 200 || response.data)) {
       const materialInfo = {
         name: file.name,
         originalName: file.name,
         url: response.data?.url || response.url || URL.createObjectURL(file),
         size: file.size,
-        uid: Date.now()
+        uid: Date.now(),
       }
       fileListState.materials.push(materialInfo)
       ElMessage.success(`资料 "${file.name}" 上传成功！`)
@@ -726,18 +745,27 @@ const handleMaterialUpload = async (options) => {
 }
 
 const handleMaterialRemove = (file) => {
-  const index = fileListState.materials.findIndex(m => m.uid === file.uid)
+  const index = fileListState.materials.findIndex((m) => m.uid === file.uid)
   if (index > -1) {
     fileListState.materials.splice(index, 1)
   }
 }
 
-// 🆕 视频上传方法
+// 视频上传方法
 const beforeVideoUpload = (file) => {
   console.log('📹 视频上传前验证:', file.name)
 
-  const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/x-flv', 'video/webm', 'video/x-matroska']
-  const isValidType = allowedTypes.includes(file.type) || /\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(file.name)
+  const allowedTypes = [
+    'video/mp4',
+    'video/avi',
+    'video/mov',
+    'video/wmv',
+    'video/x-flv',
+    'video/webm',
+    'video/x-matroska',
+  ]
+  const isValidType =
+    allowedTypes.includes(file.type) || /\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(file.name)
 
   if (!isValidType) {
     ElMessage.error('只能上传 MP4、AVI、MOV、WMV、FLV、WebM、MKV 格式的视频文件！')
@@ -787,7 +815,6 @@ const handleVideoUpload = async (options) => {
 
     console.log('📹 视频上传响应:', response)
 
-    // 🔧 修复：根据实际响应结构判断成功
     if (response && (response.code === 0 || response.code === 200 || response.data)) {
       const videoInfo = {
         name: file.name,
@@ -795,7 +822,7 @@ const handleVideoUpload = async (options) => {
         url: response.data?.url || response.url || URL.createObjectURL(file),
         size: file.size,
         uid: Date.now(),
-        status: 'success'
+        status: 'success',
       }
 
       fileListState.videos.push(videoInfo)
@@ -817,18 +844,18 @@ const handleVideoUpload = async (options) => {
 }
 
 const handleVideoRemove = (file) => {
-  const index = fileListState.videos.findIndex(v => v.uid === file.uid || v.url === file.url)
+  const index = fileListState.videos.findIndex((v) => v.uid === file.uid || v.url === file.url)
   if (index > -1) {
     fileListState.videos.splice(index, 1)
     ElMessage.success('视频已移除')
   }
 }
 
-const handleVideoProgress = (event, file) => {
+const handleVideoProgress = (event) => {
   console.log('📊 视频上传进度:', event.percent + '%')
 }
 
-// 🆕 章节管理方法
+// 章节管理方法
 const addChapter = () => {
   resetChapterForm()
   chapterModalTitle.value = '添加章节'
@@ -841,7 +868,7 @@ const editChapter = (index) => {
   const chapter = form.chapters[index]
   Object.assign(chapterForm, {
     ...chapter,
-    isPublished: chapter.status === 1
+    isPublished: chapter.status === 1,
   })
   chapterModalTitle.value = '编辑章节'
   editingChapterIndex.value = index
@@ -853,7 +880,7 @@ const removeChapter = async (index) => {
     await ElMessageBox.confirm('确定要删除这个章节吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
     })
 
     form.chapters.splice(index, 1)
@@ -870,7 +897,7 @@ const saveChapter = async () => {
 
     const chapterData = {
       ...chapterForm,
-      status: chapterForm.isPublished ? 1 : 0
+      status: chapterForm.isPublished ? 1 : 0,
     }
 
     if (editingChapterIndex.value >= 0) {
@@ -908,11 +935,11 @@ const resetChapterForm = () => {
     isPublished: false,
     status: 0,
     requirements: '',
-    learningObjectives: ''
+    learningObjectives: '',
   })
 }
 
-// 🆕 章节类型相关方法
+// 章节类型相关方法
 const onChapterTypeChange = (newType) => {
   chapterForm.contentUrl = ''
   chapterForm.videoUrl = ''
@@ -936,16 +963,12 @@ const onChapterTypeChange = (newType) => {
   }
 }
 
-const onPublishStatusChange = (isPublished) => {
-  chapterForm.status = isPublished ? 1 : 0
-}
-
 const getChapterTypeText = (type) => {
   const typeMap = {
     video: '🎥 视频',
     document: '📄 文档',
     audio: '🎵 音频',
-    quiz: '📝 测验'
+    quiz: '📝 测验',
   }
   return typeMap[type] || '📚 课程'
 }
@@ -955,12 +978,12 @@ const getChapterTypeTagType = (type) => {
     video: 'primary',
     document: 'success',
     audio: 'warning',
-    quiz: 'info'
+    quiz: 'info',
   }
   return tagTypeMap[type] || 'info'
 }
 
-// 🛠️ 工具函数
+// 工具函数
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -970,10 +993,10 @@ const formatFileSize = (bytes) => {
 }
 
 const getFileExtension = (filename) => {
-  return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2).toUpperCase()
+  return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2).toUpperCase()
 }
 
-// 🔄 数据初始化
+// 数据初始化
 const initFormData = (data) => {
   if (!data || Object.keys(data).length === 0) return
 
@@ -986,16 +1009,18 @@ const initFormData = (data) => {
     price: data.price || 0,
     duration: data.duration || data.estimatedDuration || 0,
     isRequired: data.isRequired || false,
-    chapters: processChaptersData(data.chapters || [])
+    chapters: processChaptersData(data.chapters || []),
   })
 
   // 初始化文件列表
   if (data.coverImage) {
-    fileListState.cover = [{
-      name: '课程封面',
-      url: data.coverImage,
-      uid: Date.now()
-    }]
+    fileListState.cover = [
+      {
+        name: '课程封面',
+        url: data.coverImage,
+        uid: Date.now(),
+      },
+    ]
   }
 
   if (data.materials && data.materials.length > 0) {
@@ -1003,7 +1028,7 @@ const initFormData = (data) => {
       name: material.name || `教学资料${index + 1}`,
       url: material.url,
       originalName: material.originalName || material.name,
-      uid: Date.now() + index
+      uid: Date.now() + index,
     }))
   }
 
@@ -1013,7 +1038,7 @@ const initFormData = (data) => {
       url: video.url,
       originalName: video.originalName || video.name,
       size: video.size || 0,
-      uid: Date.now() + index + 1000
+      uid: Date.now() + index + 1000,
     }))
   }
 }
@@ -1028,11 +1053,12 @@ const processChaptersData = (chapters) => {
     title: chapter.title || '',
     description: chapter.description || '',
     chapterType: chapter.chapterType || chapter.chapter_type || 'document',
-    order: chapter.order || chapter.sortOrder || chapter.sort_order || (index + 1),
+    order: chapter.order || chapter.sortOrder || chapter.sort_order || index + 1,
     duration: chapter.duration || 0,
     content: chapter.content || chapter.contentUrl || chapter.content_url || '',
     videoUrl: chapter.videoUrl || chapter.video_url || '',
-    contentUrl: chapter.contentUrl || chapter.content_url || chapter.videoUrl || chapter.video_url || '',
+    contentUrl:
+      chapter.contentUrl || chapter.content_url || chapter.videoUrl || chapter.video_url || '',
     materialUrls: chapter.materialUrls || chapter.material_urls || '',
     videoUrls: chapter.videoUrls || chapter.video_urls || '',
     requirements: chapter.requirements || '',
@@ -1041,11 +1067,11 @@ const processChaptersData = (chapters) => {
     isFree: Boolean(chapter.isFree || chapter.is_free),
     fileFormat: chapter.fileFormat || chapter.file_format || '',
     fileSize: chapter.fileSize || chapter.file_size || null,
-    thumbnailUrl: chapter.thumbnailUrl || chapter.thumbnail_url || ''
+    thumbnailUrl: chapter.thumbnailUrl || chapter.thumbnail_url || '',
   }))
 }
 
-// 📤 表单提交处理
+// 表单提交处理
 const handleSave = async () => {
   try {
     await formRef.value.validate()
@@ -1054,16 +1080,16 @@ const handleSave = async () => {
     const submitData = {
       ...form,
       coverImage: fileListState.cover[0]?.url || '',
-      materials: fileListState.materials.map(file => ({
+      materials: fileListState.materials.map((file) => ({
         name: file.name,
         url: file.url,
-        originalName: file.originalName || file.name
+        originalName: file.originalName || file.name,
       })),
-      videos: fileListState.videos.map(file => ({
+      videos: fileListState.videos.map((file) => ({
         name: file.name,
         url: file.url,
-        originalName: file.originalName || file.name
-      }))
+        originalName: file.originalName || file.name,
+      })),
     }
 
     emit('save', submitData)
@@ -1080,11 +1106,15 @@ const handleCancel = () => {
 }
 
 // 监听器
-watch(() => props.courseData, (newData) => {
-  if (newData && Object.keys(newData).length > 0) {
-    initFormData(newData)
-  }
-}, { immediate: true })
+watch(
+  () => props.courseData,
+  (newData) => {
+    if (newData && Object.keys(newData).length > 0) {
+      initFormData(newData)
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   console.log('🚀 CourseForm组件已挂载')
@@ -1274,7 +1304,8 @@ onMounted(() => {
   margin: 15px 0;
 }
 
-.video-option, .document-option {
+.video-option,
+.document-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
