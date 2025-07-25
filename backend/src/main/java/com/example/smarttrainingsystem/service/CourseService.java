@@ -323,6 +323,8 @@ public class CourseService {
             CourseChapter chapter = new CourseChapter();
             BeanUtils.copyProperties(chapterRequest, chapter);
             chapter.setCourseId(courseId);
+            // 显式设置文件大小，避免 BeanUtils 忽略 null 值
+            chapter.setFileSize(chapterRequest.getFileSize());
 
             // 如果没有指定排序序号，自动设置
             if (chapter.getSortOrder() == null) {
@@ -350,12 +352,14 @@ public class CourseService {
                 }
                 BeanUtils.copyProperties(chapterRequest, chapter, "id", "courseId");
                 chapter.setCourseId(courseId);
+                chapter.setFileSize(chapterRequest.getFileSize());
                 courseChapterRepository.save(chapter);
             } else {
                 // 新建章节
                 CourseChapter chapter = new CourseChapter();
                 BeanUtils.copyProperties(chapterRequest, chapter);
                 chapter.setCourseId(courseId);
+                chapter.setFileSize(chapterRequest.getFileSize());
                 if (chapter.getSortOrder() == null) {
                     Integer maxOrder = courseChapterRepository.findMaxSortOrderByCourseId(courseId);
                     chapter.setSortOrder(maxOrder == null ? 1 : maxOrder + 1);
