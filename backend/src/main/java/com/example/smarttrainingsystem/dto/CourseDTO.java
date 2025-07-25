@@ -1,6 +1,7 @@
 package com.example.smarttrainingsystem.dto;
 
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
@@ -174,6 +175,7 @@ public class CourseDTO {
         private List<CourseChapterDTO.Response> chapters;
 
         // 统计信息
+        @JsonProperty("chapterCount")
         private Integer totalChapters;
         private Integer totalDuration;
 
@@ -213,6 +215,7 @@ public class CourseDTO {
         private List<VideoInfo> videoList;
 
         // 统计信息
+        @JsonProperty("chapterCount")
         private Integer totalChapters;
         private Integer totalDuration;
 
