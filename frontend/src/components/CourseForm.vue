@@ -101,6 +101,7 @@
 
           <el-upload
             ref="coverUploadRef"
+            v-model:file-list="coverFileList"
             :show-file-list="false"
             :http-request="handleCoverUpload"
             :before-upload="beforeCoverUpload"
@@ -243,6 +244,7 @@
           <div class="media-upload-wrapper">
             <el-upload
               ref="mediaUploadRef"
+              v-model:file-list="chapterMediaFileList"
               :show-file-list="false"
               :http-request="handleMediaUpload"
               :before-upload="beforeMediaUpload"
@@ -333,6 +335,9 @@ const chapterFormRef = ref()
 const coverUploadRef = ref()
 const mediaUploadRef = ref()
 const hiddenCoverTrigger = ref()
+// 文件列表
+const coverFileList = ref([])
+const chapterMediaFileList = ref([])
 
 // 状态管理
 const saving = ref(false)
@@ -440,6 +445,9 @@ watch(
           duration: chapter.duration || 0,
           // 🔧 关键修复：多字段映射音视频URL
           mediaUrl: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl || '',
+          fileList: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl
+            ? [{ name: getFileName(chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl), url: chapter.mediaUrl || chapter.videoUrl || chapter.contentUrl }]
+            : [],
           fileSize: chapter.fileSize || 0,
           chapterType: chapter.chapterType || 'video',
           description: chapter.description || '',
@@ -457,11 +465,38 @@ watch(
         chapters: processedChapters
       })
 
+      coverFileList.value = form.value.coverUrl
+        ? [{ name: getFileName(form.value.coverUrl), url: form.value.coverUrl }]
+        : []
+
+      form.value.chapters.forEach(ch => {
+        ch.fileList = ch.mediaUrl
+          ? [{ name: getFileName(ch.mediaUrl), url: ch.mediaUrl }]
+          : []
+      })
+
       console.log('✅ CourseForm数据处理完成:', form.value)
       console.log('🖼️ 最终封面URL:', form.value.coverUrl)
     }
   },
   { immediate: true, deep: true }
+)
+
+// 监听文件列表变化，更新表单字段
+watch(
+  coverFileList,
+  (list) => {
+    form.value.coverUrl = list[0]?.url || ''
+  },
+  { deep: true }
+)
+
+watch(
+  chapterMediaFileList,
+  (list) => {
+    chapterForm.value.mediaUrl = list[0]?.url || ''
+  },
+  { deep: true }
 )
 
 // 章节管理方法
@@ -470,6 +505,7 @@ const addChapter = () => {
   chapterModalTitle.value = '添加章节'
   editingChapterIndex.value = -1
   chapterForm.value.sortOrder = form.value.chapters.length + 1
+  chapterMediaFileList.value = []
   chapterModalVisible.value = true
 }
 
@@ -485,6 +521,12 @@ const editChapter = (index) => {
     mediaUrl: getMediaUrl(chapter),
     fileSize: chapter.fileSize || 0
   })
+
+  chapterMediaFileList.value = chapter.fileList && chapter.fileList.length > 0
+    ? [...chapter.fileList]
+    : (chapter.mediaUrl
+        ? [{ name: getFileName(chapter.mediaUrl), url: chapter.mediaUrl }]
+        : [])
 
   console.log('📝 章节表单数据:', chapterForm.value)
   chapterModalTitle.value = '编辑章节'
@@ -512,11 +554,15 @@ const saveChapter = async () => {
     await chapterFormRef.value.validate()
     chapterSaving.value = true
 
+    const url = chapterMediaFileList.value[0]?.url || chapterForm.value.mediaUrl
+
     const chapterData = {
       ...chapterForm.value,
+      mediaUrl: url,
       // 🔧 关键修复：同时设置多个字段确保兼容性
-      videoUrl: chapterForm.value.mediaUrl,
-      contentUrl: chapterForm.value.mediaUrl,
+      videoUrl: url,
+      contentUrl: url,
+      fileList: chapterMediaFileList.value.slice(),
       id: editingChapterIndex.value >= 0 ?
         form.value.chapters[editingChapterIndex.value].id :
         Date.now().toString()
@@ -556,6 +602,7 @@ const resetChapterForm = () => {
     mediaUrl: '',
     fileSize: 0
   })
+  chapterMediaFileList.value = []
 }
 
 // 封面上传相关方法
@@ -591,6 +638,7 @@ const beforeCoverUpload = (file) => {
   const reader = new FileReader()
   reader.onload = (e) => {
     form.value.coverUrl = e.target.result
+    coverFileList.value = [{ name: file.name, url: e.target.result }]
   }
   reader.readAsDataURL(file)
 
@@ -604,6 +652,7 @@ const handleCoverUpload = (options) => {
 
 const removeCover = () => {
   form.value.coverUrl = ''
+  coverFileList.value = []
 }
 
 // 媒体文件上传相关方法
@@ -659,8 +708,10 @@ const handleMediaUpload = (options) => {
   }
 
   // 设置文件URL
-  mediaElement.src = URL.createObjectURL(file)
-  chapterForm.value.mediaUrl = URL.createObjectURL(file)
+  const url = URL.createObjectURL(file)
+  mediaElement.src = url
+  chapterForm.value.mediaUrl = url
+  chapterMediaFileList.value = [{ name: file.name, url }]
 }
 
 const removeMedia = () => {
@@ -672,6 +723,7 @@ const removeMedia = () => {
   chapterForm.value.mediaUrl = ''
   chapterForm.value.duration = 0
   chapterForm.value.fileSize = 0
+  chapterMediaFileList.value = []
 }
 
 // 工具函数
@@ -751,8 +803,19 @@ const handleSave = async () => {
 
     const courseData = {
       ...form.value,
-      duration: calculateTotalDuration()
+      duration: calculateTotalDuration(),
+      coverUrl: coverFileList.value[0]?.url || form.value.coverUrl
     }
+
+    courseData.chapters = form.value.chapters.map((ch) => {
+      const url = ch.fileList && ch.fileList.length > 0 ? ch.fileList[0].url : ch.mediaUrl
+      return {
+        ...ch,
+        mediaUrl: url,
+        videoUrl: url,
+        contentUrl: url
+      }
+    })
 
     emit('save', courseData)
   } catch (error) {
