@@ -148,7 +148,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
 
@@ -302,10 +302,18 @@ const toggleChapter = (chapterId) => {
   }
 }
 
-const selectLesson = (chapterId, lessonId) => {
+const selectLesson = async (chapterId, lessonId) => {
   currentChapter.value = chapterId
   currentLesson.value = lessonId
   isPlaying.value = false
+
+  const chapter = courseData.value.chapters.find((c) => c.id === chapterId)
+  const lesson = chapter?.lessons.find((l) => l.id === lessonId)
+  if (lesson?.type === 'video') {
+    await nextTick()
+    videoElement.value?.load()
+    console.log('📺 切换视频：', currentLessonData.value.videoUrl)
+  }
 }
 
 const previousLesson = () => {
