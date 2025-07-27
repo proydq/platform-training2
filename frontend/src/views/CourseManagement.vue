@@ -125,6 +125,7 @@
           </div>
 
           <div class="course-actions">
+            <button class="btn btn-primary" @click="startLearning">开始学习</button>
             <el-button size="small" @click="viewCourse(course.id)">
               <el-icon><View /></el-icon>
               详情
@@ -207,6 +208,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, Edit, Delete, View, User, Star, Document
 } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 
 // 导入组件
 import CourseForm from '@/components/CourseForm.vue'
@@ -219,6 +221,10 @@ import { getCourseChaptersAPI, publishCourseAPI, unpublishCourseAPI } from '@/ap
 
 // 状态管理
 const userStore = useUserStore()
+const router = useRouter()
+const startLearning = () => {
+  router.push('/learning/product-basic')
+}
 
 // 使用组合式函数
 const {
