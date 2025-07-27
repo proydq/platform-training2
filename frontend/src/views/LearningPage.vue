@@ -4,12 +4,17 @@
       <!-- 侧边栏 -->
       <div class="sidebar">
         <div class="course-info">
-          <div class="course-title">{{ courseData.title || '产品经理进阶课程' }}</div>
+          <div class="course-title">{{ courseData.title }}</div>
           <div class="course-meta">
-            <span class="meta-item">👨‍🏫 {{ courseData.instructor || '张教授' }}</span>
-            <span class="meta-item">⏱️ {{ courseData.totalDuration || '180分钟' }}</span>
-            <span class="meta-item">📚 {{ courseData.totalChapters || '12' }}章节</span>
-            <span class="meta-item">🎓 {{ courseData.level || '中级' }}</span>
+            <span v-if="courseData.category" class="meta-item"
+              >📂 {{ courseData.category }}</span
+            >
+            <span v-if="courseData.totalDuration" class="meta-item"
+              >⏱️ {{ courseData.totalDuration }}</span
+            >
+            <span v-if="courseData.level" class="meta-item"
+              >🎓 {{ courseData.level }}</span
+            >
           </div>
         </div>
 
@@ -174,9 +179,8 @@ const videoElement = ref(null)
 // 课程数据
 const courseData = ref({
   title: '',
-  instructor: '',
+  category: '',
   totalDuration: '',
-  totalChapters: 0,
   level: '',
   chapters: [],
 })
@@ -353,9 +357,8 @@ const markComplete = () => {
 const formatCourse = (data) => {
   return {
     title: data.title || '',
-    instructor: data.instructorName || '',
+    category: data.category || '',
     totalDuration: data.totalDuration ? `${data.totalDuration}分钟` : '',
-    totalChapters: data.totalChapters || 0,
     level: data.difficultyText || '',
     chapters: (data.chapters || []).map((ch, idx) => ({
       id: idx + 1,
