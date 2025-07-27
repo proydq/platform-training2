@@ -1,78 +1,77 @@
 <template>
   <div class="learning-page">
-    <div class="learning-container" v-if="!loading">
+    <div v-if="!loading" class="learning-container">
       <!-- 侧边栏 -->
       <div class="sidebar">
+        <!-- 课程信息 -->
         <div class="course-info">
-          <div class="course-title">{{ courseData.title }}</div>
+          <h2 class="course-title">{{ courseData.title }}</h2>
           <div class="course-meta">
-            <span v-if="courseData.category" class="meta-item">📂 {{ courseData.category }}</span>
-            <span
-              v-if="courseData.totalDuration !== null && courseData.totalDuration !== undefined"
-              class="meta-item"
-              >⏱️ {{ formatDuration(courseData.totalDuration) }}</span
-            >
-            <span v-if="courseData.level" class="meta-item">🎓 {{ courseData.level }}</span>
+            <span class="meta-item">📚 {{ courseData.category }}</span>
+            <span class="meta-item">⏱️ {{ courseData.totalDuration }}</span>
+            <span class="meta-item">📊 {{ courseData.level }}</span>
           </div>
         </div>
 
+        <!-- 章节列表 -->
         <div class="chapters-list">
-          <div v-for="chapter in courseData.chapters" :key="chapter.id" class="chapter-group">
-            <div class="chapter-header" @click="toggleChapter(chapter.id)">
-              <span
-                class="chapter-toggle"
-                :class="{ expanded: expandedChapters.includes(chapter.id) }"
-              >
-                ▶
+          <div
+            v-for="chapter in courseData.chapters"
+            :key="chapter.id"
+            class="chapter-group"
+          >
+            <div
+              class="chapter-header"
+              @click="toggleChapter(chapter.id)"
+              :class="{ expanded: expandedChapters.includes(chapter.id) }"
+            >
+              <span class="chapter-icon">
+                {{ expandedChapters.includes(chapter.id) ? '📂' : '📁' }}
               </span>
-              <span>{{ chapter.title }}</span>
+              <span class="chapter-title">{{ chapter.title }}</span>
+              <span class="chapter-progress">{{ chapter.lessons.filter(l => l.completed).length }}/{{ chapter.lessons.length }}</span>
             </div>
-            <div class="lesson-list" :class="{ show: expandedChapters.includes(chapter.id) }">
+
+            <div
+              v-if="expandedChapters.includes(chapter.id)"
+              class="lessons-list"
+            >
               <div
                 v-for="lesson in chapter.lessons"
                 :key="lesson.id"
                 class="lesson-item"
-                :class="{ active: currentChapter === chapter.id && currentLesson === lesson.id }"
-                @click="selectLesson(chapter.id, lesson.id, lesson.type)"
+                :class="{
+                  active: currentChapter === chapter.id && currentLesson === lesson.id,
+                  completed: lesson.completed,
+                }"
+                @click="selectLesson(chapter.id, lesson.id)"
               >
-                <div
-                  class="lesson-icon"
-                  :class="{
-                    completed: lesson.completed,
-                    current: currentChapter === chapter.id && currentLesson === lesson.id,
-                  }"
-                >
-                  {{ lesson.order }}
+                <span class="lesson-icon">🎥</span>
+                <div class="lesson-info">
+                  <div class="lesson-title">{{ lesson.title }}</div>
+                  <div class="lesson-meta">
+                    <span>🎥 视频课程</span>
+                    <span v-if="lesson.duration">• {{ lesson.duration }}</span>
+                  </div>
                 </div>
-                <span>{{ lesson.title }}</span>
-                <span class="lesson-type-icon">{{ getTypeIcon(lesson.type) }}</span>
-                <span class="lesson-duration">{{ lesson.duration }}</span>
+                <span v-if="lesson.completed" class="completed-mark">✓</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 主学习内容区 -->
+      <!-- 主要内容区域 -->
       <div class="learning-main">
-        <!-- 课程标题 -->
+        <!-- 课程标题区域 -->
         <div class="lesson-header">
-          <div class="lesson-title">{{ currentLessonData.title }}</div>
-          <div class="lesson-meta">
-            <span>{{ getTypeText(currentLessonData.type) }}</span>
-            <span
-              v-if="currentLessonData.duration !== null && currentLessonData.duration !== undefined"
-              >⏱️ {{ formatDuration(currentLessonData.duration) }}</span
-            >
-            <span v-if="currentLessonData.watchedTime"
-              >👁️ 已观看 {{ currentLessonData.watchedTime }}</span
-            >
-            <span
-              v-if="
-                currentLessonData.updateDate !== null && currentLessonData.updateDate !== undefined
-              "
-              >📅 更新于 {{ currentLessonData.updateDate }}</span
-            >
+          <div class="lesson-info">
+            <h1 class="lesson-title">{{ currentLessonData.title }}</h1>
+            <div class="lesson-meta">
+              <span class="lesson-type">🎥 视频课程</span>
+              <span v-if="currentLessonData.duration">⏱️ {{ currentLessonData.duration }}</span>
+              <span v-if="currentLessonData.updateDate">📅 更新于 {{ currentLessonData.updateDate }}</span>
+            </div>
           </div>
         </div>
 
@@ -86,50 +85,34 @@
           </div>
         </div>
 
-        <!-- 内容区域 -->
+        <!-- 视频播放器区域 - 默认显示 -->
         <div class="content-area">
-          <!-- 视频播放器 -->
-          <div v-if="currentLessonData.type === 'video'" class="video-container">
+          <div class="video-container">
             <div class="video-player">
-              <div v-if="!isVideoPlaying" class="video-placeholder" @click="playVideo">
-                <div class="play-button">▶</div>
-                <h3 style="margin-bottom: 10px">{{ currentLessonData.title }}</h3>
-                <p style="opacity: 0.8">{{ currentLessonData.description }}</p>
-              </div>
-              <video v-else ref="videoElement" controls @play="onVideoPlay" @pause="onVideoPause">
-                <source :src="resolveMediaUrl(currentLessonData.videoUrl)" type="video/mp4" />
+              <!-- 直接显示视频播放器 -->
+              <video
+                v-if="getVideoUrl(currentLessonData)"
+                ref="videoElement"
+                controls
+                preload="metadata"
+                @play="onVideoPlay"
+                @pause="onVideoPause"
+                @loadstart="onVideoLoadStart"
+                @error="onVideoError"
+                @loadedmetadata="onVideoLoadedMetadata"
+              >
+                <source :src="getVideoUrl(currentLessonData)" type="video/mp4" />
                 您的浏览器不支持视频播放
               </video>
-            </div>
-          </div>
-
-          <!-- 文档显示区域 -->
-          <div v-else-if="currentLessonData.type === 'document'" class="document-container">
-            <div class="document-viewer" v-html="currentLessonData.content"></div>
-          </div>
-
-          <!-- 音频播放器区域 -->
-          <div v-else-if="currentLessonData.type === 'audio'" class="audio-container">
-            <div class="audio-player">
-              <h2>{{ currentLessonData.title }}</h2>
-              <p style="margin: 20px 0; opacity: 0.9">{{ currentLessonData.description }}</p>
-              <audio controls style="width: 100%; margin-top: 20px">
-                <source :src="currentLessonData.audioUrl" type="audio/mpeg" />
-                您的浏览器不支持音频播放
-              </audio>
-            </div>
-          </div>
-
-          <!-- 测验区域 -->
-          <div v-else-if="currentLessonData.type === 'quiz'" class="quiz-container">
-            <div class="quiz-content" v-html="currentLessonData.content"></div>
-          </div>
-
-          <!-- 默认内容 -->
-          <div v-else class="document-container">
-            <div class="document-viewer">
-              <h2>课程内容</h2>
-              <p>正在加载课程内容，请稍候...</p>
+              <!-- 当没有视频URL时显示提示信息 -->
+              <div v-else class="video-placeholder">
+                <div class="info-icon">📹</div>
+                <h3 style="margin-bottom: 10px">{{ currentLessonData.title }}</h3>
+                <p style="opacity: 0.8">视频正在准备中，请稍后...</p>
+                <div style="margin-top: 20px; font-size: 12px; opacity: 0.6;">
+                  <p>如果视频长时间无法加载，请联系管理员</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -145,7 +128,6 @@
               ← 上一节
             </button>
             <button
-              v-if="currentLessonData.type === 'video' || currentLessonData.type === 'audio'"
               class="btn btn-primary"
               @click="togglePlayPause"
             >
@@ -170,21 +152,54 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
 
-// 只保留实际使用的导入
+// 路由相关
 const router = useRouter()
 const route = useRoute()
 
+// 获取视频URL的统一方法
+const getVideoUrl = (lessonData) => {
+  if (!lessonData) return ''
+
+  // 按优先级尝试获取视频URL
+  const possibleUrls = [
+    lessonData.videoUrl,
+    lessonData.contentUrl,
+    lessonData.content,
+    lessonData.audioUrl
+  ]
+
+  for (const url of possibleUrls) {
+    if (url && typeof url === 'string' && url.trim()) {
+      return resolveMediaUrl(url.trim())
+    }
+  }
+
+  return ''
+}
+
+// URL处理函数
 const resolveMediaUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `http://localhost:3000${url.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
+
+  // 处理不同的URL格式
+  if (url.includes('/api/v1/files/course/videos/')) {
+    return `http://localhost:3000${url.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
+  }
+
+  // 如果是相对路径，添加服务器地址
+  if (url.startsWith('/')) {
+    return `http://localhost:3000${url}`
+  }
+
+  // 默认处理
+  return `http://localhost:3000/api/v1/media/video/${url}`
 }
 
 // 响应式数据
 const currentChapter = ref(1)
 const currentLesson = ref(null)
 const expandedChapters = ref([])
-const isVideoPlaying = ref(false)
 const isPlaying = ref(false)
 const videoElement = ref(null)
 
@@ -237,18 +252,47 @@ const hasPreviousLesson = computed(() => {
 })
 
 const hasNextLesson = computed(() => {
-  // 简化逻辑：检查是否有下一节课
   const chapter = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!chapter) return false
 
   const currentLessonIndex = chapter.lessons.findIndex((l) => l.id === currentLesson.value)
   if (currentLessonIndex < chapter.lessons.length - 1) return true
 
-  // 检查是否有下一章
   return currentChapter.value < courseData.value.chapters.length
 })
 
-// 方法
+// 视频相关方法
+const onVideoPlay = () => {
+  isPlaying.value = true
+}
+
+const onVideoPause = () => {
+  isPlaying.value = false
+}
+
+const onVideoLoadStart = () => {
+  console.log('视频开始加载')
+}
+
+const onVideoError = (error) => {
+  console.error('视频加载失败:', error)
+}
+
+const onVideoLoadedMetadata = () => {
+  console.log('视频元数据加载完成')
+}
+
+const togglePlayPause = () => {
+  if (videoElement.value) {
+    if (isPlaying.value) {
+      videoElement.value.pause()
+    } else {
+      videoElement.value.play()
+    }
+  }
+}
+
+// 章节相关方法
 const toggleChapter = (chapterId) => {
   const index = expandedChapters.value.indexOf(chapterId)
   if (index > -1) {
@@ -261,55 +305,10 @@ const toggleChapter = (chapterId) => {
 const selectLesson = (chapterId, lessonId) => {
   currentChapter.value = chapterId
   currentLesson.value = lessonId
-  isVideoPlaying.value = false
   isPlaying.value = false
-}
-
-const getTypeIcon = (type) => {
-  const icons = {
-    video: '🎥',
-    document: '📄',
-    audio: '🎵',
-    quiz: '📝',
-  }
-  return icons[type] || '📚'
-}
-
-const getTypeText = (type) => {
-  const types = {
-    video: '🎥 视频课程',
-    document: '📄 文档资料',
-    audio: '🎵 音频课程',
-    quiz: '📝 在线测验',
-  }
-  return types[type] || '📚 课程内容'
-}
-
-const playVideo = () => {
-  isVideoPlaying.value = true
-  isPlaying.value = true
-}
-
-const onVideoPlay = () => {
-  isPlaying.value = true
-}
-
-const onVideoPause = () => {
-  isPlaying.value = false
-}
-
-const togglePlayPause = () => {
-  if (currentLessonData.value.type === 'video' && videoElement.value) {
-    if (isPlaying.value) {
-      videoElement.value.pause()
-    } else {
-      videoElement.value.play()
-    }
-  }
 }
 
 const previousLesson = () => {
-  // 实现上一节课逻辑
   const currentChapterData = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!currentChapterData) return
 
@@ -318,11 +317,9 @@ const previousLesson = () => {
   )
 
   if (currentLessonIndex > 0) {
-    // 同一章的上一节课
     const previousLessonData = currentChapterData.lessons[currentLessonIndex - 1]
     selectLesson(currentChapter.value, previousLessonData.id)
   } else if (currentChapter.value > 1) {
-    // 上一章的最后一节课
     const previousChapter = courseData.value.chapters.find((c) => c.id === currentChapter.value - 1)
     if (previousChapter && previousChapter.lessons.length > 0) {
       const lastLesson = previousChapter.lessons[previousChapter.lessons.length - 1]
@@ -332,7 +329,6 @@ const previousLesson = () => {
 }
 
 const nextLesson = () => {
-  // 实现下一节课逻辑
   const currentChapterData = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!currentChapterData) return
 
@@ -341,15 +337,12 @@ const nextLesson = () => {
   )
 
   if (currentLessonIndex < currentChapterData.lessons.length - 1) {
-    // 同一章的下一节课
     const nextLessonData = currentChapterData.lessons[currentLessonIndex + 1]
     selectLesson(currentChapter.value, nextLessonData.id)
-  } else if (currentChapter.value < courseData.value.chapters.length) {
-    // 下一章的第一节课
+  } else {
     const nextChapter = courseData.value.chapters.find((c) => c.id === currentChapter.value + 1)
     if (nextChapter && nextChapter.lessons.length > 0) {
-      const firstLesson = nextChapter.lessons[0]
-      selectLesson(nextChapter.id, firstLesson.id)
+      selectLesson(nextChapter.id, nextChapter.lessons[0].id)
     }
   }
 }
@@ -360,44 +353,34 @@ const markComplete = () => {
     const lesson = chapter.lessons.find((l) => l.id === currentLesson.value)
     if (lesson) {
       lesson.completed = true
-      console.log('标记当前课程为已完成')
+      console.log('课程已标记为完成')
     }
   }
 }
 
-const formatDuration = (seconds) => {
-  if (seconds === null || seconds === undefined) return ''
-  const mins = Math.floor(seconds / 60)
-  const hours = Math.floor(mins / 60)
-  const minutes = mins % 60
-  if (hours > 0) {
-    return `${hours}小时${minutes}分钟`
-  }
-  return `${minutes}分钟`
-}
-
-// 数据格式化
-const formatCourse = (data) => {
+// 数据格式化函数 - 强制所有内容为视频类型
+const formatCourse = (courseData) => {
   return {
-    title: data.title,
-    category: data.category,
-    totalDuration: data.totalDuration,
-    level: data.difficultyText,
-    chapters: (data.chapters || []).map((ch, idx) => ({
-      id: idx + 1,
-      title: ch.title,
+    id: courseData.id || 1,
+    title: courseData.title || '课程标题',
+    category: courseData.category || '未分类',
+    totalDuration: courseData.totalDuration || '0分钟',
+    level: courseData.level || courseData.difficultyLevel || '初级',
+    chapters: (courseData.chapters || []).map((ch, chapterIndex) => ({
+      id: ch.id || chapterIndex + 1,
+      title: ch.title || `第${chapterIndex + 1}章`,
       lessons: [
         {
-          id: ch.id,
-          order: ch.sortOrder,
-          title: ch.title,
-          type: ch.chapterType,
-          duration: ch.duration,
-          completed: false,
-          videoUrl: ch.chapterType === 'video' ? ch.contentUrl : undefined,
-          audioUrl: ch.chapterType === 'audio' ? ch.contentUrl : undefined,
-          content:
-            ch.chapterType === 'document' || ch.chapterType === 'quiz' ? ch.contentUrl : undefined,
+          id: ch.id || chapterIndex + 1,
+          title: ch.title || `第${chapterIndex + 1}节`,
+          type: 'video', // 强制设置为视频类型
+          duration: ch.duration || '未知',
+          completed: ch.status === 1,
+          updateDate: ch.updateDate || '未知',
+          // 统一处理所有可能的视频URL字段
+          videoUrl: ch.contentUrl || ch.videoUrl || ch.mediaUrl,
+          contentUrl: ch.contentUrl || ch.videoUrl || ch.mediaUrl,
+          content: ch.contentUrl || ch.videoUrl || ch.mediaUrl,
           description: ch.description,
         },
       ],
@@ -508,109 +491,92 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: all 0.3s ease;
 }
 
 .chapter-header:hover {
   background: #e9ecef;
 }
 
-.chapter-toggle {
+.chapter-icon {
   font-size: 14px;
-  transition: transform 0.3s ease;
 }
 
-.chapter-toggle.expanded {
-  transform: rotate(90deg);
+.chapter-title {
+  flex: 1;
+  font-weight: 600;
+  color: #333;
 }
 
-.lesson-list {
-  display: none;
-  padding-left: 20px;
+.chapter-progress {
+  font-size: 12px;
+  color: #666;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 2px 6px;
+  border-radius: 8px;
 }
 
-.lesson-list.show {
-  display: block;
+.lessons-list {
+  margin-left: 20px;
 }
 
 .lesson-item {
+  padding: 12px 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  margin-bottom: 5px;
+  gap: 10px;
   cursor: pointer;
-  border-radius: 8px;
   transition: all 0.3s ease;
+  border-radius: 8px;
+  margin: 5px 0;
 }
 
 .lesson-item:hover {
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(102, 126, 234, 0.05);
 }
 
 .lesson-item.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  margin-right: 10px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.1);
+  border-left: 3px solid #667eea;
+}
+
+.lesson-item.completed {
+  opacity: 0.7;
 }
 
 .lesson-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  background: #e9ecef;
-  color: #666;
-  flex-shrink: 0;
+  font-size: 16px;
 }
 
-.lesson-icon.completed {
-  background: #28a745;
-  color: white;
+.lesson-info {
+  flex: 1;
 }
 
-.lesson-icon.current {
-  background: #667eea;
-  color: white;
+.lesson-title {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
 }
 
-.lesson-type-icon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-left: auto;
-}
-
-.lesson-duration {
-  margin-left: auto;
+.lesson-meta {
   font-size: 12px;
   color: #666;
 }
 
-/* 修复选中状态下文字颜色问题 */
-.lesson-item.active .lesson-duration {
-  color: rgba(255, 255, 255, 0.9);
+.completed-mark {
+  color: #28a745;
+  font-weight: bold;
 }
 
-.lesson-item.active .lesson-type-icon {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* 主学习内容区 */
+/* 主要内容区域 */
 .learning-main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 15px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -635,13 +601,6 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.lesson-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
 /* 内容区域 */
 .content-area {
   flex: 1;
@@ -659,17 +618,13 @@ onMounted(async () => {
   justify-content: center;
   min-height: 400px;
   overflow: hidden;
+  border-radius: 8px;
+  flex: 1;
 }
 
 .video-player {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: white;
   position: relative;
 }
 
@@ -677,96 +632,40 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  background: #000;
 }
 
+/* 占位符样式 */
 .video-placeholder {
-  text-align: center;
-  padding: 40px;
-  cursor: pointer;
-}
-
-.play-button {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0 auto 20px;
-}
-
-.play-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1);
-}
-
-/* 文档显示区域 */
-.document-container {
-  flex: 1;
-  padding: 30px;
-  overflow-y: auto;
-  background: #fff;
-}
-
-.document-viewer {
-  max-width: 800px;
-  margin: 0 auto;
-  line-height: 1.8;
-  font-size: 16px;
-  color: #333;
-}
-
-.document-viewer :deep(h1),
-.document-viewer :deep(h2),
-.document-viewer :deep(h3) {
-  color: #667eea;
-  margin: 25px 0 15px 0;
-}
-
-.document-viewer :deep(p) {
-  margin-bottom: 15px;
-}
-
-/* 音频播放器区域 */
-.audio-container {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  padding: 40px;
-}
-
-.audio-player {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  padding: 40px;
   text-align: center;
-  backdrop-filter: blur(10px);
+  padding: 40px;
+  min-height: 400px;
 }
 
-/* 测验区域 */
-.quiz-container {
-  flex: 1;
-  padding: 30px;
-  overflow-y: auto;
-  background: #f8f9fa;
+.info-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  opacity: 0.8;
 }
 
-.quiz-content {
-  max-width: 800px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 15px;
-  padding: 30px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+.video-placeholder h3 {
+  color: white;
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.video-placeholder p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 /* 学习进度条 */
