@@ -97,7 +97,7 @@
                 <p style="opacity: 0.8">{{ currentLessonData.description }}</p>
               </div>
               <video v-else ref="videoElement" controls @play="onVideoPlay" @pause="onVideoPause">
-                <source :src="currentLessonData.videoUrl" type="video/mp4" />
+                <source :src="resolveMediaUrl(currentLessonData.videoUrl)" type="video/mp4" />
                 您的浏览器不支持视频播放
               </video>
             </div>
@@ -173,6 +173,12 @@ import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
 // 只保留实际使用的导入
 const router = useRouter()
 const route = useRoute()
+
+const resolveMediaUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `http://localhost:3000${url}`
+}
 
 // 响应式数据
 const currentChapter = ref(1)
