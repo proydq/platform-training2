@@ -6,15 +6,13 @@
         <div class="course-info">
           <div class="course-title">{{ courseData.title }}</div>
           <div class="course-meta">
-            <span v-if="courseData.category" class="meta-item"
-              >📂 {{ courseData.category }}</span
+            <span v-if="courseData.category" class="meta-item">📂 {{ courseData.category }}</span>
+            <span
+              v-if="courseData.totalDuration !== null && courseData.totalDuration !== undefined"
+              class="meta-item"
+              >⏱️ {{ formatDuration(courseData.totalDuration) }}</span
             >
-            <span v-if="courseData.totalDuration" class="meta-item"
-              >⏱️ {{ courseData.totalDuration }}</span
-            >
-            <span v-if="courseData.level" class="meta-item"
-              >🎓 {{ courseData.level }}</span
-            >
+            <span v-if="courseData.level" class="meta-item">🎓 {{ courseData.level }}</span>
           </div>
         </div>
 
@@ -59,14 +57,22 @@
       <div class="learning-main">
         <!-- 课程标题 -->
         <div class="lesson-header">
-          <div class="lesson-title">{{ currentLessonData.title || '产品经理职责概述' }}</div>
+          <div class="lesson-title">{{ currentLessonData.title }}</div>
           <div class="lesson-meta">
             <span>{{ getTypeText(currentLessonData.type) }}</span>
-            <span>⏱️ {{ currentLessonData.duration || '15分钟' }}</span>
+            <span
+              v-if="currentLessonData.duration !== null && currentLessonData.duration !== undefined"
+              >⏱️ {{ formatDuration(currentLessonData.duration) }}</span
+            >
             <span v-if="currentLessonData.watchedTime"
               >👁️ 已观看 {{ currentLessonData.watchedTime }}</span
             >
-            <span>📅 更新于 {{ currentLessonData.updateDate || '2025-01-15' }}</span>
+            <span
+              v-if="
+                currentLessonData.updateDate !== null && currentLessonData.updateDate !== undefined
+              "
+              >📅 更新于 {{ currentLessonData.updateDate }}</span
+            >
           </div>
         </div>
 
@@ -353,13 +359,24 @@ const markComplete = () => {
   }
 }
 
+const formatDuration = (seconds) => {
+  if (seconds === null || seconds === undefined) return ''
+  const mins = Math.floor(seconds / 60)
+  const hours = Math.floor(mins / 60)
+  const minutes = mins % 60
+  if (hours > 0) {
+    return `${hours}小时${minutes}分钟`
+  }
+  return `${minutes}分钟`
+}
+
 // 数据格式化
 const formatCourse = (data) => {
   return {
-    title: data.title || '',
-    category: data.category || '',
-    totalDuration: data.totalDuration ? `${data.totalDuration}分钟` : '',
-    level: data.difficultyText || '',
+    title: data.title,
+    category: data.category,
+    totalDuration: data.totalDuration,
+    level: data.difficultyText,
     chapters: (data.chapters || []).map((ch, idx) => ({
       id: idx + 1,
       title: ch.title,
@@ -369,12 +386,13 @@ const formatCourse = (data) => {
           order: ch.sortOrder,
           title: ch.title,
           type: ch.chapterType,
-          duration: ch.duration ? `${ch.duration}分钟` : '',
+          duration: ch.duration,
           completed: false,
-          videoUrl: ch.chapterType === 'video' ? ch.contentUrl : '',
-          audioUrl: ch.chapterType === 'audio' ? ch.contentUrl : '',
-          content: ch.chapterType === 'document' || ch.chapterType === 'quiz' ? ch.contentUrl : '',
-          description: ch.description || '',
+          videoUrl: ch.chapterType === 'video' ? ch.contentUrl : undefined,
+          audioUrl: ch.chapterType === 'audio' ? ch.contentUrl : undefined,
+          content:
+            ch.chapterType === 'document' || ch.chapterType === 'quiz' ? ch.contentUrl : undefined,
+          description: ch.description,
         },
       ],
     })),
