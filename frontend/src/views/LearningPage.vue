@@ -1,6 +1,6 @@
 <template>
   <div class="learning-page">
-    <div class="learning-container">
+    <div class="learning-container" v-if="!loading">
       <!-- 侧边栏 -->
       <div class="sidebar">
         <div class="course-info">
@@ -14,15 +14,8 @@
         </div>
 
         <div class="chapters-list">
-          <div
-            v-for="chapter in courseData.chapters"
-            :key="chapter.id"
-            class="chapter-group"
-          >
-            <div
-              class="chapter-header"
-              @click="toggleChapter(chapter.id)"
-            >
+          <div v-for="chapter in courseData.chapters" :key="chapter.id" class="chapter-group">
+            <div class="chapter-header" @click="toggleChapter(chapter.id)">
               <span
                 class="chapter-toggle"
                 :class="{ expanded: expandedChapters.includes(chapter.id) }"
@@ -31,10 +24,7 @@
               </span>
               <span>{{ chapter.title }}</span>
             </div>
-            <div
-              class="lesson-list"
-              :class="{ show: expandedChapters.includes(chapter.id) }"
-            >
+            <div class="lesson-list" :class="{ show: expandedChapters.includes(chapter.id) }">
               <div
                 v-for="lesson in chapter.lessons"
                 :key="lesson.id"
@@ -46,7 +36,7 @@
                   class="lesson-icon"
                   :class="{
                     completed: lesson.completed,
-                    current: currentChapter === chapter.id && currentLesson === lesson.id
+                    current: currentChapter === chapter.id && currentLesson === lesson.id,
                   }"
                 >
                   {{ lesson.order }}
@@ -68,7 +58,9 @@
           <div class="lesson-meta">
             <span>{{ getTypeText(currentLessonData.type) }}</span>
             <span>⏱️ {{ currentLessonData.duration || '15分钟' }}</span>
-            <span v-if="currentLessonData.watchedTime">👁️ 已观看 {{ currentLessonData.watchedTime }}</span>
+            <span v-if="currentLessonData.watchedTime"
+              >👁️ 已观看 {{ currentLessonData.watchedTime }}</span
+            >
             <span>📅 更新于 {{ currentLessonData.updateDate || '2025-01-15' }}</span>
           </div>
         </div>
@@ -76,10 +68,7 @@
         <!-- 学习进度 -->
         <div class="progress-container">
           <div class="progress-bar">
-            <div
-              class="progress-fill"
-              :style="{ width: courseProgress + '%' }"
-            ></div>
+            <div class="progress-fill" :style="{ width: courseProgress + '%' }"></div>
           </div>
           <div class="progress-text">
             学习进度：{{ courseProgress }}% ({{ completedLessons }}/{{ totalLessons }} 章节已完成)
@@ -93,17 +82,11 @@
             <div class="video-player">
               <div v-if="!isVideoPlaying" class="video-placeholder" @click="playVideo">
                 <div class="play-button">▶</div>
-                <h3 style="margin-bottom: 10px;">{{ currentLessonData.title }}</h3>
-                <p style="opacity: 0.8;">{{ currentLessonData.description }}</p>
+                <h3 style="margin-bottom: 10px">{{ currentLessonData.title }}</h3>
+                <p style="opacity: 0.8">{{ currentLessonData.description }}</p>
               </div>
-              <video
-                v-else
-                ref="videoElement"
-                controls
-                @play="onVideoPlay"
-                @pause="onVideoPause"
-              >
-                <source :src="currentLessonData.videoUrl" type="video/mp4">
+              <video v-else ref="videoElement" controls @play="onVideoPlay" @pause="onVideoPause">
+                <source :src="currentLessonData.videoUrl" type="video/mp4" />
                 您的浏览器不支持视频播放
               </video>
             </div>
@@ -118,9 +101,9 @@
           <div v-else-if="currentLessonData.type === 'audio'" class="audio-container">
             <div class="audio-player">
               <h2>{{ currentLessonData.title }}</h2>
-              <p style="margin: 20px 0; opacity: 0.9;">{{ currentLessonData.description }}</p>
-              <audio controls style="width: 100%; margin-top: 20px;">
-                <source :src="currentLessonData.audioUrl" type="audio/mpeg">
+              <p style="margin: 20px 0; opacity: 0.9">{{ currentLessonData.description }}</p>
+              <audio controls style="width: 100%; margin-top: 20px">
+                <source :src="currentLessonData.audioUrl" type="audio/mpeg" />
                 您的浏览器不支持音频播放
               </audio>
             </div>
@@ -159,182 +142,68 @@
             </button>
           </div>
           <div class="toolbar-right">
-            <button class="btn btn-success" @click="markComplete">
-              ✓ 标记完成
-            </button>
-            <button
-              class="btn btn-primary"
-              @click="nextLesson"
-              :disabled="!hasNextLesson"
-            >
+            <button class="btn btn-success" @click="markComplete">✓ 标记完成</button>
+            <button class="btn btn-primary" @click="nextLesson" :disabled="!hasNextLesson">
               下一节 →
             </button>
           </div>
         </div>
       </div>
     </div>
+    <div v-else class="loading">加载中...</div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
 
 // 只保留实际使用的导入
 const router = useRouter()
+const route = useRoute()
 
 // 响应式数据
 const currentChapter = ref(1)
-const currentLesson = ref(1)
-const expandedChapters = ref([1])
+const currentLesson = ref(null)
+const expandedChapters = ref([])
 const isVideoPlaying = ref(false)
 const isPlaying = ref(false)
 const videoElement = ref(null)
 
 // 课程数据
 const courseData = ref({
-  title: '产品经理进阶课程',
-  instructor: '张教授',
-  totalDuration: '180分钟',
-  totalChapters: 12,
-  level: '中级',
-  chapters: [
-    {
-      id: 1,
-      title: '第一章：产品基础知识',
-      lessons: [
-        {
-          id: 1,
-          order: 1,
-          title: '产品经理职责概述',
-          type: 'video',
-          duration: '15分钟',
-          completed: false,
-          videoUrl: 'sample-video.mp4',
-          description: '了解产品经理的核心职责和工作流程'
-        },
-        {
-          id: 2,
-          order: 2,
-          title: '产品生命周期管理',
-          type: 'document',
-          duration: '20分钟',
-          completed: false,
-          content: `
-            <h1>产品生命周期管理</h1>
-            <p>产品生命周期（Product Life Cycle, PLC）是指产品从概念形成到最终退出市场的整个过程。</p>
-
-            <h2>生命周期阶段</h2>
-            <h3>1. 概念阶段</h3>
-            <p>在这个阶段，产品还只是一个想法或概念。需要进行市场调研、用户需求分析、竞品分析等工作。</p>
-
-            <h3>2. 开发阶段</h3>
-            <p>将概念转化为实际产品的阶段。包括产品设计、原型制作、技术开发、测试等。</p>
-
-            <h3>3. 引入阶段</h3>
-            <p>产品正式上市销售的初期阶段。此时销量较低，需要大量市场推广。</p>
-
-            <h3>4. 成长阶段</h3>
-            <p>产品被市场接受，销量快速增长。需要扩大生产规模，优化产品功能。</p>
-
-            <h3>5. 成熟阶段</h3>
-            <p>产品销量达到峰值并趋于稳定。市场竞争激烈，需要维护市场份额。</p>
-
-            <h3>6. 衰退阶段</h3>
-            <p>由于技术进步或市场变化，产品销量开始下降。需要决定是否继续维护或退出市场。</p>
-          `
-        },
-        {
-          id: 3,
-          order: 3,
-          title: '产品思维培养',
-          type: 'audio',
-          duration: '12分钟',
-          completed: false,
-          audioUrl: 'sample-audio.mp3',
-          description: '培养产品经理必备的产品思维能力'
-        }
-      ]
-    },
-    {
-      id: 2,
-      title: '第二章：市场分析方法',
-      lessons: [
-        {
-          id: 1,
-          order: 1,
-          title: '市场调研技巧',
-          type: 'video',
-          duration: '25分钟',
-          completed: false
-        },
-        {
-          id: 2,
-          order: 2,
-          title: '竞品分析报告',
-          type: 'document',
-          duration: '30分钟',
-          completed: false
-        },
-        {
-          id: 3,
-          order: 3,
-          title: '市场分析测验',
-          type: 'quiz',
-          duration: '15分钟',
-          completed: false,
-          content: `
-            <h1>市场分析能力测验</h1>
-            <p>请根据前面学习的内容，完成以下测验题目：</p>
-
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
-              <h3>题目1：市场调研的主要方法有哪些？</h3>
-              <div style="margin: 10px 0;">
-                <label><input type="radio" name="q1" value="a"> A. 问卷调查、访谈、观察</label><br>
-                <label><input type="radio" name="q1" value="b"> B. 只有问卷调查</label><br>
-                <label><input type="radio" name="q1" value="c"> C. 只有数据分析</label><br>
-                <label><input type="radio" name="q1" value="d"> D. 只有竞品分析</label>
-              </div>
-            </div>
-
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
-              <h3>题目2：SWOT分析包括哪些要素？</h3>
-              <div style="margin: 10px 0;">
-                <label><input type="radio" name="q2" value="a"> A. 优势、劣势、机会、威胁</label><br>
-                <label><input type="radio" name="q2" value="b"> B. 只有优势和劣势</label><br>
-                <label><input type="radio" name="q2" value="c"> C. 价格、质量、服务</label><br>
-                <label><input type="radio" name="q2" value="d"> D. 产品、市场、技术</label>
-              </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px;">
-              <button class="btn btn-primary" onclick="submitQuiz()">提交答案</button>
-            </div>
-          `
-        }
-      ]
-    }
-  ]
+  title: '',
+  instructor: '',
+  totalDuration: '',
+  totalChapters: 0,
+  level: '',
+  chapters: [],
 })
+const loading = ref(true)
 
 // 计算属性
 const currentLessonData = computed(() => {
-  const chapter = courseData.value.chapters.find(c => c.id === currentChapter.value)
+  const chapter = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!chapter) return {}
-  const lesson = chapter.lessons.find(l => l.id === currentLesson.value)
+  const lesson = chapter.lessons.find((l) => l.id === currentLesson.value)
   return lesson || {}
 })
 
 const courseProgress = computed(() => {
   const total = courseData.value.chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0)
-  const completed = courseData.value.chapters.reduce((sum, chapter) =>
-    sum + chapter.lessons.filter(lesson => lesson.completed).length, 0)
+  const completed = courseData.value.chapters.reduce(
+    (sum, chapter) => sum + chapter.lessons.filter((lesson) => lesson.completed).length,
+    0,
+  )
   return Math.round((completed / total) * 100)
 })
 
 const completedLessons = computed(() => {
-  return courseData.value.chapters.reduce((sum, chapter) =>
-    sum + chapter.lessons.filter(lesson => lesson.completed).length, 0)
+  return courseData.value.chapters.reduce(
+    (sum, chapter) => sum + chapter.lessons.filter((lesson) => lesson.completed).length,
+    0,
+  )
 })
 
 const totalLessons = computed(() => {
@@ -342,17 +211,21 @@ const totalLessons = computed(() => {
 })
 
 const hasPreviousLesson = computed(() => {
-  // 简化逻辑：检查是否有上一节课
-  if (currentChapter.value === 1 && currentLesson.value === 1) return false
-  return true
+  const chapterIndex = courseData.value.chapters.findIndex((c) => c.id === currentChapter.value)
+  if (chapterIndex === -1) return false
+  const lessonIndex = courseData.value.chapters[chapterIndex].lessons.findIndex(
+    (l) => l.id === currentLesson.value,
+  )
+  if (lessonIndex > 0) return true
+  return chapterIndex > 0
 })
 
 const hasNextLesson = computed(() => {
   // 简化逻辑：检查是否有下一节课
-  const chapter = courseData.value.chapters.find(c => c.id === currentChapter.value)
+  const chapter = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!chapter) return false
 
-  const currentLessonIndex = chapter.lessons.findIndex(l => l.id === currentLesson.value)
+  const currentLessonIndex = chapter.lessons.findIndex((l) => l.id === currentLesson.value)
   if (currentLessonIndex < chapter.lessons.length - 1) return true
 
   // 检查是否有下一章
@@ -381,7 +254,7 @@ const getTypeIcon = (type) => {
     video: '🎥',
     document: '📄',
     audio: '🎵',
-    quiz: '📝'
+    quiz: '📝',
   }
   return icons[type] || '📚'
 }
@@ -391,7 +264,7 @@ const getTypeText = (type) => {
     video: '🎥 视频课程',
     document: '📄 文档资料',
     audio: '🎵 音频课程',
-    quiz: '📝 在线测验'
+    quiz: '📝 在线测验',
   }
   return types[type] || '📚 课程内容'
 }
@@ -421,10 +294,12 @@ const togglePlayPause = () => {
 
 const previousLesson = () => {
   // 实现上一节课逻辑
-  const currentChapterData = courseData.value.chapters.find(c => c.id === currentChapter.value)
+  const currentChapterData = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!currentChapterData) return
 
-  const currentLessonIndex = currentChapterData.lessons.findIndex(l => l.id === currentLesson.value)
+  const currentLessonIndex = currentChapterData.lessons.findIndex(
+    (l) => l.id === currentLesson.value,
+  )
 
   if (currentLessonIndex > 0) {
     // 同一章的上一节课
@@ -432,7 +307,7 @@ const previousLesson = () => {
     selectLesson(currentChapter.value, previousLessonData.id)
   } else if (currentChapter.value > 1) {
     // 上一章的最后一节课
-    const previousChapter = courseData.value.chapters.find(c => c.id === currentChapter.value - 1)
+    const previousChapter = courseData.value.chapters.find((c) => c.id === currentChapter.value - 1)
     if (previousChapter && previousChapter.lessons.length > 0) {
       const lastLesson = previousChapter.lessons[previousChapter.lessons.length - 1]
       selectLesson(previousChapter.id, lastLesson.id)
@@ -442,10 +317,12 @@ const previousLesson = () => {
 
 const nextLesson = () => {
   // 实现下一节课逻辑
-  const currentChapterData = courseData.value.chapters.find(c => c.id === currentChapter.value)
+  const currentChapterData = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (!currentChapterData) return
 
-  const currentLessonIndex = currentChapterData.lessons.findIndex(l => l.id === currentLesson.value)
+  const currentLessonIndex = currentChapterData.lessons.findIndex(
+    (l) => l.id === currentLesson.value,
+  )
 
   if (currentLessonIndex < currentChapterData.lessons.length - 1) {
     // 同一章的下一节课
@@ -453,7 +330,7 @@ const nextLesson = () => {
     selectLesson(currentChapter.value, nextLessonData.id)
   } else if (currentChapter.value < courseData.value.chapters.length) {
     // 下一章的第一节课
-    const nextChapter = courseData.value.chapters.find(c => c.id === currentChapter.value + 1)
+    const nextChapter = courseData.value.chapters.find((c) => c.id === currentChapter.value + 1)
     if (nextChapter && nextChapter.lessons.length > 0) {
       const firstLesson = nextChapter.lessons[0]
       selectLesson(nextChapter.id, firstLesson.id)
@@ -462,9 +339,9 @@ const nextLesson = () => {
 }
 
 const markComplete = () => {
-  const chapter = courseData.value.chapters.find(c => c.id === currentChapter.value)
+  const chapter = courseData.value.chapters.find((c) => c.id === currentChapter.value)
   if (chapter) {
-    const lesson = chapter.lessons.find(l => l.id === currentLesson.value)
+    const lesson = chapter.lessons.find((l) => l.id === currentLesson.value)
     if (lesson) {
       lesson.completed = true
       console.log('标记当前课程为已完成')
@@ -472,11 +349,53 @@ const markComplete = () => {
   }
 }
 
+// 数据格式化
+const formatCourse = (data) => {
+  return {
+    title: data.title || '',
+    instructor: data.instructorName || '',
+    totalDuration: data.totalDuration ? `${data.totalDuration}分钟` : '',
+    totalChapters: data.totalChapters || 0,
+    level: data.difficultyText || '',
+    chapters: (data.chapters || []).map((ch, idx) => ({
+      id: idx + 1,
+      title: ch.title,
+      lessons: [
+        {
+          id: ch.id,
+          order: ch.sortOrder,
+          title: ch.title,
+          type: ch.chapterType,
+          duration: ch.duration ? `${ch.duration}分钟` : '',
+          completed: false,
+          videoUrl: ch.chapterType === 'video' ? ch.contentUrl : '',
+          audioUrl: ch.chapterType === 'audio' ? ch.contentUrl : '',
+          content: ch.chapterType === 'document' || ch.chapterType === 'quiz' ? ch.contentUrl : '',
+          description: ch.description || '',
+        },
+      ],
+    })),
+  }
+}
+
 // 生命周期
-onMounted(() => {
-  // 默认展开第一章
-  if (!expandedChapters.value.includes(1)) {
-    expandedChapters.value.push(1)
+onMounted(async () => {
+  const courseCode = route.params.courseCode || route.params.courseId
+  try {
+    const res = await getCourseDetail(courseCode)
+    if (res && res.code === 200) {
+      const formatted = formatCourse(res.data || {})
+      courseData.value = formatted
+      if (formatted.chapters.length > 0) {
+        currentChapter.value = formatted.chapters[0].id
+        currentLesson.value = formatted.chapters[0].lessons[0].id
+        expandedChapters.value.push(formatted.chapters[0].id)
+      }
+    }
+  } catch (e) {
+    console.error('获取课程详情失败', e)
+  } finally {
+    loading.value = false
   }
 })
 </script>
@@ -913,6 +832,12 @@ onMounted(() => {
 
 .btn-success:hover:not(:disabled) {
   background: #218838;
+}
+
+.loading {
+  color: #fff;
+  text-align: center;
+  padding: 40px;
 }
 
 /* 响应式设计 */
