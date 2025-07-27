@@ -125,7 +125,7 @@
           </div>
 
           <div class="course-actions">
-            <button class="btn btn-primary" @click="startLearning">开始学习</button>
+            <button class="btn btn-primary" @click="startLearning(course.id)">开始学习</button>
             <el-button size="small" @click="viewCourse(course.id)">
               <el-icon><View /></el-icon>
               详情
@@ -222,8 +222,8 @@ import { getCourseChaptersAPI, publishCourseAPI, unpublishCourseAPI } from '@/ap
 // 状态管理
 const userStore = useUserStore()
 const router = useRouter()
-const startLearning = () => {
-  router.push('/learning/product-basic')
+const startLearning = (id) => {
+  router.push(`/learning/${id}`)
 }
 
 // 使用组合式函数
