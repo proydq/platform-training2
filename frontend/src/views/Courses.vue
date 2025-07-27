@@ -186,6 +186,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getStudyOverview } from '@/api/study'
+import { getMyCourses } from '@/api/userStudy'
 
 const router = useRouter()
 
@@ -221,44 +222,24 @@ const recommended = {
   instructor: 'AI专家',
 }
 
-// 课程数据
-const courses = ref([
-  {
-    id: 'product-basic',
-    title: '产品基础知识培训',
-    instructor: '李经理',
-    duration: '2小时',
-    videos: 12,
-    status: 'in-progress',
-    progress: 75,
-    icon: '📱',
-    bg: 'linear-gradient(135deg, #667eea, #764ba2)',
-    favorite: false,
-  },
-  {
-    id: 'data-analysis',
-    title: '数据分析基础',
-    instructor: '王专家',
-    duration: '3小时',
-    status: 'completed',
-    completedDate: '2025-01-10',
-    grade: '92',
-    icon: '📊',
-    bg: 'linear-gradient(135deg, #28a745, #20c997)',
-    favorite: true,
-  },
-  {
-    id: 'advanced-research',
-    title: '高级用户研究方法',
-    instructor: '刘教授',
-    duration: '4小时',
-    status: 'not-started',
-    prerequisite: '需要先完成"用户体验基础"课程',
-    icon: '🔍',
-    bg: 'linear-gradient(135deg, #6c757d, #495057)',
-    favorite: false,
-  },
-])
+// 我的课程列表
+const courseList = ref([])
+
+// 辅助函数：生成随机图标和背景
+function randomIcon() {
+  const icons = ['📚', '🎯', '📊', '🚀', '🔍', '💡']
+  return icons[Math.floor(Math.random() * icons.length)]
+}
+
+function randomBg() {
+  const bgs = [
+    'linear-gradient(135deg, #667eea, #764ba2)',
+    'linear-gradient(135deg, #28a745, #20c997)',
+    'linear-gradient(135deg, #6c757d, #495057)',
+    'linear-gradient(135deg, #ff9a9e, #fad0c4)'
+  ]
+  return bgs[Math.floor(Math.random() * bgs.length)]
+}
 
 // 学习路径
 const learningPaths = [
@@ -313,23 +294,12 @@ const achievements = [
   },
 ]
 
-// 计算属性
-const filteredCourses = computed(() => {
-  return courses.value.filter((course) => {
-    // 关键词搜索
-    const matchKeyword = course.title.toLowerCase().includes(searchKeyword.value.toLowerCase())
-
-    // 状态筛选
-    let matchFilter = true
-    if (activeFilter.value === 'favorites') {
-      matchFilter = course.favorite
-    } else if (activeFilter.value !== 'all') {
-      matchFilter = course.status === activeFilter.value
-    }
-
-    return matchKeyword && matchFilter
-  })
-})
+// 计算属性：根据搜索关键词筛选课程
+const filteredCourses = computed(() =>
+  courseList.value.filter((course) =>
+    course.title.toLowerCase().includes(searchKeyword.value.toLowerCase())
+  )
+)
 
 // 方法
 const startCourse = (id) => {
@@ -369,6 +339,29 @@ onMounted(async () => {
     overview.value = res?.data || res
   } catch (e) {
     console.error('获取学习概览失败:', e)
+  }
+
+  try {
+    const res = await getMyCourses()
+    if (res.success) {
+      courseList.value = (res.data || []).map((c) => ({
+        id: c.id || c.courseId,
+        title: c.title,
+        instructor: c.instructor || '',
+        duration: c.duration,
+        videos: c.videos ?? 0,
+        status: c.status,
+        progress: c.progress ?? 0,
+        completedDate: c.completedDate || '',
+        grade: c.grade || '',
+        prerequisite: c.prerequisite || '',
+        icon: c.icon || randomIcon(),
+        bg: c.bg || randomBg(),
+        favorite: c.favorite ?? false,
+      }))
+    }
+  } catch (e) {
+    console.error('获取课程数据失败:', e)
   }
 })
 </script>
