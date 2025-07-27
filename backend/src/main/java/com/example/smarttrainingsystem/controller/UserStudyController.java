@@ -2,6 +2,7 @@ package com.example.smarttrainingsystem.controller;
 
 import com.example.smarttrainingsystem.common.Result;
 import com.example.smarttrainingsystem.dto.CourseListItemDTO;
+import com.example.smarttrainingsystem.dto.MyCourseDTO;
 import com.example.smarttrainingsystem.dto.UserStudyDTO;
 import com.example.smarttrainingsystem.service.UserStudyService;
 import com.example.smarttrainingsystem.utils.SecurityUtils;
@@ -26,7 +27,7 @@ public class UserStudyController {
     }
 
     @GetMapping("/courses")
-    public Result<List<CourseListItemDTO>> getMyCourses() {
+    public Result<List<MyCourseDTO>> getMyCoursesLegacy() {
         String userId = SecurityUtils.getCurrentUserId();
         return Result.success(userStudyService.getMyCourses(userId));
     }
@@ -35,5 +36,14 @@ public class UserStudyController {
     public Result<List<CourseListItemDTO>> getRecommendation() {
         String userId = SecurityUtils.getCurrentUserId();
         return Result.success(userStudyService.getRecommendations(userId));
+    }
+
+    /**
+     * 我的课程列表（新接口）
+     */
+    @GetMapping("/my-courses")
+    public Result<List<MyCourseDTO>> getMyCourses() {
+        String userId = SecurityUtils.getCurrentUserId();
+        return Result.success(userStudyService.getMyCourses(userId));
     }
 }

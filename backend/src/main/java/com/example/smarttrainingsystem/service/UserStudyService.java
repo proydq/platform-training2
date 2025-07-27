@@ -1,6 +1,7 @@
 package com.example.smarttrainingsystem.service;
 
 import com.example.smarttrainingsystem.dto.CourseListItemDTO;
+import com.example.smarttrainingsystem.dto.MyCourseDTO;
 import com.example.smarttrainingsystem.dto.UserStudyDTO;
 import com.example.smarttrainingsystem.entity.Course;
 import com.example.smarttrainingsystem.entity.StudyRecord;
@@ -39,7 +40,7 @@ public class UserStudyService {
     /**
      * 获取我的课程
      */
-    public List<CourseListItemDTO> getMyCourses(String userId) {
+    public List<MyCourseDTO> getMyCourses(String userId) {
         List<StudyRecord> records = studyRecordRepository.findByUserId(userId);
         return records.stream().map(r -> {
             Course course = r.getCourse();
@@ -49,13 +50,14 @@ public class UserStudyService {
             if (course == null) {
                 return null;
             }
-            CourseListItemDTO item = new CourseListItemDTO();
+            MyCourseDTO item = new MyCourseDTO();
             item.setCourseId(course.getId());
             item.setTitle(course.getTitle());
             item.setCoverUrl(course.getCoverImageUrl());
             item.setDuration(course.getEstimatedDuration());
             item.setProgress(r.getEffectiveProgress());
             item.setStatus(r.getStatus().name());
+            item.setCompletedDate(r.getEffectiveCompletionTime());
             return item;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
