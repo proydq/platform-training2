@@ -177,7 +177,7 @@ const route = useRoute()
 const resolveMediaUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `http://localhost:3000${url}`
+  return `http://localhost:3000${url.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
 }
 
 // 响应式数据
