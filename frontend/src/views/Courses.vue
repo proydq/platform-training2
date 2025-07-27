@@ -357,7 +357,7 @@ onMounted(async () => {
         prerequisite: c.prerequisite || '',
         icon: c.icon || randomIcon(),
         bg: c.bg || randomBg(),
-        favorite: c.favorite ?? false,
+        favorite: c.isFavorited ?? false,
       }))
     }
   } catch (e) {
