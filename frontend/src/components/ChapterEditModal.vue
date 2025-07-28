@@ -61,19 +61,23 @@
         <label class="form-label">视频文件 <span class="required">*</span></label>
         <div v-if="!form.videoFile" class="upload-area" @click="selectVideo">
           <div class="upload-icon">🎥</div>
-          <div class="upload-text">点击或拖拽视频文件到此处</div>
-          <div class="upload-hint">支持 MP4、AVI、MOV 等格式，最大 500MB</div>
+          <div class="upload-text">点击选择视频文件</div>
+          <div class="upload-hint">支持 MP4、AVI、MOV、WMV、FLV 格式，最大 500MB</div>
         </div>
         <div v-else class="file-preview video-preview">
-          <video :src="form.videoUrl" controls class="preview-video"></video>
+          <video
+            :src="form.videoUrl"
+            controls
+            class="preview-video"
+          ></video>
           <div class="file-info">
             <div class="file-name">{{ form.videoFile.name }}</div>
             <div class="file-size">{{ formatFileSize(form.videoFile.size) }}</div>
           </div>
           <div class="file-actions">
-            <el-button size="small" @click="removeVideo">
+            <el-button size="small" type="danger" @click="removeVideo">
               <el-icon><Delete /></el-icon>
-              移除
+              移除视频
             </el-button>
           </div>
         </div>
@@ -84,8 +88,8 @@
         <label class="form-label">文档文件 <span class="required">*</span></label>
         <div v-if="!form.documentFile" class="upload-area" @click="selectDocument">
           <div class="upload-icon">📄</div>
-          <div class="upload-text">点击或拖拽文档文件到此处</div>
-          <div class="upload-hint">支持 PDF、Word、PPT、Excel 等格式，最大 50MB</div>
+          <div class="upload-text">点击选择文档文件</div>
+          <div class="upload-hint">支持 PDF、Word、Excel、PPT、TXT 格式，最大 50MB</div>
         </div>
         <div v-else class="file-preview document-preview">
           <div class="document-icon">{{ getDocumentIcon(form.documentFile.name) }}</div>
@@ -111,11 +115,15 @@
         <label class="form-label">音频文件 <span class="required">*</span></label>
         <div v-if="!form.audioFile" class="upload-area" @click="selectAudio">
           <div class="upload-icon">🎵</div>
-          <div class="upload-text">点击或拖拽音频文件到此处</div>
-          <div class="upload-hint">支持 MP3、WAV、AAC 等格式，最大 200MB</div>
+          <div class="upload-text">点击选择音频文件</div>
+          <div class="upload-hint">支持 MP3、WAV、AAC、M4A、FLAC 格式，最大 100MB</div>
         </div>
         <div v-else class="file-preview audio-preview">
-          <audio :src="form.audioUrl" controls class="preview-audio"></audio>
+          <audio
+            :src="form.audioUrl"
+            controls
+            class="preview-audio"
+          ></audio>
           <div class="file-info">
             <div class="file-name">{{ form.audioFile.name }}</div>
             <div class="file-size">{{ formatFileSize(form.audioFile.size) }}</div>
@@ -123,21 +131,20 @@
           <div class="file-actions">
             <el-button size="small" type="danger" @click="removeAudio">
               <el-icon><Delete /></el-icon>
-              移除
+              移除音频
             </el-button>
           </div>
         </div>
       </div>
 
-      <!-- 章节时长 -->
+      <!-- 时长设置 -->
       <div class="form-item">
-        <label class="form-label">章节时长（分钟）</label>
+        <label class="form-label">预计学习时长（分钟）</label>
         <el-input-number
           v-model="form.duration"
-          :min="0"
+          :min="1"
           :max="999"
           controls-position="right"
-          style="width: 200px;"
         />
         <span class="duration-hint">{{ durationHint }}</span>
       </div>
@@ -149,7 +156,7 @@
           v-model="form.description"
           type="textarea"
           :rows="4"
-          placeholder="请输入章节描述，帮助学员了解本节内容"
+          placeholder="请输入章节描述，帮助学员了解本章节的主要内容"
           maxlength="500"
           show-word-limit
         />
@@ -160,7 +167,7 @@
         <label class="form-label">补充资料</label>
         <div class="supplementary-section">
           <div class="supplementary-header">
-            <el-button size="small" type="primary" @click="addSupplementary">
+            <el-button size="small" @click="addSupplementary">
               <el-icon><Plus /></el-icon>
               添加补充资料
             </el-button>
@@ -209,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, View, Close } from '@element-plus/icons-vue'
 
@@ -336,7 +343,187 @@ watch(() => props.chapterData, (newVal) => {
   }
 }, { immediate: true })
 
+// 文件选择方法
+const selectVideo = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'video/mp4,video/avi,video/mov,video/wmv,video/flv'
+  input.onchange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      handleVideoSelect(file)
+    }
+  }
+  input.click()
+}
+
+const selectDocument = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt'
+  input.onchange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      handleDocumentSelect(file)
+    }
+  }
+  input.click()
+}
+
+const selectAudio = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'audio/mp3,audio/wav,audio/aac,audio/m4a,audio/flac'
+  input.onchange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      handleAudioSelect(file)
+    }
+  }
+  input.click()
+}
+
+const addSupplementary = () => {
+  if (form.value.supplementaryFiles.length >= 10) {
+    ElMessage.warning('最多只能添加10个补充资料')
+    return
+  }
+
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.multiple = true
+  input.accept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar'
+  input.onchange = (e) => {
+    const files = Array.from(e.target.files)
+    handleSupplementarySelect(files)
+  }
+  input.click()
+}
+
+// 文件处理方法
+const handleVideoSelect = (file) => {
+  // 验证文件大小（最大500MB）
+  const maxSize = 500 * 1024 * 1024
+  if (file.size > maxSize) {
+    ElMessage.error('视频文件不能超过500MB')
+    return
+  }
+
+  // 验证文件类型
+  const validTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv']
+  if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|avi|mov|wmv|flv)$/i)) {
+    ElMessage.error('请选择正确的视频格式文件')
+    return
+  }
+
+  // 设置文件
+  form.value.videoFile = file
+  form.value.videoUrl = URL.createObjectURL(file)
+
+  // 获取视频时长
+  const video = document.createElement('video')
+  video.preload = 'metadata'
+  video.onloadedmetadata = () => {
+    form.value.duration = Math.ceil(video.duration / 60) // 转换为分钟
+    URL.revokeObjectURL(video.src)
+  }
+  video.src = form.value.videoUrl
+
+  ElMessage.success('视频文件已选择')
+}
+
+const handleDocumentSelect = (file) => {
+  // 验证文件大小（最大50MB）
+  const maxSize = 50 * 1024 * 1024
+  if (file.size > maxSize) {
+    ElMessage.error('文档文件不能超过50MB')
+    return
+  }
+
+  // 验证文件类型
+  const validExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt']
+  const fileExtension = file.name.split('.').pop().toLowerCase()
+  if (!validExtensions.includes(fileExtension)) {
+    ElMessage.error('请选择正确的文档格式文件')
+    return
+  }
+
+  // 设置文件
+  form.value.documentFile = file
+  form.value.documentUrl = URL.createObjectURL(file)
+
+  ElMessage.success('文档文件已选择')
+}
+
+const handleAudioSelect = (file) => {
+  // 验证文件大小（最大100MB）
+  const maxSize = 100 * 1024 * 1024
+  if (file.size > maxSize) {
+    ElMessage.error('音频文件不能超过100MB')
+    return
+  }
+
+  // 验证文件类型
+  const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/aac', 'audio/m4a', 'audio/flac']
+  if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|aac|m4a|flac)$/i)) {
+    ElMessage.error('请选择正确的音频格式文件')
+    return
+  }
+
+  // 设置文件
+  form.value.audioFile = file
+  form.value.audioUrl = URL.createObjectURL(file)
+
+  // 获取音频时长
+  const audio = document.createElement('audio')
+  audio.onloadedmetadata = () => {
+    form.value.duration = Math.ceil(audio.duration / 60) // 转换为分钟
+    URL.revokeObjectURL(audio.src)
+  }
+  audio.src = form.value.audioUrl
+
+  ElMessage.success('音频文件已选择')
+}
+
+const handleSupplementarySelect = (files) => {
+  const remainingSlots = 10 - form.value.supplementaryFiles.length
+  if (files.length > remainingSlots) {
+    ElMessage.warning(`只能再添加${remainingSlots}个文件`)
+    files = files.slice(0, remainingSlots)
+  }
+
+  const maxSize = 50 * 1024 * 1024 // 单个文件最大50MB
+  const validFiles = []
+
+  for (const file of files) {
+    if (file.size > maxSize) {
+      ElMessage.error(`文件"${file.name}"超过50MB，已跳过`)
+      continue
+    }
+    validFiles.push(file)
+  }
+
+  if (validFiles.length > 0) {
+    form.value.supplementaryFiles.push(...validFiles)
+    ElMessage.success(`成功添加${validFiles.length}个补充资料`)
+  }
+}
+
+// 清理URL对象，避免内存泄漏
+const cleanupUrls = () => {
+  if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.videoUrl)
+  }
+  if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.documentUrl)
+  }
+  if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.audioUrl)
+  }
+}
+
 const handleClose = () => {
+  cleanupUrls()
   visible.value = false
   resetForm()
 }
@@ -384,39 +571,26 @@ const handleSave = async () => {
   }
 }
 
-// 文件选择方法
-const selectVideo = () => {
-  // 实际实现中应调用文件选择器
-  ElMessage.info('选择视频文件功能待实现')
-}
-
-const selectDocument = () => {
-  ElMessage.info('选择文档文件功能待实现')
-}
-
-const selectAudio = () => {
-  ElMessage.info('选择音频文件功能待实现')
-}
-
-const addSupplementary = () => {
-  if (form.value.supplementaryFiles.length >= 10) {
-    ElMessage.warning('最多只能添加10个补充资料')
-    return
-  }
-  ElMessage.info('添加补充资料功能待实现')
-}
-
 const removeVideo = () => {
+  if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.videoUrl)
+  }
   form.value.videoFile = null
   form.value.videoUrl = ''
 }
 
 const removeDocument = () => {
+  if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.documentUrl)
+  }
   form.value.documentFile = null
   form.value.documentUrl = ''
 }
 
 const removeAudio = () => {
+  if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.audioUrl)
+  }
   form.value.audioFile = null
   form.value.audioUrl = ''
 }
@@ -426,7 +600,20 @@ const removeSupplementary = (index) => {
 }
 
 const previewDocument = () => {
-  ElMessage.info('文档预览功能待实现')
+  if (form.value.documentUrl) {
+    // 对于PDF文件，可以在新窗口打开
+    const fileExtension = form.value.documentFile.name.split('.').pop().toLowerCase()
+    if (fileExtension === 'pdf') {
+      window.open(form.value.documentUrl, '_blank')
+    } else {
+      // 对于其他文档类型，提示下载
+      const link = document.createElement('a')
+      link.href = form.value.documentUrl
+      link.download = form.value.documentFile.name
+      link.click()
+      ElMessage.info('文档已开始下载，请在下载完成后使用相应软件打开查看')
+    }
+  }
 }
 
 // 工具函数
@@ -460,6 +647,11 @@ const getFileIcon = (filename) => {
   if (['jpg', 'png', 'gif'].includes(ext)) return '🖼️'
   return getDocumentIcon(filename)
 }
+
+// 组件销毁时清理
+onBeforeUnmount(() => {
+  cleanupUrls()
+})
 </script>
 
 <style scoped>
