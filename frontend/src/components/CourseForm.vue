@@ -267,7 +267,8 @@ watch(
         coverFileList.value = [
           {
             name: coverUrl.split('/').pop(),
-            url: coverUrl
+            url: coverUrl,
+            status: 'done'
           }
         ]
       } else if (props.isEditing && newVal.id) {
@@ -279,7 +280,8 @@ watch(
             coverFileList.value = [
               {
                 name: url.split('/').pop(),
-                url
+                url,
+                status: 'done'
               }
             ]
           } else {
@@ -335,7 +337,8 @@ const handleCoverUpload = async ({ file, onSuccess, onError }) => {
       coverFileList.value = [
         {
           name: file.name,
-          url: res.data.url
+          url: res.data.url,
+          status: 'done'
         }
       ]
       onSuccess(res.data, file)
