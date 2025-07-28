@@ -217,7 +217,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, View, Close } from '@element-plus/icons-vue'
 
 // Props
@@ -243,6 +243,7 @@ const visible = computed({
 
 const isEdit = computed(() => !!props.chapterData?.id)
 const saving = ref(false)
+const isChangingContentType = ref(false)
 
 // 表单数据
 const form = ref({
@@ -300,6 +301,20 @@ const durationHint = computed(() => {
   return ''
 })
 
+// 检查是否有已上传的文件
+const hasUploadedFiles = computed(() => {
+  return !!(form.value.videoFile || form.value.documentFile || form.value.audioFile)
+})
+
+// 获取当前已上传的文件类型描述
+const getUploadedFilesDescription = () => {
+  const files = []
+  if (form.value.videoFile) files.push('视频')
+  if (form.value.documentFile) files.push('文档')
+  if (form.value.audioFile) files.push('音频')
+  return files.join('、')
+}
+
 // 方法 - 先定义 resetForm
 const resetForm = () => {
   form.value = {
@@ -342,6 +357,114 @@ watch(() => props.chapterData, (newVal) => {
     resetForm()
   }
 }, { immediate: true })
+
+// 监听内容类型变化，清理不相关的文件
+watch(() => form.value.contentType, async (newType, oldType) => {
+  // 如果是初始化或者正在切换类型，不处理
+  if (!oldType || isChangingContentType.value || oldType === newType) return
+
+  // 检查是否有需要清理的文件
+  let needsClearance = false
+  let filesToClear = []
+
+  switch (newType) {
+    case 'video':
+      if (form.value.documentFile || form.value.audioFile) {
+        needsClearance = true
+        if (form.value.documentFile) filesToClear.push('文档')
+        if (form.value.audioFile) filesToClear.push('音频')
+      }
+      break
+    case 'document':
+      if (form.value.videoFile || form.value.audioFile) {
+        needsClearance = true
+        if (form.value.videoFile) filesToClear.push('视频')
+        if (form.value.audioFile) filesToClear.push('音频')
+      }
+      break
+    case 'audio':
+      if (form.value.videoFile || form.value.documentFile) {
+        needsClearance = true
+        if (form.value.videoFile) filesToClear.push('视频')
+        if (form.value.documentFile) filesToClear.push('文档')
+      }
+      break
+    case 'mixed':
+      // 混合类型不需要清理任何文件
+      needsClearance = false
+      break
+  }
+
+  // 如果需要清理文件，先询问用户
+  if (needsClearance && filesToClear.length > 0) {
+    try {
+      await ElMessageBox.confirm(
+        `切换内容类型将清除已上传的${filesToClear.join('、')}文件，是否继续？`,
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+
+      // 用户确认，清理文件
+      cleanupFilesByType(newType)
+    } catch {
+      // 用户取消，恢复原来的类型
+      isChangingContentType.value = true
+      form.value.contentType = oldType
+      setTimeout(() => {
+        isChangingContentType.value = false
+      }, 100)
+    }
+  }
+})
+
+// 根据内容类型清理文件
+const cleanupFilesByType = (contentType) => {
+  switch (contentType) {
+    case 'video':
+      // 清理文档和音频文件
+      if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.value.documentUrl)
+      }
+      if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.value.audioUrl)
+      }
+      form.value.documentFile = null
+      form.value.documentUrl = ''
+      form.value.audioFile = null
+      form.value.audioUrl = ''
+      break
+    case 'document':
+      // 清理视频和音频文件
+      if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.value.videoUrl)
+      }
+      if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.value.audioUrl)
+      }
+      form.value.videoFile = null
+      form.value.videoUrl = ''
+      form.value.audioFile = null
+      form.value.audioUrl = ''
+      break
+    case 'audio':
+      // 清理视频和文档文件
+      if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.value.videoUrl)
+      }
+      if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(form.value.documentUrl)
+      }
+      form.value.videoFile = null
+      form.value.videoUrl = ''
+      form.value.documentFile = null
+      form.value.documentUrl = ''
+      break
+  }
+}
 
 // 文件选择方法
 const selectVideo = () => {
@@ -416,6 +539,11 @@ const handleVideoSelect = (file) => {
     return
   }
 
+  // 清理旧的视频URL
+  if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.videoUrl)
+  }
+
   // 设置文件
   form.value.videoFile = file
   form.value.videoUrl = URL.createObjectURL(file)
@@ -448,6 +576,11 @@ const handleDocumentSelect = (file) => {
     return
   }
 
+  // 清理旧的文档URL
+  if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.documentUrl)
+  }
+
   // 设置文件
   form.value.documentFile = file
   form.value.documentUrl = URL.createObjectURL(file)
@@ -468,6 +601,11 @@ const handleAudioSelect = (file) => {
   if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|aac|m4a|flac)$/i)) {
     ElMessage.error('请选择正确的音频格式文件')
     return
+  }
+
+  // 清理旧的音频URL
+  if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.audioUrl)
   }
 
   // 设置文件
@@ -556,9 +694,41 @@ const handleSave = async () => {
 
   saving.value = true
   try {
+    // 构建要保存的数据，只包含当前内容类型相关的文件
     const chapterData = {
-      ...form.value,
-      id: props.chapterData?.id
+      id: props.chapterData?.id,
+      title: form.value.title,
+      sortOrder: form.value.sortOrder,
+      contentType: form.value.contentType,
+      duration: form.value.duration,
+      description: form.value.description,
+      supplementaryFiles: form.value.supplementaryFiles
+    }
+
+    // 根据内容类型添加相应的文件
+    switch (contentType) {
+      case 'video':
+        chapterData.videoFile = form.value.videoFile
+        chapterData.videoUrl = form.value.videoUrl
+        break
+      case 'document':
+        chapterData.documentFile = form.value.documentFile
+        chapterData.documentUrl = form.value.documentUrl
+        break
+      case 'audio':
+        chapterData.audioFile = form.value.audioFile
+        chapterData.audioUrl = form.value.audioUrl
+        break
+      case 'mixed':
+        if (form.value.videoFile) {
+          chapterData.videoFile = form.value.videoFile
+          chapterData.videoUrl = form.value.videoUrl
+        }
+        if (form.value.documentFile) {
+          chapterData.documentFile = form.value.documentFile
+          chapterData.documentUrl = form.value.documentUrl
+        }
+        break
     }
 
     emit('save', chapterData)
@@ -645,6 +815,7 @@ const getFileIcon = (filename) => {
   if (['mp4', 'avi', 'mov'].includes(ext)) return '🎥'
   if (['mp3', 'wav', 'aac'].includes(ext)) return '🎵'
   if (['jpg', 'png', 'gif'].includes(ext)) return '🖼️'
+  if (['zip', 'rar'].includes(ext)) return '📦'
   return getDocumentIcon(filename)
 }
 
