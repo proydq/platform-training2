@@ -247,24 +247,27 @@ watch(
   () => props.courseData,
   async (newVal) => {
     if (newVal) {
+      const cover =
+        newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl || ''
+
       Object.assign(form, {
         title: newVal.title || '',
         category: newVal.category || '',
         difficulty: newVal.difficulty || 'beginner',
-        coverImage: newVal.coverImage || newVal.coverImageUrl || '',
+        coverImage: cover,
         description: newVal.description || '',
         chapters: newVal.chapters || [],
         isRequired: newVal.isRequired || false,
         tags: newVal.tags || []
       })
 
-      if (newVal.coverImage || newVal.coverImageUrl) {
+      if (newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl) {
+        const coverUrl =
+          newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl
         coverFileList.value = [
           {
-            name: (newVal.coverImage || newVal.coverImageUrl)
-              .split('/')
-              .pop(),
-            url: newVal.coverImage || newVal.coverImageUrl
+            name: coverUrl.split('/').pop(),
+            url: coverUrl
           }
         ]
       } else if (props.isEditing && newVal.id) {
