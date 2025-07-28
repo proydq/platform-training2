@@ -12,8 +12,8 @@ import StudentManagement from '@/views/StudentManagement.vue'
 import Admin from '@/views/Admin.vue'
 import UserManagement from '@/views/UserManagement.vue' // ✅ 必须添加这个导入
 import NotFound from '@/views/NotFound.vue'
-import LearningPage from '@/views/LearningPage.vue'
-
+//import LearningPage from '@/views/LearningPage.vue'
+import EnhancedLearning from '@/views/EnhancedLearning.vue' // 使用新的增强版学习页面
 // 路由配置
 const routes = [
   {
@@ -91,10 +91,20 @@ const routes = [
           roles: ['ADMIN']
         }
       },
-      {
+      /*{
         path: 'learning/:courseId',
         name: 'LearningPage',
         component: LearningPage,
+        meta: {
+          title: '课程学习',
+          icon: '📚',
+          requiresAuth: true
+        }
+      }*/
+      {
+        path: 'learning/:courseId',
+        name: 'EnhancedLearning', // 更改名称
+        component: EnhancedLearning, // 使用新的增强版学习页面
         meta: {
           title: '课程学习',
           icon: '📚',

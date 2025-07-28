@@ -1,4 +1,4 @@
-// frontend/src/api/course.js - 最小化修复版本
+// frontend/src/api/course.js
 import request from '@/utils/request'
 
 /**
@@ -63,15 +63,34 @@ export function getCourseListAPI(params = {}) {
   })
 }
 
-// 获取课程详情
+// 获取课程详情（增强版，用于学习页面）
 export function getCourseDetailAPI(courseId) {
   return request({
     url: `/api/v1/courses/${courseId}`,
     method: 'GET',
+  }).then(async (response) => {
+    // 确保响应数据格式正确
+    let courseData = response.data || response
+
+    // 如果没有章节数据，尝试单独获取
+    if (!courseData.chapters || courseData.chapters.length === 0) {
+      try {
+        const chaptersRes = await getCourseChaptersAPI(courseId)
+        courseData.chapters = chaptersRes.data || []
+      } catch (error) {
+        console.warn('获取章节数据失败:', error)
+        courseData.chapters = []
+      }
+    }
+
+    return {
+      ...response,
+      data: courseData
+    }
   })
 }
 
-// 🔧 修复：创建课程API - 只修复章节数据映射问题
+// 创建课程
 export function createCourseAPI(data) {
   const requestData = {
     title: data.title,
@@ -83,7 +102,7 @@ export function createCourseAPI(data) {
     isRequired: data.isRequired || false,
     coverImageUrl: data.coverImage || '',
 
-    // 🔧 传递新格式的资料信息（包含文件名）
+    // 传递新格式的资料信息（包含文件名）
     materials:
       data.materials && data.materials.length > 0
         ? data.materials.map((material) => ({
@@ -115,42 +134,26 @@ export function createCourseAPI(data) {
       ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
       : '',
 
-    // 🔧 关键修复：完整的章节数据映射
+    // 章节数据映射
     chapters: data.chapters && data.chapters.length > 0
-      ? data.chapters.map((chapter, index) => {
-        // 验证必填字段
-        if (!chapter.title?.trim()) {
-          throw new Error(`第 ${index + 1} 个章节的标题不能为空`)
-        }
-
-        return {
-          title: chapter.title.trim(),
-          description: chapter.description || '',
-
-          // 🔧 关键修复：添加必填的 chapterType 字段
-          chapterType: chapter.chapterType || chapter.type || 'document',
-
-          // 🔧 关键修复：字段名映射 order -> sortOrder
-          sortOrder: Number(chapter.order || chapter.sortOrder) || (index + 1),
-
-          duration: Number(chapter.duration) || 0,
-          content: chapter.content || '',
-          videoUrl: chapter.videoUrl || '',
-          // 将文本内容映射到后端的 contentUrl 字段
-          contentUrl: chapter.content || chapter.contentUrl || chapter.videoUrl || '',
-          status: typeof chapter.status === 'number' ? chapter.status : 0,
-
-          // 可选字段
-          isFree: Boolean(chapter.isFree),
-          requirements: chapter.requirements || '',
-          learningObjectives: chapter.learningObjectives || '',
-          fileSize: chapter.fileSize || null,
-          fileFormat: chapter.fileFormat || null,
-          thumbnailUrl: chapter.thumbnailUrl || '',
-          materialUrls: chapter.materialUrls || '',
-          videoUrls: chapter.videoUrls || ''
-        }
-      })
+      ? data.chapters.map((chapter, index) => ({
+        id: chapter.id,
+        title: chapter.title,
+        description: chapter.description || '',
+        chapterType: chapter.chapterType || chapter.type || 'document',
+        sortOrder: chapter.sortOrder || chapter.order || (index + 1),
+        duration: chapter.duration || 0,
+        content: chapter.content || '',
+        videoUrl: chapter.videoUrl || '',
+        contentUrl: chapter.content || chapter.contentUrl || chapter.videoUrl || '',
+        status: typeof chapter.status === 'number' ? chapter.status : 0,
+        isFree: Boolean(chapter.isFree),
+        requirements: chapter.requirements || '',
+        learningObjectives: chapter.learningObjectives || '',
+        fileSize: chapter.fileSize || null,
+        materialUrls: chapter.materialUrls || '',
+        videoUrls: chapter.videoUrls || ''
+      }))
       : [],
   }
 
@@ -173,15 +176,15 @@ export function updateCourseAPI(courseId, data) {
     isRequired: data.isRequired || false,
     coverImageUrl: data.coverImage || '',
 
-    // 材料信息处理（保持原逻辑）
-    materials: data.materials && data.materials.length > 0
-      ? data.materials.map((material) => ({
-        url: typeof material === 'string' ? material : material.url,
-        name: typeof material === 'object'
-          ? material.originalName || material.name || '学习资料'
-          : '学习资料',
-      }))
-      : [],
+    materials:
+      data.materials && data.materials.length > 0
+        ? data.materials.map((material) => ({
+          url: typeof material === 'string' ? material : material.url,
+          name: typeof material === 'object'
+            ? material.originalName || material.name || '学习资料'
+            : '学习资料',
+        }))
+        : [],
 
     materialUrls: data.materials
       ? data.materials.map((m) => (typeof m === 'string' ? m : m.url)).join(',')
@@ -200,7 +203,7 @@ export function updateCourseAPI(courseId, data) {
       ? data.videos.map((v) => (typeof v === 'string' ? v : v.url)).join(',')
       : '',
 
-    // 🔧 修复：章节数据映射
+    // 修复：章节数据映射
     chapters: data.chapters
       ? data.chapters.map((chapter, index) => ({
         id: chapter.id,
@@ -278,7 +281,7 @@ export function getChapterDetailAPI(courseId, chapterId) {
   })
 }
 
-// 🔧 修复：创建章节API
+// 创建章节
 export function createChapterAPI(courseId, data) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters`,
@@ -304,7 +307,7 @@ export function createChapterAPI(courseId, data) {
   })
 }
 
-// 🔧 修复：更新章节API
+// 更新章节
 export function updateChapterAPI(courseId, chapterId, data) {
   return request({
     url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
@@ -465,5 +468,60 @@ export function getInstructorStatsAPI(instructorId) {
   return request({
     url: `/api/v1/courses/instructor/${instructorId}/stats`,
     method: 'GET',
+  })
+}
+
+/**
+ * ==================== 增强学习页面新增API ====================
+ */
+
+// 更新学习进度
+export function updateStudyProgressAPI(data) {
+  return request({
+    url: '/api/v1/study-progress/update',
+    method: 'POST',
+    data: {
+      courseId: data.courseId,
+      lessonId: data.lessonId,
+      progress: data.progress,
+      lastPosition: data.lastPosition || 0
+    }
+  })
+}
+
+// 获取课程资料
+export function getCourseMaterialsAPI(courseId, lessonId) {
+  return request({
+    url: `/api/v1/courses/${courseId}/lessons/${lessonId}/materials`,
+    method: 'GET'
+  })
+}
+
+// 保存学习笔记
+export function saveLessonNotesAPI(data) {
+  return request({
+    url: '/api/v1/study-notes/save',
+    method: 'POST',
+    data: {
+      courseId: data.courseId,
+      lessonId: data.lessonId,
+      notes: data.notes
+    }
+  })
+}
+
+// 获取学习笔记
+export function getLessonNotesAPI(courseId, lessonId) {
+  return request({
+    url: `/api/v1/study-notes/${courseId}/${lessonId}`,
+    method: 'GET'
+  })
+}
+
+// 标记课程完成
+export function markLessonCompleteAPI(courseId, lessonId) {
+  return request({
+    url: `/api/v1/courses/${courseId}/lessons/${lessonId}/complete`,
+    method: 'POST'
   })
 }
