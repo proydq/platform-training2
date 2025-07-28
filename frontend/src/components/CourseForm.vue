@@ -52,9 +52,8 @@
 
           <el-upload
             ref="coverUploadRef"
-            v-model:file-list="coverFileList"
+            :file-list="coverFileList"
             :show-file-list="false"
-            action="/api/v1/upload/course-cover"
             :http-request="handleCoverUpload"
             :before-upload="beforeCoverUpload"
             accept="image/*"
@@ -181,6 +180,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, Clock, Rank, Document } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import ChapterEditModal from './ChapterEditModal.vue'
+import axios from 'axios'
 
 // Props
 const props = defineProps({
@@ -242,20 +242,37 @@ const rules = {
 // 配置数据
 const courseCategories = ['技术培训', '产品培训', '安全培训', '管理培训', '新员工培训']
 // 监听课程数据变化
-watch(() => props.courseData, (newVal) => {
-  if (newVal) {
-    Object.assign(form, {
-      title: newVal.title || '',
-      category: newVal.category || '',
-      difficulty: newVal.difficulty || 'beginner',
-      coverImage: newVal.coverImage || '',
-      description: newVal.description || '',
-      chapters: newVal.chapters || [],
-      isRequired: newVal.isRequired || false,
-      tags: newVal.tags || []
-    })
-  }
-}, { immediate: true, deep: true })
+watch(
+  () => props.courseData,
+  (newVal) => {
+    if (newVal) {
+      Object.assign(form, {
+        title: newVal.title || '',
+        category: newVal.category || '',
+        difficulty: newVal.difficulty || 'beginner',
+        coverImage: newVal.coverImage || newVal.coverImageUrl || '',
+        description: newVal.description || '',
+        chapters: newVal.chapters || [],
+        isRequired: newVal.isRequired || false,
+        tags: newVal.tags || []
+      })
+
+      if (newVal.coverImage || newVal.coverImageUrl) {
+        coverFileList.value = [
+          {
+            name: (newVal.coverImage || newVal.coverImageUrl)
+              .split('/')
+              .pop(),
+            url: newVal.coverImage || newVal.coverImageUrl
+          }
+        ]
+      } else {
+        coverFileList.value = []
+      }
+    }
+  },
+  { immediate: true, deep: true }
+)
 
 // 方法
 const triggerCoverUpload = () => {
@@ -279,19 +296,25 @@ const beforeCoverUpload = (file) => {
   return true
 }
 
-const handleCoverUpload = async ({ file }) => {
+const handleCoverUpload = async ({ file, onSuccess, onError }) => {
+  const formData = new FormData()
+  formData.append('file', file)
   try {
-    // 这里应该调用实际的上传 API
-    // const formData = new FormData()
-    // formData.append('file', file)
-    // const response = await uploadAPI(formData)
-
-    // 模拟上传成功
-    const mockUrl = URL.createObjectURL(file)
-    form.coverImage = mockUrl
-    ElMessage.success('封面上传成功')
-  } catch (error) {
-    ElMessage.error('封面上传失败')
+    const res = await axios.post('/api/v1/upload/course-cover', formData)
+    if (res.data?.url) {
+      form.coverImage = res.data.url
+      coverFileList.value = [
+        {
+          name: file.name,
+          url: res.data.url
+        }
+      ]
+      onSuccess(res.data, file)
+    } else {
+      onError()
+    }
+  } catch (e) {
+    onError()
   }
 }
 
