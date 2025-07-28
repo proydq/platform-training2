@@ -300,7 +300,13 @@ const handleCoverUpload = async ({ file, onSuccess, onError }) => {
   const formData = new FormData()
   formData.append('file', file)
   try {
-    const res = await axios.post('/api/v1/upload/course-cover', formData)
+    const token = localStorage.getItem('token')
+    const res = await axios.post('/api/v1/upload/course-cover', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    })
     if (res.data?.url) {
       form.coverImage = res.data.url
       coverFileList.value = [
