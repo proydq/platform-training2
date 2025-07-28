@@ -181,6 +181,7 @@ import { Plus, Edit, Delete, Clock, Rank, Document } from '@element-plus/icons-v
 import draggable from 'vuedraggable'
 import ChapterEditModal from './ChapterEditModal.vue'
 import axios from 'axios'
+import { getCourseDetailAPI } from '@/api/course'
 
 // Props
 const props = defineProps({
@@ -244,7 +245,7 @@ const courseCategories = ['技术培训', '产品培训', '安全培训', '管�
 // 监听课程数据变化
 watch(
   () => props.courseData,
-  (newVal) => {
+  async (newVal) => {
     if (newVal) {
       Object.assign(form, {
         title: newVal.title || '',
@@ -266,6 +267,25 @@ watch(
             url: newVal.coverImage || newVal.coverImageUrl
           }
         ]
+      } else if (props.isEditing && newVal.id) {
+        try {
+          const res = await getCourseDetailAPI(newVal.id)
+          const url = res.data?.coverImageUrl || res.data?.coverUrl
+          if (url) {
+            form.coverImage = url
+            coverFileList.value = [
+              {
+                name: url.split('/').pop(),
+                url
+              }
+            ]
+          } else {
+            coverFileList.value = []
+          }
+        } catch (error) {
+          console.error('获取课程封面失败', error)
+          coverFileList.value = []
+        }
       } else {
         coverFileList.value = []
       }
