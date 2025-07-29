@@ -307,10 +307,11 @@ const processSelectedMaterials = (data) => {
 
     materialUrls.forEach(url => {
       const trimmedUrl = url.trim()
-      // 在可用资料列表中找到匹配的文件
-      const matchedMaterial = props.availableMaterials.find(material =>
-        material.url === trimmedUrl
-      )
+      const normalizedUrl = normalizeUrl(trimmedUrl)
+      // 在可用资料列表中找到匹配的文件，支持路径归一化
+      const matchedMaterial = props.availableMaterials.find(material => {
+        return normalizeUrl(material.url) === normalizedUrl
+      })
 
       if (matchedMaterial) {
         // 使用文件的ID或UID作为选中标识
@@ -343,6 +344,17 @@ watch(() => props.chapterData, (newData) => {
   }
 }, { immediate: true })
 
+// 🔧 当可用资料加载完成后重新处理选中状态
+watch(
+  () => props.availableMaterials,
+  (materials) => {
+    if (materials && materials.length > 0 && props.chapterData) {
+      form.selectedMaterials = processSelectedMaterials(props.chapterData)
+    }
+  },
+  { deep: true }
+)
+
 // 生命周期
 onMounted(() => {
   if (!props.chapterData || Object.keys(props.chapterData).length === 0) {
@@ -363,6 +375,17 @@ const getFileType = (filename) => {
   if (!filename) return ''
   const ext = filename.split('.').pop()?.toUpperCase()
   return ext || ''
+}
+
+// 🔧 新增：统一URL格式，移除域名和查询参数
+const normalizeUrl = (url) => {
+  if (!url) return ''
+  try {
+    const u = new URL(url, window.location.origin)
+    return u.pathname.replace(/^\//, '')
+  } catch (e) {
+    return url.replace(/^https?:\/\//, '').split('?')[0]
+  }
 }
 
 const getStatusType = (status) => {
