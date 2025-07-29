@@ -319,6 +319,8 @@ watch(() => visible.value, (newVal) => {
     if (props.chapterData) {
       // 编辑模式，填充表单数据
       console.log('编辑章节数据:', props.chapterData)
+      console.log('contentType值:', props.chapterData.contentType)
+      console.log('chapterType值:', props.chapterData.chapterType)
 
       // 处理补充资料
       let supplementaryFiles = []
@@ -338,10 +340,26 @@ watch(() => visible.value, (newVal) => {
         supplementaryFiles = props.chapterData.supplementaryFiles
       }
 
+      // 确定内容类型 - 添加更多兼容性处理
+      let finalContentType = props.chapterData.contentType || props.chapterData.chapterType || props.chapterData.type
+
+      // 如果还是没有内容类型，根据URL推断
+      if (!finalContentType) {
+        if (props.chapterData.videoUrl) {
+          finalContentType = 'video'
+        } else if (props.chapterData.audioUrl) {
+          finalContentType = 'audio'
+        } else {
+          finalContentType = 'document'
+        }
+      }
+
+      console.log('最终contentType:', finalContentType)
+
       Object.assign(form.value, {
         title: props.chapterData.title || '',
         sortOrder: props.chapterData.sortOrder || 1,
-        contentType: props.chapterData.contentType || props.chapterData.chapterType || 'document',
+        contentType: finalContentType,
         duration: props.chapterData.duration || 15,
         description: props.chapterData.description || '',
         supplementaryFiles: supplementaryFiles,
@@ -353,6 +371,8 @@ watch(() => visible.value, (newVal) => {
         audioFile: null, // 文件对象无法从已保存的数据中恢复
         audioUrl: props.chapterData.audioUrl || props.chapterData.contentUrl || ''
       })
+
+      console.log('表单数据设置完成:', form.value)
 
       // 根据内容类型确保正确的URL被设置
       if (props.chapterData.contentType === 'video' && props.chapterData.contentUrl) {
