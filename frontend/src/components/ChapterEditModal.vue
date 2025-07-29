@@ -6,8 +6,8 @@
     width="800px"
     :close-on-click-modal="false"
     @close="handleClose"
-    destroy-on-close
   >
+    <!-- 组件内容保持不变 -->
     <div class="chapter-edit-form">
       <!-- 基本信息 -->
       <div class="form-row">
@@ -59,26 +59,25 @@
       <!-- 视频上传区域 -->
       <div class="form-item" v-if="showVideoUpload">
         <label class="form-label">视频文件 <span class="required">*</span></label>
-        <div v-if="!form.videoFile" class="upload-area" @click="selectVideo">
-          <div class="upload-icon">🎥</div>
-          <div class="upload-text">点击选择视频文件</div>
-          <div class="upload-hint">支持 MP4、AVI、MOV、WMV、FLV 格式，最大 500MB</div>
+        <div v-if="!form.videoFile && !form.videoUrl" class="upload-area" @click="selectVideo">
+          <div class="upload-icon">📹</div>
+          <div class="upload-text">点击上传视频</div>
+          <div class="upload-hint">支持格式：MP4、AVI、MOV、WMV、FLV，最大500MB</div>
         </div>
         <div v-else class="file-preview video-preview">
           <video
+            v-if="form.videoUrl"
             :src="form.videoUrl"
             controls
             class="preview-video"
           ></video>
           <div class="file-info">
-            <div class="file-name">{{ form.videoFile.name }}</div>
-            <div class="file-size">{{ formatFileSize(form.videoFile.size) }}</div>
+            <div class="file-name">{{ form.videoFile?.name || '已上传视频' }}</div>
+            <div class="file-size" v-if="form.videoFile">{{ formatFileSize(form.videoFile.size) }}</div>
           </div>
           <div class="file-actions">
-            <el-button size="small" type="danger" @click="removeVideo">
-              <el-icon><Delete /></el-icon>
-              移除视频
-            </el-button>
+            <el-button size="small" @click="selectVideo">重新选择</el-button>
+            <el-button size="small" type="danger" @click="removeVideo">删除</el-button>
           </div>
         </div>
       </div>
@@ -86,26 +85,21 @@
       <!-- 文档上传区域 -->
       <div class="form-item" v-if="showDocumentUpload">
         <label class="form-label">文档文件 <span class="required">*</span></label>
-        <div v-if="!form.documentFile" class="upload-area" @click="selectDocument">
+        <div v-if="!form.documentFile && !form.documentUrl" class="upload-area" @click="selectDocument">
           <div class="upload-icon">📄</div>
-          <div class="upload-text">点击选择文档文件</div>
-          <div class="upload-hint">支持 PDF、Word、Excel、PPT、TXT 格式，最大 50MB</div>
+          <div class="upload-text">点击上传文档</div>
+          <div class="upload-hint">支持格式：PDF、Word、PPT、Excel、TXT，最大50MB</div>
         </div>
         <div v-else class="file-preview document-preview">
-          <div class="document-icon">{{ getDocumentIcon(form.documentFile.name) }}</div>
+          <div class="document-icon">{{ getDocumentIcon(form.documentFile?.name || 'document.pdf') }}</div>
           <div class="file-info">
-            <div class="file-name">{{ form.documentFile.name }}</div>
-            <div class="file-size">{{ formatFileSize(form.documentFile.size) }}</div>
+            <div class="file-name">{{ form.documentFile?.name || '已上传文档' }}</div>
+            <div class="file-size" v-if="form.documentFile">{{ formatFileSize(form.documentFile.size) }}</div>
           </div>
           <div class="file-actions">
-            <el-button size="small" @click="previewDocument">
-              <el-icon><View /></el-icon>
-              预览
-            </el-button>
-            <el-button size="small" type="danger" @click="removeDocument">
-              <el-icon><Delete /></el-icon>
-              移除
-            </el-button>
+            <el-button size="small" @click="previewDocument">预览</el-button>
+            <el-button size="small" @click="selectDocument">重新选择</el-button>
+            <el-button size="small" type="danger" @click="removeDocument">删除</el-button>
           </div>
         </div>
       </div>
@@ -113,38 +107,38 @@
       <!-- 音频上传区域 -->
       <div class="form-item" v-if="showAudioUpload">
         <label class="form-label">音频文件 <span class="required">*</span></label>
-        <div v-if="!form.audioFile" class="upload-area" @click="selectAudio">
+        <div v-if="!form.audioFile && !form.audioUrl" class="upload-area" @click="selectAudio">
           <div class="upload-icon">🎵</div>
-          <div class="upload-text">点击选择音频文件</div>
-          <div class="upload-hint">支持 MP3、WAV、AAC、M4A、FLAC 格式，最大 100MB</div>
+          <div class="upload-text">点击上传音频</div>
+          <div class="upload-hint">支持格式：MP3、WAV、AAC、M4A、FLAC，最大100MB</div>
         </div>
         <div v-else class="file-preview audio-preview">
           <audio
+            v-if="form.audioUrl"
             :src="form.audioUrl"
             controls
             class="preview-audio"
           ></audio>
           <div class="file-info">
-            <div class="file-name">{{ form.audioFile.name }}</div>
-            <div class="file-size">{{ formatFileSize(form.audioFile.size) }}</div>
+            <div class="file-name">{{ form.audioFile?.name || '已上传音频' }}</div>
+            <div class="file-size" v-if="form.audioFile">{{ formatFileSize(form.audioFile.size) }}</div>
           </div>
           <div class="file-actions">
-            <el-button size="small" type="danger" @click="removeAudio">
-              <el-icon><Delete /></el-icon>
-              移除音频
-            </el-button>
+            <el-button size="small" @click="selectAudio">重新选择</el-button>
+            <el-button size="small" type="danger" @click="removeAudio">删除</el-button>
           </div>
         </div>
       </div>
 
-      <!-- 时长设置 -->
+      <!-- 时长输入 -->
       <div class="form-item">
-        <label class="form-label">预计学习时长（分钟）</label>
+        <label class="form-label">预计学习时长（分钟） <span class="required">*</span></label>
         <el-input-number
           v-model="form.duration"
           :min="1"
           :max="999"
           controls-position="right"
+          style="width: 200px"
         />
         <span class="duration-hint">{{ durationHint }}</span>
       </div>
@@ -155,8 +149,8 @@
         <el-input
           v-model="form.description"
           type="textarea"
-          :rows="4"
-          placeholder="请输入章节描述，帮助学员了解本章节的主要内容"
+          :rows="3"
+          placeholder="请输入章节描述，帮助学员了解本章内容"
           maxlength="500"
           show-word-limit
         />
@@ -167,8 +161,7 @@
         <label class="form-label">补充资料</label>
         <div class="supplementary-section">
           <div class="supplementary-header">
-            <el-button size="small" @click="addSupplementary">
-              <el-icon><Plus /></el-icon>
+            <el-button size="small" :icon="Plus" @click="addSupplementary">
               添加补充资料
             </el-button>
             <span class="supplementary-hint">最多10个文件，单个不超过50MB</span>
@@ -334,36 +327,39 @@ const resetForm = () => {
   }
 }
 
-// 监听章节数据变化 - 在 resetForm 定义之后
-watch(() => props.chapterData, (newVal) => {
+// 监听弹窗显示状态
+watch(() => visible.value, (newVal) => {
   if (newVal) {
-    // 编辑模式，填充表单数据
-    Object.assign(form.value, {
-      title: newVal.title || '',
-      sortOrder: newVal.sortOrder || 1,
-      contentType: newVal.contentType || 'document',
-      duration: newVal.duration || 15,
-      description: newVal.description || '',
-      supplementaryFiles: newVal.materialUrls
-        ? newVal.materialUrls.split(',').filter(u => u).map(u => ({
+    // 弹窗打开时
+    if (props.chapterData) {
+      // 编辑模式，填充表单数据
+      Object.assign(form.value, {
+        title: props.chapterData.title || '',
+        sortOrder: props.chapterData.sortOrder || 1,
+        contentType: props.chapterData.contentType || 'document',
+        duration: props.chapterData.duration || 15,
+        description: props.chapterData.description || '',
+        supplementaryFiles: props.chapterData.materialUrls
+          ? props.chapterData.materialUrls.split(',').filter(u => u).map(u => ({
             name: u.split('/').pop(),
             url: u,
             size: 0
           }))
-        : newVal.supplementaryFiles || [],
-      // 文件相关
-      videoFile: newVal.videoFile || null,
-      videoUrl: newVal.videoUrl || '',
-      documentFile: newVal.documentFile || null,
-      documentUrl: newVal.documentUrl || '',
-      audioFile: newVal.audioFile || null,
-      audioUrl: newVal.audioUrl || ''
-    })
-  } else {
-    // 新增模式，重置表单
-    resetForm()
+          : props.chapterData.supplementaryFiles || [],
+        // 文件相关
+        videoFile: props.chapterData.videoFile || null,
+        videoUrl: props.chapterData.videoUrl || '',
+        documentFile: props.chapterData.documentFile || null,
+        documentUrl: props.chapterData.documentUrl || '',
+        audioFile: props.chapterData.audioFile || null,
+        audioUrl: props.chapterData.audioUrl || ''
+      })
+    } else {
+      // 新增模式，重置表单
+      resetForm()
+    }
   }
-}, { immediate: true })
+})
 
 // 监听内容类型变化，清理不相关的文件
 watch(() => form.value.contentType, async (newType, oldType) => {
@@ -415,56 +411,53 @@ watch(() => form.value.contentType, async (newType, oldType) => {
         }
       )
 
-      // 用户确认，清理文件
-      cleanupFilesByType(newType)
-    } catch {
-      // 用户取消，恢复原来的类型
       isChangingContentType.value = true
+      // 用户确认，清理对应文件
+      clearFilesByType(oldType, newType)
+      isChangingContentType.value = false
+    } catch {
+      // 用户取消，恢复原类型
       form.value.contentType = oldType
-      setTimeout(() => {
-        isChangingContentType.value = false
-      }, 100)
     }
   }
 })
 
+// 清理旧的URL
+const cleanupUrls = () => {
+  if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.videoUrl)
+  }
+  if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.documentUrl)
+  }
+  if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(form.value.audioUrl)
+  }
+}
+
+// 处理关闭
+const handleClose = () => {
+  visible.value = false
+  // 清理临时URL
+  cleanupUrls()
+}
+
 // 根据内容类型清理文件
-const cleanupFilesByType = (contentType) => {
-  switch (contentType) {
+const clearFilesByType = (oldType, newType) => {
+  switch (newType) {
     case 'video':
-      // 清理文档和音频文件
-      if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(form.value.documentUrl)
-      }
-      if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(form.value.audioUrl)
-      }
       form.value.documentFile = null
       form.value.documentUrl = ''
       form.value.audioFile = null
       form.value.audioUrl = ''
       break
     case 'document':
-      // 清理视频和音频文件
-      if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(form.value.videoUrl)
-      }
-      if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(form.value.audioUrl)
-      }
       form.value.videoFile = null
       form.value.videoUrl = ''
       form.value.audioFile = null
       form.value.audioUrl = ''
       break
     case 'audio':
-      // 清理视频和文档文件
-      if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(form.value.videoUrl)
-      }
-      if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(form.value.documentUrl)
-      }
       form.value.videoFile = null
       form.value.videoUrl = ''
       form.value.documentFile = null
@@ -648,6 +641,7 @@ const handleAudioSelect = async (file) => {
 
   // 获取音频时长
   const audio = document.createElement('audio')
+  audio.preload = 'metadata'
   audio.onloadedmetadata = () => {
     form.value.duration = Math.ceil(audio.duration / 60) // 转换为分钟
     URL.revokeObjectURL(audio.src)
@@ -655,7 +649,7 @@ const handleAudioSelect = async (file) => {
   audio.src = localUrl
 
   try {
-    const res = await uploadCourseMaterialAPI(file)
+    const res = await uploadCourseVideoAPI(file) // 音频也可以用同样的接口
     const url = res.data?.url
     if (url) {
       form.value.audioUrl = url
@@ -671,81 +665,60 @@ const handleAudioSelect = async (file) => {
 
 const handleSupplementarySelect = async (files) => {
   const remainingSlots = 10 - form.value.supplementaryFiles.length
+
   if (files.length > remainingSlots) {
     ElMessage.warning(`只能再添加${remainingSlots}个文件`)
     files = files.slice(0, remainingSlots)
   }
 
-  const maxSize = 50 * 1024 * 1024 // 单个文件最大50MB
-  const validFiles = []
-
   for (const file of files) {
-    if (file.size > maxSize) {
-      ElMessage.error(`文件"${file.name}"超过50MB，已跳过`)
+    // 验证文件大小
+    if (file.size > 50 * 1024 * 1024) {
+      ElMessage.error(`文件 ${file.name} 超过50MB限制`)
       continue
     }
-    validFiles.push(file)
-  }
 
-  for (const file of validFiles) {
     try {
       const res = await uploadCourseMaterialAPI(file)
       const url = res.data?.url
       if (url) {
-        form.value.supplementaryFiles.push({ name: file.name, size: file.size, url })
+        form.value.supplementaryFiles.push({
+          name: file.name,
+          size: file.size,
+          url: url,
+          file: file
+        })
       }
     } catch (error) {
-      console.error('资料上传失败', error)
-      ElMessage.error(`文件"${file.name}"上传失败`)
+      console.error('补充资料上传失败', error)
+      ElMessage.error(`文件 ${file.name} 上传失败`)
     }
   }
-
-  if (validFiles.length > 0) {
-    ElMessage.success(`成功添加${validFiles.length}个补充资料`)
-  }
 }
 
-// 清理URL对象，避免内存泄漏
-const cleanupUrls = () => {
-  if (form.value.videoUrl && form.value.videoUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(form.value.videoUrl)
-  }
-  if (form.value.documentUrl && form.value.documentUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(form.value.documentUrl)
-  }
-  if (form.value.audioUrl && form.value.audioUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(form.value.audioUrl)
-  }
-}
-
-const handleClose = () => {
-  cleanupUrls()
-  visible.value = false
-  resetForm()
-}
-
+// 保存章节
 const handleSave = async () => {
-  // 验证必填字段
-  if (!form.value.title.trim()) {
+  if (!form.value.title) {
     ElMessage.error('请输入章节标题')
     return
   }
 
-  // 根据内容类型验证文件
   const contentType = form.value.contentType
-  if (contentType === 'video' && !form.value.videoFile) {
+
+  // 验证文件上传
+  if (contentType === 'video' && !form.value.videoUrl) {
     ElMessage.error('请上传视频文件')
     return
   }
-  if (contentType === 'document' && !form.value.documentFile) {
+  if (contentType === 'document' && !form.value.documentUrl) {
     ElMessage.error('请上传文档文件')
     return
   }
-  if (contentType === 'audio' && !form.value.audioFile) {
+  if (contentType === 'audio' && !form.value.audioUrl) {
     ElMessage.error('请上传音频文件')
     return
   }
-  if (contentType === 'mixed' && !form.value.videoFile && !form.value.documentFile) {
+  if (contentType === 'mixed' && !form.value.videoUrl && !form.value.documentUrl) {
     ElMessage.error('请至少上传一个视频或文档文件')
     return
   }
@@ -829,14 +802,14 @@ const removeSupplementary = (index) => {
 const previewDocument = () => {
   if (form.value.documentUrl) {
     // 对于PDF文件，可以在新窗口打开
-    const fileExtension = form.value.documentFile.name.split('.').pop().toLowerCase()
+    const fileExtension = form.value.documentFile?.name?.split('.').pop().toLowerCase()
     if (fileExtension === 'pdf') {
       window.open(form.value.documentUrl, '_blank')
     } else {
       // 对于其他文档类型，提示下载
       const link = document.createElement('a')
       link.href = form.value.documentUrl
-      link.download = form.value.documentFile.name
+      link.download = form.value.documentFile?.name || 'document'
       link.click()
       ElMessage.info('文档已开始下载，请在下载完成后使用相应软件打开查看')
     }
@@ -883,6 +856,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* 样式保持不变 */
 .chapter-edit-form {
   padding: 10px 0;
 }
