@@ -91,9 +91,9 @@
             <div class="video-player">
               <!-- 直接显示视频播放器 -->
               <video
-                v-if="getVideoUrl(currentLessonData)"
+                v-if="isVideo && resolvedMediaUrl"
                 ref="videoElement"
-                :src="getVideoUrl(currentLessonData)"
+                :src="resolvedMediaUrl"
                 controls
                 preload="metadata"
                 @play="onVideoPlay"
@@ -104,6 +104,12 @@
               >
                 您的浏览器不支持视频播放
               </video>
+              <iframe
+                v-else-if="isDocument && resolvedMediaUrl"
+                :src="resolvedMediaUrl"
+                class="media-viewer"
+                style="height: 100%; width: 100%; border: none"
+              ></iframe>
               <!-- 当没有视频URL时显示提示信息 -->
               <div v-else class="video-placeholder">
                 <div class="info-icon">📹</div>
@@ -155,7 +161,7 @@ import { ElMessage } from 'element-plus'
 // 路由相关
 const route = useRoute()
 
-// 获取视频URL的统一方法
+// 获取章节资源的统一方法
 const getVideoUrl = (lessonData) => {
   if (!lessonData) {
     console.warn('⚠️ lessonData 为空')
@@ -222,6 +228,10 @@ const resolveMediaUrl = (url) => {
   return finalUrl
 }
 
+// 判断资源类型
+const isVideoFile = (url) => /\.(mp4|mov|webm)$/i.test(url || '')
+const isDocumentFile = (url) => /\.(pdf|docx?|pptx?)$/i.test(url || '')
+
 // 响应式数据
 const currentChapter = ref(1)
 const currentLesson = ref(null)
@@ -247,11 +257,16 @@ const currentLessonData = computed(() => {
   return lesson || {}
 })
 
+// 当前章节资源URL
+const resolvedMediaUrl = computed(() => getVideoUrl(currentLessonData.value))
+const isVideo = computed(() => isVideoFile(resolvedMediaUrl.value))
+const isDocument = computed(() => isDocumentFile(resolvedMediaUrl.value))
+
 // 监听视频地址变化，强制重新加载播放器
 watch(
-  () => getVideoUrl(currentLessonData.value),
+  resolvedMediaUrl,
   async (newUrl, oldUrl) => {
-    if (videoElement.value && newUrl && newUrl !== oldUrl) {
+    if (isVideo.value && videoElement.value && newUrl && newUrl !== oldUrl) {
       await nextTick()
       videoElement.value.load()
       try {
@@ -360,7 +375,7 @@ const onVideoLoadedMetadata = () => {
 }
 
 const togglePlayPause = () => {
-  if (videoElement.value) {
+  if (isVideo.value && videoElement.value) {
     if (isPlaying.value) {
       videoElement.value.pause()
     } else {
@@ -396,13 +411,13 @@ const selectLesson = async (chapterId, lessonId) => {
     audioUrl: lesson?.audioUrl
   })
 
-  if (lesson?.type === 'video') {
-    const videoUrl = getVideoUrl(lesson)
-    console.log('📺 解析后的视频URL：', videoUrl)
+  const mediaUrl = getVideoUrl(lesson)
+  console.log('📺 解析后的资源URL：', mediaUrl)
 
+  if (isVideoFile(mediaUrl)) {
     await nextTick()
     if (videoElement.value) {
-      videoElement.value.src = videoUrl
+      videoElement.value.src = mediaUrl
       videoElement.value.load()
     }
   }
@@ -471,7 +486,7 @@ const formatCourse = (courseData) => {
     chapters: (courseData.chapters || []).map((ch, chapterIndex) => {
       console.log(`🔄 格式化章节 ${chapterIndex + 1}:`, ch)
 
-      // 尝试获取视频URL
+      // 尝试获取章节资源URL
       const possibleVideoUrl = ch.contentUrl || ch.videoUrl || ch.mediaUrl || ch.content
       console.log(`🎥 章节${chapterIndex + 1}的视频URL候选:`, {
         contentUrl: ch.contentUrl,
@@ -488,11 +503,11 @@ const formatCourse = (courseData) => {
           {
             id: ch.id || chapterIndex + 1,
             title: ch.title || `第${chapterIndex + 1}节`,
-            type: 'video', // 强制设置为视频类型
+            type: isVideoFile(possibleVideoUrl) ? 'video' : (isDocumentFile(possibleVideoUrl) ? 'document' : 'unknown'),
             duration: ch.duration ? `${ch.duration}分钟` : '未知',
             completed: ch.status === 1,
             updateDate: ch.updateDate || '未知',
-            // 统一处理所有可能的视频URL字段
+            // 统一处理所有可能的资源URL字段
             videoUrl: possibleVideoUrl,
             contentUrl: possibleVideoUrl,
             content: possibleVideoUrl,
