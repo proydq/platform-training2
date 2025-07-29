@@ -93,15 +93,16 @@
           </el-button>
         </div>
 
+        <!-- 章节列表 -->
         <div v-if="form.chapters.length === 0" class="empty-chapters">
-          <el-empty description="暂无章节，点击上方按钮添加章节" :image-size="80" />
+          <el-empty description="暂无章节，请添加章节内容" />
         </div>
 
         <draggable
           v-else
           v-model="form.chapters"
+          :item-key="(item) => item.id"
           class="chapters-list"
-          item-key="id"
           handle=".drag-handle"
           @change="onChapterDragChange"
         >
@@ -115,38 +116,45 @@
                 <div class="chapter-header">
                   <div class="chapter-info">
                     <div class="chapter-title">
-                      <span class="chapter-number">第{{ index + 1 }}章</span>
+                      <span class="chapter-number">第 {{ index + 1 }} 章</span>
                       <span class="chapter-name">{{ chapter.title }}</span>
                     </div>
-                    <!-- 添加内容类型标识 -->
                     <div class="chapter-meta">
                       <span class="content-type-tag">
-                        <span>{{ getContentTypeIcon(chapter.contentType) }}</span>
-                        <span>{{ getContentTypeText(chapter.contentType) }}</span>
+                        {{ getContentTypeIcon(chapter.contentType) }}
+                        {{ getContentTypeText(chapter.contentType) }}
                       </span>
                       <span class="chapter-duration">
                         <el-icon><Clock /></el-icon>
                         {{ chapter.duration || 0 }} 分钟
                       </span>
-                      <!-- 如果有补充资料，显示数量 -->
-                      <span v-if="chapter.supplementaryFiles?.length > 0" class="supplementary-count">
+                      <span v-if="chapter.materialUrls" class="supplementary-count">
                         <el-icon><Document /></el-icon>
-                        {{ chapter.supplementaryFiles.length }} 个补充资料
+                        包含补充材料
                       </span>
                     </div>
                   </div>
+
                   <div class="chapter-actions">
-                    <el-button size="small" @click="showChapterModal(chapter, index)">
-                      <el-icon><Edit /></el-icon>
+                    <el-button
+                      size="small"
+                      type="primary"
+                      :icon="Edit"
+                      @click="showChapterModal(chapter, index)"
+                    >
                       编辑
                     </el-button>
-                    <el-button size="small" type="danger" @click="deleteChapter(index)">
-                      <el-icon><Delete /></el-icon>
+                    <el-button
+                      size="small"
+                      type="danger"
+                      :icon="Delete"
+                      @click="deleteChapter(index)"
+                    >
                       删除
                     </el-button>
                   </div>
                 </div>
-                <!-- 如果有描述，显示描述 -->
+
                 <div v-if="chapter.description" class="chapter-description">
                   {{ chapter.description }}
                 </div>
@@ -155,13 +163,14 @@
           </template>
         </draggable>
       </div>
+
     </el-form>
 
-    <!-- 底部操作按钮 -->
+    <!-- 表单操作 -->
     <div class="form-actions">
       <el-button @click="handleCancel">取消</el-button>
-      <el-button type="primary" @click="handleSave" :loading="saving">
-        {{ isEditing ? '更新课程' : '创建课程' }}
+      <el-button type="primary" :loading="saving" @click="handleSave">
+        {{ props.isEditing ? '更新课程' : '创建课程' }}
       </el-button>
     </div>
 
@@ -180,8 +189,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, Clock, Rank, Document } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import ChapterEditModal from './ChapterEditModal.vue'
-import axios from 'axios'
-import { getCourseDetailAPI } from '@/api/course'
+// 修复1: 导入必要的API方法
+import { getCourseDetailAPI, uploadCourseCoverAPI } from '@/api/course'
 
 // Props
 const props = defineProps({
@@ -242,13 +251,13 @@ const rules = {
 
 // 配置数据
 const courseCategories = ['技术培训', '产品培训', '安全培训', '管理培训', '新员工培训']
+
 // 监听课程数据变化
 watch(
   () => props.courseData,
   async (newVal) => {
     if (newVal) {
-      const cover =
-        newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl || ''
+      const cover = newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl || ''
 
       Object.assign(form, {
         title: newVal.title || '',
@@ -262,8 +271,7 @@ watch(
       })
 
       if (newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl) {
-        const coverUrl =
-          newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl
+        const coverUrl = newVal.coverImage || newVal.coverImageUrl || newVal.coverUrl
         coverFileList.value = [
           {
             name: coverUrl.split('/').pop(),
@@ -321,32 +329,59 @@ const beforeCoverUpload = (file) => {
   return true
 }
 
+// 修复2: 重写handleCoverUpload函数，使用正确的API
 const handleCoverUpload = async ({ file, onSuccess, onError }) => {
-  const formData = new FormData()
-  formData.append('file', file)
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.post('/api/v1/upload/course-cover', formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
+    console.log('开始上传封面:', file.name)
+
+    // 使用封装好的API方法上传
+    const response = await uploadCourseCoverAPI(file)
+
+    console.log('封面上传响应:', response)
+
+    // 根据实际响应结构处理
+    if (response && response.data) {
+      const imageUrl = response.data.url || response.data.fileUrl || response.data.path
+
+      if (imageUrl) {
+        // 更新表单数据
+        form.coverImage = imageUrl
+
+        // 更新文件列表显示
+        coverFileList.value = [
+          {
+            name: file.name,
+            url: imageUrl,
+            status: 'done'
+          }
+        ]
+
+        // 调用成功回调
+        onSuccess(response.data, file)
+
+        // 显示成功消息
+        ElMessage.success('封面上传成功')
+      } else {
+        throw new Error('上传成功但未返回图片URL')
       }
-    })
-    if (res.data?.url) {
-      form.coverImage = res.data.url
-      coverFileList.value = [
-        {
-          name: file.name,
-          url: res.data.url,
-          status: 'done'
-        }
-      ]
-      onSuccess(res.data, file)
     } else {
-      onError()
+      throw new Error(response?.message || '上传失败')
     }
-  } catch (e) {
-    onError()
+  } catch (error) {
+    // 详细的错误日志
+    console.error('封面上传失败:', error)
+    console.error('错误详情:', {
+      message: error.message,
+      response: error.response,
+      data: error.response?.data
+    })
+
+    // 用户友好的错误提示
+    const errorMsg = error.response?.data?.message || error.message || '网络错误，请重试'
+    ElMessage.error(`封面上传失败: ${errorMsg}`)
+
+    // 调用错误回调
+    onError(error)
   }
 }
 
