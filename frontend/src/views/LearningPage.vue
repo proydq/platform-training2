@@ -149,16 +149,20 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
-
+import { ElMessage } from 'element-plus'
 // 路由相关
-const router = useRouter()
 const route = useRoute()
 
 // 获取视频URL的统一方法
 const getVideoUrl = (lessonData) => {
-  if (!lessonData) return ''
+  if (!lessonData) {
+    console.warn('⚠️ lessonData 为空')
+    return ''
+  }
+
+  console.log('🔍 尝试获取视频URL，课程数据:', lessonData)
 
   // 按优先级尝试获取视频URL
   const possibleUrls = [
@@ -168,37 +172,54 @@ const getVideoUrl = (lessonData) => {
     lessonData.audioUrl
   ]
 
+  console.log('🔍 可能的URL列表:', possibleUrls)
+
   for (const url of possibleUrls) {
     if (url && typeof url === 'string' && url.trim()) {
+      console.log('✅ 找到有效URL:', url)
       return resolveMediaUrl(url.trim())
     }
   }
 
+  console.warn('⚠️ 没有找到有效的视频URL')
   return ''
 }
 
 // URL处理函数
+// URL处理函数
 const resolveMediaUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('blob:')) return url
+  console.log('🔗 原始URL:', url)
+
+  if (!url) {
+    console.warn('⚠️ URL为空')
+    return ''
+  }
+
+  if (url.startsWith('blob:')) {
+    console.log('✅ Blob URL，直接返回')
+    return url
+  }
 
   const API_BASE = 'http://localhost:3000'
   const path = url.replace(/^https?:\/\/[^/]+/, '')
+  console.log('🔗 处理后的路径:', path)
+
+  let finalUrl = ''
 
   if (path.startsWith('/api/v1/files/course/videos/')) {
-    return `${API_BASE}${path.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
-  }
-  if (path.startsWith('/api/v1/files/course/video/')) {
-    return `${API_BASE}${path.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
-  }
-  if (path.startsWith('/api/v1/media/video/')) {
-    return `${API_BASE}${path}`
-  }
-  if (path.startsWith('/')) {
-    return `${API_BASE}${path}`
+    finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
+  } else if (path.startsWith('/api/v1/files/course/video/')) {
+    finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
+  } else if (path.startsWith('/api/v1/media/video/')) {
+    finalUrl = `${API_BASE}${path}`
+  } else if (path.startsWith('/')) {
+    finalUrl = `${API_BASE}${path}`
+  } else {
+    finalUrl = `${API_BASE}/api/v1/media/video/${path}`
   }
 
-  return `${API_BASE}/api/v1/media/video/${path}`
+  console.log('🔗 最终URL:', finalUrl)
+  return finalUrl
 }
 
 // 响应式数据
@@ -284,20 +305,58 @@ const hasNextLesson = computed(() => {
 
 // 视频相关方法
 const onVideoPlay = () => {
+  console.log('▶️ 视频开始播放')
   isPlaying.value = true
 }
 
 const onVideoPause = () => {
+  console.log('⏸️ 视频暂停')
   isPlaying.value = false
 }
 
 const onVideoLoadStart = () => {
+  console.log('🔄 视频开始加载，URL:', videoElement.value?.src)
 }
 
 const onVideoError = (error) => {
+  console.error('❌ 视频加载失败，错误事件:', error)
+
+  if (videoElement.value) {
+    const videoError = videoElement.value.error
+    console.error('❌ 视频错误详情:', {
+      错误代码: videoError?.code,
+      错误消息: videoError?.message,
+      视频源: videoElement.value.src,
+      网络状态: videoElement.value.networkState,
+      就绪状态: videoElement.value.readyState
+    })
+
+    // 错误代码说明
+    switch (videoError?.code) {
+      case 1:
+        console.error('❌ MEDIA_ERR_ABORTED - 用户中止了视频播放')
+        break
+      case 2:
+        console.error('❌ MEDIA_ERR_NETWORK - 网络错误')
+        break
+      case 3:
+        console.error('❌ MEDIA_ERR_DECODE - 视频解码错误')
+        break
+      case 4:
+        console.error('❌ MEDIA_ERR_SRC_NOT_SUPPORTED - 视频格式不支持或URL无效')
+        break
+    }
+  }
+
+  ElMessage.error(`视频加载失败: ${videoElement.value?.src || '无URL'}`)
 }
 
 const onVideoLoadedMetadata = () => {
+  console.log('✅ 视频元数据加载完成:', {
+    时长: videoElement.value?.duration,
+    宽度: videoElement.value?.videoWidth,
+    高度: videoElement.value?.videoHeight
+  })
 }
 
 const togglePlayPause = () => {
@@ -327,10 +386,23 @@ const selectLesson = async (chapterId, lessonId) => {
 
   const chapter = courseData.value.chapters.find((c) => c.id === chapterId)
   const lesson = chapter?.lessons.find((l) => l.id === lessonId)
+
+  // 添加详细的调试信息
+  console.log('🔍 选中的课程数据:', lesson)
+  console.log('🔍 原始URL字段:', {
+    videoUrl: lesson?.videoUrl,
+    contentUrl: lesson?.contentUrl,
+    content: lesson?.content,
+    audioUrl: lesson?.audioUrl
+  })
+
   if (lesson?.type === 'video') {
+    const videoUrl = getVideoUrl(lesson)
+    console.log('📺 解析后的视频URL：', videoUrl)
+
     await nextTick()
     if (videoElement.value) {
-      videoElement.value.src = getVideoUrl(lesson)
+      videoElement.value.src = videoUrl
       videoElement.value.load()
     }
   }
@@ -386,52 +458,137 @@ const markComplete = () => {
 }
 
 // 数据格式化函数 - 强制所有内容为视频类型
+// 数据格式化函数 - 增强调试版本
 const formatCourse = (courseData) => {
-  return {
+  console.log('🔄 开始格式化课程数据，原始数据:', courseData)
+
+  const formatted = {
     id: courseData.id || 1,
     title: courseData.title || '课程标题',
     category: courseData.category || '未分类',
-    totalDuration: courseData.totalDuration || '0分钟',
+    totalDuration: courseData.totalDuration || courseData.estimatedDuration || '0分钟',
     level: courseData.level || courseData.difficultyLevel || '初级',
-    chapters: (courseData.chapters || []).map((ch, chapterIndex) => ({
-      id: ch.id || chapterIndex + 1,
-      title: ch.title || `第${chapterIndex + 1}章`,
-      lessons: [
-        {
-          id: ch.id || chapterIndex + 1,
-          title: ch.title || `第${chapterIndex + 1}节`,
-          type: 'video', // 强制设置为视频类型
-          duration: ch.duration || '未知',
-          completed: ch.status === 1,
-          updateDate: ch.updateDate || '未知',
-          // 统一处理所有可能的视频URL字段
-          videoUrl: ch.contentUrl || ch.videoUrl || ch.mediaUrl,
-          contentUrl: ch.contentUrl || ch.videoUrl || ch.mediaUrl,
-          content: ch.contentUrl || ch.videoUrl || ch.mediaUrl,
-          description: ch.description,
-        },
-      ],
-    })),
+    chapters: (courseData.chapters || []).map((ch, chapterIndex) => {
+      console.log(`🔄 格式化章节 ${chapterIndex + 1}:`, ch)
+
+      // 尝试获取视频URL
+      const possibleVideoUrl = ch.contentUrl || ch.videoUrl || ch.mediaUrl || ch.content
+      console.log(`🎥 章节${chapterIndex + 1}的视频URL候选:`, {
+        contentUrl: ch.contentUrl,
+        videoUrl: ch.videoUrl,
+        mediaUrl: ch.mediaUrl,
+        content: ch.content,
+        最终选择: possibleVideoUrl
+      })
+
+      const formattedChapter = {
+        id: ch.id || chapterIndex + 1,
+        title: ch.title || `第${chapterIndex + 1}章`,
+        lessons: [
+          {
+            id: ch.id || chapterIndex + 1,
+            title: ch.title || `第${chapterIndex + 1}节`,
+            type: 'video', // 强制设置为视频类型
+            duration: ch.duration ? `${ch.duration}分钟` : '未知',
+            completed: ch.status === 1,
+            updateDate: ch.updateDate || '未知',
+            // 统一处理所有可能的视频URL字段
+            videoUrl: possibleVideoUrl,
+            contentUrl: possibleVideoUrl,
+            content: possibleVideoUrl,
+            description: ch.description,
+            // 保留原始数据用于调试
+            _originalData: ch
+          },
+        ],
+      }
+
+      console.log(`✅ 章节${chapterIndex + 1}格式化完成:`, formattedChapter)
+      return formattedChapter
+    }),
   }
+
+  console.log('✅ 课程格式化完成，最终数据:', formatted)
+  return formatted
 }
 
 // 生命周期
+// 生命周期 - 增强调试版本
 onMounted(async () => {
+  console.log('🚀 LearningPage 组件已挂载')
+  console.log('📍 当前路由参数:', route.params)
+
   const courseCode = route.params.courseCode || route.params.courseId
+  console.log('📍 课程ID/Code:', courseCode)
+
+  if (!courseCode) {
+    console.error('❌ 没有找到课程ID或Code')
+    loading.value = false
+    return
+  }
+
   try {
+    console.log('📡 开始请求课程详情...')
     const res = await getCourseDetail(courseCode)
+    console.log('📡 API响应完整数据:', res)
+
     if (res && res.code === 200) {
+      console.log('✅ API请求成功')
+      console.log('📦 原始课程数据:', res.data)
+
+      // 特别关注章节数据
+      if (res.data && res.data.chapters) {
+        console.log('📚 章节数量:', res.data.chapters.length)
+        res.data.chapters.forEach((chapter, index) => {
+          console.log(`📖 章节${index + 1}详细信息:`, {
+            id: chapter.id,
+            title: chapter.title,
+            chapterType: chapter.chapterType,
+            contentUrl: chapter.contentUrl,
+            videoUrl: chapter.videoUrl,
+            mediaUrl: chapter.mediaUrl,
+            content: chapter.content,
+            allFields: chapter // 查看所有字段
+          })
+        })
+      } else {
+        console.warn('⚠️ 没有章节数据')
+      }
+
       const formatted = formatCourse(res.data || {})
+      console.log('🔄 格式化后的课程数据:', formatted)
+
       courseData.value = formatted
+
       if (formatted.chapters.length > 0) {
         currentChapter.value = formatted.chapters[0].id
         currentLesson.value = formatted.chapters[0].lessons[0].id
         expandedChapters.value.push(formatted.chapters[0].id)
+
+        console.log('🎯 初始选中:', {
+          章节ID: currentChapter.value,
+          课程ID: currentLesson.value,
+          课程数据: formatted.chapters[0].lessons[0]
+        })
+
+        // 立即检查第一个视频URL
+        const firstLesson = formatted.chapters[0].lessons[0]
+        const videoUrl = getVideoUrl(firstLesson)
+        console.log('🎬 第一个视频最终URL:', videoUrl)
       }
+    } else {
+      console.error('❌ API响应错误:', res)
     }
   } catch (e) {
+    console.error('❌ 请求失败:', e)
+    console.error('错误详情:', {
+      message: e.message,
+      response: e.response,
+      stack: e.stack
+    })
   } finally {
     loading.value = false
+    console.log('✅ 加载完成，loading状态:', loading.value)
   }
 })
 </script>
