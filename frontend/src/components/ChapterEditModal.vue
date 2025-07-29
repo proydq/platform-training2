@@ -7,7 +7,6 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <!-- 组件内容保持不变 -->
     <div class="chapter-edit-form">
       <!-- 基本信息 -->
       <div class="form-row">
@@ -72,7 +71,7 @@
             class="preview-video"
           ></video>
           <div class="file-info">
-            <div class="file-name">{{ form.videoFile?.name || '已上传视频' }}</div>
+            <div class="file-name">{{ getVideoFileName() }}</div>
             <div class="file-size" v-if="form.videoFile">{{ formatFileSize(form.videoFile.size) }}</div>
           </div>
           <div class="file-actions">
@@ -91,9 +90,9 @@
           <div class="upload-hint">支持格式：PDF、Word、PPT、Excel、TXT，最大50MB</div>
         </div>
         <div v-else class="file-preview document-preview">
-          <div class="document-icon">{{ getDocumentIcon(form.documentFile?.name || 'document.pdf') }}</div>
+          <div class="document-icon">{{ getDocumentIcon(getDocumentFileName()) }}</div>
           <div class="file-info">
-            <div class="file-name">{{ form.documentFile?.name || '已上传文档' }}</div>
+            <div class="file-name">{{ getDocumentFileName() }}</div>
             <div class="file-size" v-if="form.documentFile">{{ formatFileSize(form.documentFile.size) }}</div>
           </div>
           <div class="file-actions">
@@ -120,7 +119,7 @@
             class="preview-audio"
           ></audio>
           <div class="file-info">
-            <div class="file-name">{{ form.audioFile?.name || '已上传音频' }}</div>
+            <div class="file-name">{{ getAudioFileName() }}</div>
             <div class="file-size" v-if="form.audioFile">{{ formatFileSize(form.audioFile.size) }}</div>
           </div>
           <div class="file-actions">
@@ -211,7 +210,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, View, Close } from '@element-plus/icons-vue'
+import { Plus, Close } from '@element-plus/icons-vue'
 import { uploadCourseMaterialAPI, uploadCourseVideoAPI } from '@/api/course'
 
 // Props
@@ -295,20 +294,6 @@ const durationHint = computed(() => {
   return ''
 })
 
-// 检查是否有已上传的文件
-const hasUploadedFiles = computed(() => {
-  return !!(form.value.videoFile || form.value.documentFile || form.value.audioFile)
-})
-
-// 获取当前已上传的文件类型描述
-const getUploadedFilesDescription = () => {
-  const files = []
-  if (form.value.videoFile) files.push('视频')
-  if (form.value.documentFile) files.push('文档')
-  if (form.value.audioFile) files.push('音频')
-  return files.join('、')
-}
-
 // 方法 - 先定义 resetForm
 const resetForm = () => {
   form.value = {
@@ -333,27 +318,58 @@ watch(() => visible.value, (newVal) => {
     // 弹窗打开时
     if (props.chapterData) {
       // 编辑模式，填充表单数据
+      console.log('编辑章节数据:', props.chapterData)
+
+      // 处理补充资料
+      let supplementaryFiles = []
+      if (props.chapterData.materialUrls) {
+        // 如果有 materialUrls 字符串，转换为文件对象数组
+        const urls = props.chapterData.materialUrls.split(',').filter(u => u && u.trim())
+        supplementaryFiles = urls.map(url => {
+          const trimmedUrl = url.trim()
+          return {
+            name: trimmedUrl.split('/').pop() || '补充资料',
+            url: trimmedUrl,
+            size: 0 // 从已保存的数据中无法获取文件大小
+          }
+        })
+      } else if (props.chapterData.supplementaryFiles && Array.isArray(props.chapterData.supplementaryFiles)) {
+        // 如果已经是数组格式，直接使用
+        supplementaryFiles = props.chapterData.supplementaryFiles
+      }
+
       Object.assign(form.value, {
         title: props.chapterData.title || '',
         sortOrder: props.chapterData.sortOrder || 1,
         contentType: props.chapterData.contentType || 'document',
         duration: props.chapterData.duration || 15,
         description: props.chapterData.description || '',
-        supplementaryFiles: props.chapterData.materialUrls
-          ? props.chapterData.materialUrls.split(',').filter(u => u).map(u => ({
-            name: u.split('/').pop(),
-            url: u,
-            size: 0
-          }))
-          : props.chapterData.supplementaryFiles || [],
-        // 文件相关
-        videoFile: props.chapterData.videoFile || null,
-        videoUrl: props.chapterData.videoUrl || '',
-        documentFile: props.chapterData.documentFile || null,
-        documentUrl: props.chapterData.documentUrl || '',
-        audioFile: props.chapterData.audioFile || null,
-        audioUrl: props.chapterData.audioUrl || ''
+        supplementaryFiles: supplementaryFiles,
+        // 文件相关 - 关键修改：正确设置URL
+        videoFile: null, // 文件对象无法从已保存的数据中恢复
+        videoUrl: props.chapterData.videoUrl || props.chapterData.contentUrl || '',
+        documentFile: null, // 文件对象无法从已保存的数据中恢复
+        documentUrl: props.chapterData.documentUrl || props.chapterData.contentUrl || '',
+        audioFile: null, // 文件对象无法从已保存的数据中恢复
+        audioUrl: props.chapterData.audioUrl || props.chapterData.contentUrl || ''
       })
+
+      // 根据内容类型确保正确的URL被设置
+      if (props.chapterData.contentType === 'video' && props.chapterData.contentUrl) {
+        form.value.videoUrl = props.chapterData.contentUrl
+      } else if (props.chapterData.contentType === 'document' && props.chapterData.contentUrl) {
+        form.value.documentUrl = props.chapterData.contentUrl
+      } else if (props.chapterData.contentType === 'audio' && props.chapterData.contentUrl) {
+        form.value.audioUrl = props.chapterData.contentUrl
+      } else if (props.chapterData.contentType === 'mixed') {
+        // 混合类型可能同时有视频和文档
+        if (props.chapterData.videoUrl) {
+          form.value.videoUrl = props.chapterData.videoUrl
+        }
+        if (props.chapterData.contentUrl) {
+          form.value.documentUrl = props.chapterData.contentUrl
+        }
+      }
     } else {
       // 新增模式，重置表单
       resetForm()
@@ -705,7 +721,7 @@ const handleSave = async () => {
 
   const contentType = form.value.contentType
 
-  // 验证文件上传
+  // 验证文件上传 - 修改验证逻辑，只要有URL就算已上传
   if (contentType === 'video' && !form.value.videoUrl) {
     ElMessage.error('请上传视频文件')
     return
@@ -802,18 +818,46 @@ const removeSupplementary = (index) => {
 const previewDocument = () => {
   if (form.value.documentUrl) {
     // 对于PDF文件，可以在新窗口打开
-    const fileExtension = form.value.documentFile?.name?.split('.').pop().toLowerCase()
+    const fileExtension = getDocumentFileName().split('.').pop().toLowerCase()
     if (fileExtension === 'pdf') {
       window.open(form.value.documentUrl, '_blank')
     } else {
       // 对于其他文档类型，提示下载
       const link = document.createElement('a')
       link.href = form.value.documentUrl
-      link.download = form.value.documentFile?.name || 'document'
+      link.download = getDocumentFileName()
       link.click()
       ElMessage.info('文档已开始下载，请在下载完成后使用相应软件打开查看')
     }
   }
+}
+
+// 新增：获取文件名的辅助函数
+const getVideoFileName = () => {
+  if (form.value.videoFile) {
+    return form.value.videoFile.name
+  } else if (form.value.videoUrl) {
+    return form.value.videoUrl.split('/').pop() || '已上传视频'
+  }
+  return '视频文件'
+}
+
+const getDocumentFileName = () => {
+  if (form.value.documentFile) {
+    return form.value.documentFile.name
+  } else if (form.value.documentUrl) {
+    return form.value.documentUrl.split('/').pop() || '已上传文档'
+  }
+  return '文档文件'
+}
+
+const getAudioFileName = () => {
+  if (form.value.audioFile) {
+    return form.value.audioFile.name
+  } else if (form.value.audioUrl) {
+    return form.value.audioUrl.split('/').pop() || '已上传音频'
+  }
+  return '音频文件'
 }
 
 // 工具函数
@@ -856,7 +900,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 样式保持不变 */
 .chapter-edit-form {
   padding: 10px 0;
 }
