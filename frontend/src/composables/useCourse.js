@@ -61,41 +61,45 @@ export function useCourse() {
    * 加载课程列表
    * @param {Object} options - 额外的查询参数
    */
+    // 修复第87行附近的代码
   const loadCourses = async (options = {}) => {
-    try {
-      loading.value = true
+      try {
+        loading.value = true
 
-      const params = {
-        page: pagination.current - 1, // 后端从0开始
-        size: pagination.size,
-        ...filters,
-        ...options
-      }
+        const params = {
+          page: pagination.current - 1, // 后端从0开始
+          size: pagination.size,
+          ...filters,
+          ...options
+        }
 
+        console.log('请求课程列表参数:', params)
 
-      const response = await getCourseListAPI(params)
+        const response = await getCourseListAPI(params)
 
-      if (response.code === 200) {
-        courses.value = response.data.content || []
-        pagination.total = response.data.totalElements || 0
+        if (response.code === 200) {
+          courses.value = response.data.content || []
+          pagination.total = response.data.totalElements || 0
 
-          总数: pagination.total,
-          当前页: pagination.current,
-          课程数: courses.value.length
-        })
+          console.log('课程列表加载成功:', {
+            总数: pagination.total,
+            当前页: pagination.current,
+            课程数: courses.value.length
+          })
 
-        return response.data
-      } else {
-        ElMessage.error(response.message || '获取课程列表失败')
+          return response.data  // 修复：添加完整的return语句
+        } else {
+          ElMessage.error(response.message || '获取课程列表失败')
+          return null
+        }
+      } catch (error) {
+        console.error('获取课程列表失败:', error)
+        ElMessage.error('获取课程列表失败，请检查网络连接')
         return null
+      } finally {
+        loading.value = false
       }
-    } catch (error) {
-      ElMessage.error('获取课程列表失败，请检查网络连接')
-      return null
-    } finally {
-      loading.value = false
     }
-  }
 
   /**
    * 搜索课程

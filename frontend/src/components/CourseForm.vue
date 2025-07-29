@@ -329,12 +329,15 @@ const beforeCoverUpload = (file) => {
 }
 
 // 修复2: 重写handleCoverUpload函数，使用正确的API
+// 修复 handleCoverUpload 函数的 catch 块
 const handleCoverUpload = async ({ file, onSuccess, onError }) => {
   try {
+    console.log('开始上传封面:', file.name)
 
     // 使用封装好的API方法上传
     const response = await uploadCourseCoverAPI(file)
 
+    console.log('封面上传响应:', response)
 
     // 根据实际响应结构处理
     if (response && response.data) {
@@ -366,6 +369,8 @@ const handleCoverUpload = async ({ file, onSuccess, onError }) => {
     }
   } catch (error) {
     // 详细的错误日志
+    console.error('封面上传失败:', error)
+    console.error('错误详情:', {
       message: error.message,
       response: error.response,
       data: error.response?.data
@@ -373,10 +378,14 @@ const handleCoverUpload = async ({ file, onSuccess, onError }) => {
 
     // 用户友好的错误提示
     const errorMsg = error.response?.data?.message || error.message || '网络错误，请重试'
-    ElMessage.error(`封面上传失败: ${errorMsg}`)
+    ElMessage.error(errorMsg)
 
     // 调用错误回调
     onError(error)
+
+    // 清空已选择的文件
+    coverFileList.value = []
+    form.coverImage = ''
   }
 }
 
