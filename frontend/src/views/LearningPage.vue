@@ -292,15 +292,12 @@ const onVideoPause = () => {
 }
 
 const onVideoLoadStart = () => {
-  console.log('视频开始加载')
 }
 
 const onVideoError = (error) => {
-  console.error('视频加载失败:', error)
 }
 
 const onVideoLoadedMetadata = () => {
-  console.log('视频元数据加载完成')
 }
 
 const togglePlayPause = () => {
@@ -336,7 +333,6 @@ const selectLesson = async (chapterId, lessonId) => {
       videoElement.value.src = getVideoUrl(lesson)
       videoElement.value.load()
     }
-    console.log('📺 切换视频：', getVideoUrl(lesson))
   }
 }
 
@@ -385,7 +381,6 @@ const markComplete = () => {
     const lesson = chapter.lessons.find((l) => l.id === currentLesson.value)
     if (lesson) {
       lesson.completed = true
-      console.log('课程已标记为完成')
     }
   }
 }
@@ -435,7 +430,6 @@ onMounted(async () => {
       }
     }
   } catch (e) {
-    console.error('获取课程详情失败', e)
   } finally {
     loading.value = false
   }

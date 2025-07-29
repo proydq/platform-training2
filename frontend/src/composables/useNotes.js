@@ -87,13 +87,11 @@ export function useNotes(currentTime) {
 
   const shareNote = (noteToShare) => {
     // 实现分享逻辑
-    console.log('分享笔记:', noteToShare.content)
   }
 
   const jumpToTime = (timestamp) => {
     const [minutes, seconds] = timestamp.split(':').map(Number)
     currentTime.value = minutes * 60 + seconds
-    console.log(`已跳转到 ${timestamp}`)
   }
 
   return {

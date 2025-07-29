@@ -14,21 +14,17 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   config => {
-    console.log('发送请求:', config.method?.toUpperCase(), config.url)
     
     // 添加token - 移除mock_token检查
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      console.log('已添加Authorization头:', token.substring(0, 20) + '...')
     } else {
-      console.log('未找到token')
     }
     
     return config
   },
   error => {
-    console.error('请求失败:', error)
     return Promise.reject(error)
   }
 )
@@ -36,14 +32,12 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
-    console.log('收到响应:', response.status, response.data)
     if (response.config && response.config.rawResponse) {
       return response
     }
     return response.data
   },
   error => {
-    console.error('响应错误:', error)
     
     let message = '请求失败'
     

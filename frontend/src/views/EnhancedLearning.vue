@@ -466,7 +466,6 @@ const printDoc = () => {
 
 // 资料操作
 const viewMaterial = (material) => {
-  console.log('查看资料:', material)
 }
 
 const previewMaterial = (material) => {
@@ -579,7 +578,6 @@ const saveNotes = () => {
 const loadCourseData = async () => {
   try {
     const res = await getCourseDetailAPI(route.params.courseId)
-    console.log('📚 获取到的课程数据:', res)
 
     // 处理不同的响应格式
     let courseDetail = null
@@ -601,7 +599,6 @@ const loadCourseData = async () => {
         const chaptersRes = await getCourseChaptersAPI(route.params.courseId)
         courseDetail.chapters = chaptersRes.data || []
       } catch (e) {
-        console.warn('获取章节数据失败，使用空数组')
         courseDetail.chapters = []
       }
     }
@@ -650,7 +647,6 @@ const loadCourseData = async () => {
       chapters: courseDetail.chapters
     }
 
-    console.log('📖 处理后的课程数据:', courseData.value)
 
     // 自动选择第一个章节的第一个课程
     if (courseData.value.chapters && courseData.value.chapters.length > 0) {
@@ -665,7 +661,6 @@ const loadCourseData = async () => {
     // 计算课程进度
     calculateProgress()
   } catch (error) {
-    console.error('加载课程失败:', error)
     ElMessage.error('加载课程失败，请稍后重试')
 
     // 设置默认数据避免渲染错误

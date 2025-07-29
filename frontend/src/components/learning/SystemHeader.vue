@@ -166,7 +166,6 @@ const unreadCount = computed(() => {
 // 搜索处理
 const handleSearch = () => {
   if (searchKeyword.value.trim()) {
-    console.log('搜索:', searchKeyword.value)
     // 这里可以实现搜索逻辑
   }
 }

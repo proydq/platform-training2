@@ -310,7 +310,6 @@ const loadExams = async () => {
       // 暂时抛出错误以使用模拟数据
       throw new Error('API not implemented')
     } catch (apiError) {
-      console.log('使用模拟考试数据:', apiError.message)
       // 使用模拟数据
       setTimeout(() => {
         exams.value = mockExams
@@ -318,7 +317,6 @@ const loadExams = async () => {
       }, 500)
     }
   } catch (error) {
-    console.error('获取考试列表失败:', error)
     ElMessage.error('获取考试列表失败')
     // 即使出错也加载模拟数据
     exams.value = mockExams
@@ -337,15 +335,12 @@ const loadExamStatuses = async () => {
         // }
 
         // 模拟状态加载
-        console.log(`加载考试状态: ${exam.id}`)
       } catch (error) {
-        console.error(`获取考试状态失败 - ${exam.id}:`, error)
       }
     })
 
     await Promise.all(statusPromises)
   } catch (error) {
-    console.error('获取考试状态失败:', error)
   }
 }
 

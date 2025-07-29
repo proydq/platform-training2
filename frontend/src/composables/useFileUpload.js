@@ -97,7 +97,6 @@ export function useFileUpload() {
 
       const response = await uploadCourseCoverAPI(file)
 
-      console.log('📸 封面上传响应:', response)
 
       // 🔧 修复：根据实际响应结构判断成功
       if (response && (response.code === 0 || response.code === 200 || response.data)) {
@@ -112,7 +111,6 @@ export function useFileUpload() {
         throw new Error(response?.message || '封面上传失败')
       }
     } catch (error) {
-      console.error('封面上传失败:', error)
       ElMessage.error('封面上传失败')
     } finally {
       uploading.cover = false
@@ -133,7 +131,6 @@ export function useFileUpload() {
 
       const response = await uploadCourseMaterialAPI(file)
 
-      console.log('📄 文档上传响应:', response)
 
       // 🔧 修复：根据实际响应结构判断成功
       if (response && (response.code === 0 || response.code === 200 || response.data)) {
@@ -150,7 +147,6 @@ export function useFileUpload() {
         throw new Error(response?.message || '文档上传失败')
       }
     } catch (error) {
-      console.error('资料上传失败:', error)
       ElMessage.error('资料上传失败')
     } finally {
       uploading.material = false
@@ -170,7 +166,6 @@ export function useFileUpload() {
     const { file, onProgress } = options
 
     try {
-      console.log('📹 开始上传视频:', file.name)
       uploading.video = true
       uploadProgress.video = 0
 
@@ -204,7 +199,6 @@ export function useFileUpload() {
       // 调用视频上传API
       const response = await uploadCourseVideoAPI(file, progressHandler)
 
-      console.log('📹 视频上传响应:', response)
 
       // 🔧 修复：根据实际响应结构判断成功
       if (response && (response.code === 0 || response.code === 200 || response.data)) {
@@ -221,12 +215,10 @@ export function useFileUpload() {
         fileListState.videos.push(videoInfo)
 
         ElMessage.success(`视频 "${file.name}" 上传成功！`)
-        console.log('✅ 视频上传成功:', videoInfo)
       } else {
         throw new Error(response?.message || '视频上传失败')
       }
     } catch (error) {
-      console.error('❌ 视频上传失败:', error)
       ElMessage.error(`视频上传失败: ${error.message}`)
 
       // 上传失败时的处理
@@ -240,7 +232,6 @@ export function useFileUpload() {
   }
 
   const handleVideoRemove = (file) => {
-    console.log('🗑️ 移除视频:', file.name)
 
     const index = fileListState.videos.findIndex(v => v.uid === file.uid || v.url === file.url)
     if (index > -1) {
@@ -253,7 +244,6 @@ export function useFileUpload() {
   const setFileList = (type, files) => {
     if (['cover', 'materials', 'videos'].includes(type)) {
       fileListState[type] = files || []
-      console.log(`📁 设置${type}文件列表:`, fileListState[type])
     }
   }
 

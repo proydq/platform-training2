@@ -68,7 +68,6 @@ const fetchAuthImage = async (url) => {
   try {
     const token = getAuthToken()
     if (!token) {
-      console.warn('AuthImage: No auth token found')
       error.value = true
       return
     }
@@ -88,7 +87,6 @@ const fetchAuthImage = async (url) => {
     imageSrc.value = objectUrl
     
   } catch (err) {
-    console.error('AuthImage: Failed to load image:', err)
     error.value = true
   } finally {
     loading.value = false
@@ -104,7 +102,6 @@ const cleanup = () => {
 }
 
 const handleError = () => {
-  console.warn('AuthImage: Image load error')
   error.value = true
   cleanup()
 }

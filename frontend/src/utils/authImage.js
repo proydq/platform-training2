@@ -29,7 +29,6 @@ const getAuthToken = () => {
     try {
       const token = getAuthToken()
       if (!token) {
-        console.warn('No auth token found for image:', imageUrl)
         return null
       }
   
@@ -40,7 +39,6 @@ const getAuthToken = () => {
       })
   
       if (!response.ok) {
-        console.error(`Failed to fetch auth image: ${response.status}`)
         return null
       }
   
@@ -54,7 +52,6 @@ const getAuthToken = () => {
   
       return blobUrl
     } catch (error) {
-      console.error('Error loading auth image:', error)
       return null
     }
   }

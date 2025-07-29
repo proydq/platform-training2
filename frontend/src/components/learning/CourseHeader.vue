@@ -204,19 +204,16 @@ const closeShareModal = () => {
 
 const shareToWeChat = () => {
   // 实现微信分享逻辑
-  console.log('分享到微信')
   closeShareModal()
 }
 
 const shareToQQ = () => {
   // 实现QQ分享逻辑
-  console.log('分享到QQ')
   closeShareModal()
 }
 
 const shareToWeibo = () => {
   // 实现微博分享逻辑
-  console.log('分享到微博')
   closeShareModal()
 }
 
@@ -224,13 +221,11 @@ const copyLink = async () => {
   try {
     await navigator.clipboard.writeText(shareLink.value)
     // 可以显示复制成功提示
-    console.log('链接已复制')
   } catch (err) {
     // 降级方案
     if (linkInput.value) {
       linkInput.value.select()
       document.execCommand('copy')
-      console.log('链接已复制（降级方案）')
     }
   }
   closeShareModal()

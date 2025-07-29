@@ -318,9 +318,6 @@ watch(() => visible.value, (newVal) => {
     // 弹窗打开时
     if (props.chapterData) {
       // 编辑模式，填充表单数据
-      console.log('编辑章节数据:', props.chapterData)
-      console.log('contentType值:', props.chapterData.contentType)
-      console.log('chapterType值:', props.chapterData.chapterType)
 
       // 处理补充资料
       let supplementaryFiles = []
@@ -359,7 +356,6 @@ watch(() => visible.value, (newVal) => {
         }
       }
 
-      console.log('最终contentType:', finalContentType)
 
       Object.assign(form.value, {
         title: props.chapterData.title || '',
@@ -377,14 +373,12 @@ watch(() => visible.value, (newVal) => {
         audioUrl: props.chapterData.audioUrl || props.chapterData.contentUrl || ''
       })
 
-      console.log('表单数据设置完成:', form.value)
 
       // 强制触发 Vue 的响应式更新
       nextTick(() => {
         // 确保内容类型被正确设置
         if (form.value.contentType !== finalContentType) {
           form.value.contentType = finalContentType
-          console.log('强制更新 contentType 为:', finalContentType)
         }
       })
 
@@ -616,7 +610,6 @@ const handleVideoSelect = async (file) => {
       URL.revokeObjectURL(localUrl)
     }
   } catch (error) {
-    console.error('视频上传失败', error)
     ElMessage.error('视频上传失败')
   }
 
@@ -657,7 +650,6 @@ const handleDocumentSelect = async (file) => {
       URL.revokeObjectURL(localUrl)
     }
   } catch (error) {
-    console.error('文档上传失败', error)
     ElMessage.error('文档上传失败')
   }
 
@@ -706,7 +698,6 @@ const handleAudioSelect = async (file) => {
       URL.revokeObjectURL(localUrl)
     }
   } catch (error) {
-    console.error('音频上传失败', error)
     ElMessage.error('音频上传失败')
   }
 
@@ -740,7 +731,6 @@ const handleSupplementarySelect = async (files) => {
         })
       }
     } catch (error) {
-      console.error('补充资料上传失败', error)
       ElMessage.error(`文件 ${file.name} 上传失败`)
     }
   }

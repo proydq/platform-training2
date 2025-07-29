@@ -366,35 +366,28 @@ const showAddCourseModal = () => {
 }
 
 const editCourse = async (course) => {
-  console.log('🔧 点击编辑按钮，课程数据:', course)
 
   courseModalTitle.value = '编辑课程'
 
   try {
-    console.log('📖 开始获取章节数据...')
     const chaptersResponse = await getCourseChaptersAPI(course.id)
 
     let chapters = []
     if (chaptersResponse.code === 200) {
       chapters = chaptersResponse.data || []
-      console.log('✅ 章节数据获取成功:', chapters)
     } else {
-      console.warn('⚠️ 获取章节数据失败:', chaptersResponse.message)
     }
 
     // 设置课程信息并带上章节数据，确保触发子组件 watch
     editingCourse.value = { ...course, chapters }
   } catch (error) {
-    console.error('❌ 获取章节数据出错:', error)
     ElMessage.warning('获取章节数据失败，但可以继续编辑课程')
     editingCourse.value = { ...course, chapters: [] }
   }
 
-  console.log('📝 最终设置的编辑数据:', editingCourse.value)
 
   // 显示模态框
   courseModalVisible.value = true
-  console.log('👁️ 模态框可见性:', courseModalVisible.value)
 }
 
 const viewCourse = (courseId) => {
@@ -454,7 +447,6 @@ const closeCourseModal = () => {
 // 🔧 修复处理课程保存
 const handleCourseSave = async (courseData) => {
   try {
-    console.log('📥 接收到课程保存数据:', courseData)
 
     let result
 
@@ -472,7 +464,6 @@ const handleCourseSave = async (courseData) => {
         price: 0
       }
 
-      console.log('📝 创建新课程，数据:', dataWithDefaults)
       result = await createCourse(dataWithDefaults)
     } else {
       // 编辑模式 - 也确保有默认值
@@ -482,7 +473,6 @@ const handleCourseSave = async (courseData) => {
         price: 0 // 强制设置为0
       }
 
-      console.log('📝 更新课程，ID:', editingCourse.value.id, '数据:', dataWithDefaults)
       result = await updateCourse(editingCourse.value.id, dataWithDefaults)
     }
 
@@ -494,7 +484,6 @@ const handleCourseSave = async (courseData) => {
       ElMessage.error('保存失败，请重试')
     }
   } catch (error) {
-    console.error('保存课程失败:', error)
     ElMessage.error('保存失败，请检查网络连接')
   }
 }

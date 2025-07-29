@@ -47,7 +47,6 @@ export const useUserStore = defineStore('user', () => {
   // API登录 - 只使用真实后端
   const login = async (username, password) => {
     try {
-      console.log('使用真实后端登录:', username)
 
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
@@ -75,8 +74,6 @@ export const useUserStore = defineStore('user', () => {
           localStorage.setItem('token', accessToken)
           localStorage.setItem('userInfo', JSON.stringify(userInfoData))
           
-          console.log('✅ 真实登录成功，Token:', accessToken.substring(0, 30) + '...')
-          console.log('✅ 用户角色:', userInfoData.role || (userInfoData.roles?.[0]?.roleCode))
           ElMessage.success(`欢迎回来，${userInfoData.realName || userInfoData.username}！`)
           return true
         } else {
@@ -89,7 +86,6 @@ export const useUserStore = defineStore('user', () => {
         return false
       }
     } catch (error) {
-      console.error('登录失败:', error)
       ElMessage.error('连接服务器失败，请检查网络')
       return false
     }
@@ -115,14 +111,11 @@ export const useUserStore = defineStore('user', () => {
         if (localToken.startsWith('eyJ')) {
           token.value = localToken
           userInfo.value = JSON.parse(localUserInfo)
-          console.log('恢复登录状态:', userInfo.value.username)
         } else {
           // 清除非JWT Token
-          console.log('清除无效Token:', localToken.substring(0, 20))
           logout()
         }
       } catch (error) {
-        console.error('恢复登录状态失败:', error)
         logout()
       }
     }

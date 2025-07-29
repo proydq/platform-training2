@@ -203,18 +203,15 @@ const toggleCourseMenu = () => {
 const goToLesson = (lesson) => {
   currentLessonId.value = lesson.id
   showCourseMenu.value = false
-  console.log('跳转到课程:', lesson.title)
   // 这里可以实现实际的课程跳转逻辑
 }
 
 // 切换收藏状态
 const toggleBookmark = () => {
-  console.log('切换收藏状态')
 }
 
 // 显示笔记面板
 const showNotesPanel = () => {
-  console.log('显示笔记面板')
 }
 </script>
 

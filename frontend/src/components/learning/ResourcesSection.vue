@@ -429,24 +429,20 @@ const closePreview = () => {
 // 下载资源
 const downloadResource = (resource) => {
   // 实际项目中这里应该处理文件下载逻辑
-  console.log('下载资源:', resource.title)
   // 可以使用 window.open 或创建下载链接
 }
 
 // 分享资源
 const shareResource = (resource) => {
   // 实际项目中这里应该处理分享逻辑
-  console.log('分享资源:', resource.title)
 }
 
 // 收藏资源
 const bookmarkResource = (resource) => {
-  console.log('收藏资源:', resource.title)
 }
 
 // 了解更多工具信息
 const learnMore = (tool) => {
-  console.log('了解更多:', tool.name)
 }
 </script>
 
