@@ -93,6 +93,7 @@
               <video
                 v-if="getVideoUrl(currentLessonData)"
                 ref="videoElement"
+                :src="getVideoUrl(currentLessonData)"
                 controls
                 preload="metadata"
                 @play="onVideoPlay"
@@ -101,7 +102,6 @@
                 @error="onVideoError"
                 @loadedmetadata="onVideoLoadedMetadata"
               >
-                <source :src="getVideoUrl(currentLessonData)" type="video/mp4" />
                 您的浏览器不支持视频播放
               </video>
               <!-- 当没有视频URL时显示提示信息 -->
@@ -180,24 +180,25 @@ const getVideoUrl = (lessonData) => {
 // URL处理函数
 const resolveMediaUrl = (url) => {
   if (!url) return ''
-  if (url.startsWith('http')) return url
+  if (url.startsWith('blob:')) return url
 
-  // 处理不同的URL格式
-  if (url.includes('/api/v1/files/course/videos/')) {
-    return `http://localhost:3000${url.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
+  const API_BASE = 'http://localhost:3000'
+  const path = url.replace(/^https?:\/\/[^/]+/, '')
+
+  if (path.startsWith('/api/v1/files/course/videos/')) {
+    return `${API_BASE}${path.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
   }
-  // 兼容旧的单数 video 路径
-  if (url.includes('/api/v1/files/course/video/')) {
-    return `http://localhost:3000${url.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
+  if (path.startsWith('/api/v1/files/course/video/')) {
+    return `${API_BASE}${path.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
+  }
+  if (path.startsWith('/api/v1/media/video/')) {
+    return `${API_BASE}${path}`
+  }
+  if (path.startsWith('/')) {
+    return `${API_BASE}${path}`
   }
 
-  // 如果是相对路径，添加服务器地址
-  if (url.startsWith('/')) {
-    return `http://localhost:3000${url}`
-  }
-
-  // 默认处理
-  return `http://localhost:3000/api/v1/media/video/${url}`
+  return `${API_BASE}/api/v1/media/video/${path}`
 }
 
 // 响应式数据
@@ -331,8 +332,11 @@ const selectLesson = async (chapterId, lessonId) => {
   const lesson = chapter?.lessons.find((l) => l.id === lessonId)
   if (lesson?.type === 'video') {
     await nextTick()
-    videoElement.value?.load()
-    console.log('📺 切换视频：', currentLessonData.value.videoUrl)
+    if (videoElement.value) {
+      videoElement.value.src = getVideoUrl(lesson)
+      videoElement.value.load()
+    }
+    console.log('📺 切换视频：', getVideoUrl(lesson))
   }
 }
 
