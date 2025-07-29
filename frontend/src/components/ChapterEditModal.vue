@@ -219,6 +219,7 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, View, Close } from '@element-plus/icons-vue'
+import { uploadCourseMaterialAPI } from '@/api/course'
 
 // Props
 const props = defineProps({
@@ -343,7 +344,13 @@ watch(() => props.chapterData, (newVal) => {
       contentType: newVal.contentType || 'document',
       duration: newVal.duration || 15,
       description: newVal.description || '',
-      supplementaryFiles: newVal.supplementaryFiles || [],
+      supplementaryFiles: newVal.materialUrls
+        ? newVal.materialUrls.split(',').filter(u => u).map(u => ({
+            name: u.split('/').pop(),
+            url: u,
+            size: 0
+          }))
+        : newVal.supplementaryFiles || [],
       // 文件相关
       videoFile: newVal.videoFile || null,
       videoUrl: newVal.videoUrl || '',
@@ -623,7 +630,7 @@ const handleAudioSelect = (file) => {
   ElMessage.success('音频文件已选择')
 }
 
-const handleSupplementarySelect = (files) => {
+const handleSupplementarySelect = async (files) => {
   const remainingSlots = 10 - form.value.supplementaryFiles.length
   if (files.length > remainingSlots) {
     ElMessage.warning(`只能再添加${remainingSlots}个文件`)
@@ -641,8 +648,20 @@ const handleSupplementarySelect = (files) => {
     validFiles.push(file)
   }
 
+  for (const file of validFiles) {
+    try {
+      const res = await uploadCourseMaterialAPI(file)
+      const url = res.data?.url
+      if (url) {
+        form.value.supplementaryFiles.push({ name: file.name, size: file.size, url })
+      }
+    } catch (error) {
+      console.error('资料上传失败', error)
+      ElMessage.error(`文件"${file.name}"上传失败`)
+    }
+  }
+
   if (validFiles.length > 0) {
-    form.value.supplementaryFiles.push(...validFiles)
     ElMessage.success(`成功添加${validFiles.length}个补充资料`)
   }
 }
@@ -702,7 +721,10 @@ const handleSave = async () => {
       contentType: form.value.contentType,
       duration: form.value.duration,
       description: form.value.description,
-      supplementaryFiles: form.value.supplementaryFiles
+      materialUrls: form.value.supplementaryFiles
+        .map((f) => f.url)
+        .filter(Boolean)
+        .join(',')
     }
 
     // 根据内容类型添加相应的文件
