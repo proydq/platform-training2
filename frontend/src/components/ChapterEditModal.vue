@@ -341,7 +341,7 @@ watch(() => visible.value, (newVal) => {
       Object.assign(form.value, {
         title: props.chapterData.title || '',
         sortOrder: props.chapterData.sortOrder || 1,
-        contentType: props.chapterData.contentType || 'document',
+        contentType: props.chapterData.contentType || props.chapterData.chapterType || 'document',
         duration: props.chapterData.duration || 15,
         description: props.chapterData.description || '',
         supplementaryFiles: supplementaryFiles,
