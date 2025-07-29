@@ -208,7 +208,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Close } from '@element-plus/icons-vue'
 import { uploadCourseMaterialAPI, uploadCourseVideoAPI } from '@/api/course'
@@ -340,8 +340,13 @@ watch(() => visible.value, (newVal) => {
         supplementaryFiles = props.chapterData.supplementaryFiles
       }
 
-      // 确定内容类型 - 添加更多兼容性处理
-      let finalContentType = props.chapterData.contentType || props.chapterData.chapterType || props.chapterData.type
+      // 确定内容类型 - 优先使用 contentType 字段
+      let finalContentType = props.chapterData.contentType
+
+      // 如果 contentType 不存在，才使用其他字段
+      if (!finalContentType) {
+        finalContentType = props.chapterData.type || props.chapterData.chapterType
+      }
 
       // 如果还是没有内容类型，根据URL推断
       if (!finalContentType) {
@@ -373,6 +378,15 @@ watch(() => visible.value, (newVal) => {
       })
 
       console.log('表单数据设置完成:', form.value)
+
+      // 强制触发 Vue 的响应式更新
+      nextTick(() => {
+        // 确保内容类型被正确设置
+        if (form.value.contentType !== finalContentType) {
+          form.value.contentType = finalContentType
+          console.log('强制更新 contentType 为:', finalContentType)
+        }
+      })
 
       // 根据内容类型确保正确的URL被设置
       if (props.chapterData.contentType === 'video' && props.chapterData.contentUrl) {
@@ -767,6 +781,7 @@ const handleSave = async () => {
       title: form.value.title,
       sortOrder: form.value.sortOrder,
       contentType: form.value.contentType,
+      chapterType: form.value.contentType,  // 同时发送 chapterType 字段
       duration: form.value.duration,
       description: form.value.description,
       materialUrls: form.value.supplementaryFiles
