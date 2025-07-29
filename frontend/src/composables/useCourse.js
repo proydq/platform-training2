@@ -73,20 +73,11 @@ export function useCourse() {
           ...options
         }
 
-        console.log('请求课程列表参数:', params)
-
         const response = await getCourseListAPI(params)
 
         if (response.code === 200) {
           courses.value = response.data.content || []
           pagination.total = response.data.totalElements || 0
-
-          console.log('课程列表加载成功:', {
-            总数: pagination.total,
-            当前页: pagination.current,
-            课程数: courses.value.length
-          })
-
           return response.data  // 修复：添加完整的return语句
         } else {
           ElMessage.error(response.message || '获取课程列表失败')
