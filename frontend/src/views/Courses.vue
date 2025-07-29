@@ -338,7 +338,6 @@ onMounted(async () => {
     const res = await getStudyOverview()
     overview.value = res?.data || res
   } catch (e) {
-    console.error('获取学习概览失败:', e)
   }
 
   try {
@@ -361,7 +360,6 @@ onMounted(async () => {
       }))
     }
   } catch (e) {
-    console.error('获取课程数据失败:', e)
   }
 })
 </script>

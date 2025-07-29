@@ -225,7 +225,6 @@ const startExam = async () => {
       router.push('/exams')
     }
   } catch (error) {
-    console.error('开始考试失败:', error)
     ElMessage.error('开始考试失败')
     router.push('/exams')
   }
@@ -306,7 +305,6 @@ const submitExam = async () => {
       ElMessage.error(response.message || '提交失败')
     }
   } catch (error) {
-    console.error('提交考试失败:', error)
     ElMessage.error('提交考试失败')
   } finally {
     submitting.value = false

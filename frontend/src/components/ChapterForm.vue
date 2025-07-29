@@ -269,7 +269,6 @@ const selectedMaterialsList = computed(() => {
 
 // 🔧 修复：初始化表单数据，重点修复资料选择状态
 const initFormData = (data) => {
-  console.log('🔧 ChapterForm 初始化数据:', data)
 
   Object.assign(form, {
     id: data.id || '',
@@ -284,23 +283,19 @@ const initFormData = (data) => {
     selectedMaterials: processSelectedMaterials(data)
   })
 
-  console.log('🔧 ChapterForm 初始化完成:', form)
 }
 
 // 🔧 新增：处理选中资料的映射函数
 const processSelectedMaterials = (data) => {
-  console.log('🔧 处理资料选择，原始数据:', data)
 
   // 1. 如果已经有 selectedMaterials 数组，直接使用
   if (data.selectedMaterials && Array.isArray(data.selectedMaterials)) {
-    console.log('📎 使用现有 selectedMaterials:', data.selectedMaterials)
     return data.selectedMaterials
   }
 
   // 2. 如果有 materialUrls 字符串，需要转换为对应的文件ID
   if (data.materialUrls && typeof data.materialUrls === 'string') {
     const materialUrls = data.materialUrls.split(',').filter(url => url && url.trim())
-    console.log('📎 章节关联的资料URLs:', materialUrls)
 
     // 🔧 关键修复：通过URL匹配找到对应的文件ID/UID
     const selectedIds = []
@@ -317,23 +312,18 @@ const processSelectedMaterials = (data) => {
         // 使用文件的ID或UID作为选中标识
         const fileId = matchedMaterial.id || matchedMaterial.uid
         selectedIds.push(fileId)
-        console.log('📎 匹配到资料:', matchedMaterial.name, 'ID:', fileId)
       } else {
-        console.warn('⚠️ 未找到匹配的资料文件:', trimmedUrl)
       }
     })
 
-    console.log('📎 最终选中的资料IDs:', selectedIds)
     return selectedIds
   }
 
   // 3. 兼容其他格式
   if (data.materialIds && Array.isArray(data.materialIds)) {
-    console.log('📎 使用 materialIds:', data.materialIds)
     return data.materialIds
   }
 
-  console.log('📎 无可用资料数据，返回空数组')
   return []
 }
 
@@ -434,11 +424,9 @@ const handleSave = async () => {
     // 清理内部使用的字段
     delete cleanData.selectedMaterials
 
-    console.log('📤 ChapterForm 提交数据:', cleanData) // 调试日志
 
     emit('save', cleanData)
   } catch (error) {
-    console.error('章节保存失败:', error)
     ElMessage.error('表单验证失败，请检查必填项')
   } finally {
     saving.value = false

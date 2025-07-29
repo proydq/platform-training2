@@ -296,7 +296,6 @@ watch(
             coverFileList.value = []
           }
         } catch (error) {
-          console.error('获取课程封面失败', error)
           coverFileList.value = []
         }
       } else {
@@ -332,12 +331,10 @@ const beforeCoverUpload = (file) => {
 // 修复2: 重写handleCoverUpload函数，使用正确的API
 const handleCoverUpload = async ({ file, onSuccess, onError }) => {
   try {
-    console.log('开始上传封面:', file.name)
 
     // 使用封装好的API方法上传
     const response = await uploadCourseCoverAPI(file)
 
-    console.log('封面上传响应:', response)
 
     // 根据实际响应结构处理
     if (response && response.data) {
@@ -369,8 +366,6 @@ const handleCoverUpload = async ({ file, onSuccess, onError }) => {
     }
   } catch (error) {
     // 详细的错误日志
-    console.error('封面上传失败:', error)
-    console.error('错误详情:', {
       message: error.message,
       response: error.response,
       data: error.response?.data
@@ -501,7 +496,6 @@ const handleSave = async () => {
 
     emit('save', saveData)
   } catch (error) {
-    console.error('表单验证失败:', error)
   } finally {
     saving.value = false
   }

@@ -157,13 +157,11 @@ export const generateMenus = (userRole) => {
     }
   ]
 
-  console.log('用户角色:', userRole, '生成菜单:', allMenus.filter(menu => !menu.hidden))
   return allMenus.filter(menu => !menu.hidden)
 }
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  console.log('路由跳转:', from.path, '->', to.path)
 
   // 设置页面标题
   if (to.meta.title) {
@@ -174,13 +172,11 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
 
   if (requiresAuth && !token) {
-    console.log('需要登录，跳转到登录页')
     next('/login')
     return
   }
 
   if (to.path === '/login' && token) {
-    console.log('已登录，跳转到仪表板')
     next('/dashboard')
     return
   }
@@ -191,7 +187,6 @@ router.beforeEach((to, from, next) => {
     const userRole = userInfo.role || 'STUDENT'
 
     if (!to.meta.roles.includes(userRole)) {
-      console.log(`权限不足: 用户角色${userRole}无法访问${to.path}，跳转到仪表板`)
       next({ path: '/dashboard', replace: true })
       return
     }
@@ -202,12 +197,9 @@ router.beforeEach((to, from, next) => {
 
 // 路由错误处理
 router.onError((error) => {
-  console.error('路由错误:', error)
 
   if (error.message.includes('Failed to fetch dynamically imported module')) {
-    console.log('动态导入失败，重定向到仪表板')
     router.replace('/dashboard').catch(err => {
-      console.error('重定向失败:', err)
       window.location.href = '/dashboard'
     })
   }

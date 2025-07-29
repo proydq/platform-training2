@@ -99,12 +99,9 @@ const userAvatar = computed(() => {
 const visibleMenus = computed(() => {
   try {
     const userRole = userStore.userInfo?.role || 'STUDENT'
-    console.log('当前用户角色:', userRole)
     const menus = generateMenus(userRole)
-    console.log('生成的菜单:', menus) // 添加调试日志
     return menus.filter(menu => !menu.hidden)
   } catch (error) {
-    console.error('生成菜单失败:', error)
     // 返回默认菜单，不包含管理后台
     return [
       { path: '/dashboard', title: '仪表板', hidden: false },
@@ -139,14 +136,10 @@ const handleLogout = async () => {
     router.replace('/login')
   } catch (error) {
     // 用户取消
-    console.log('用户取消退出登录')
   }
 }
 
 onMounted(() => {
-  console.log('布局组件已挂载')
-  console.log('当前用户信息:', userStore.userInfo)
-  console.log('当前路由:', route.path)
 })
 </script>
 

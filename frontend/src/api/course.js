@@ -78,7 +78,6 @@ export function getCourseDetailAPI(courseId) {
         const chaptersRes = await getCourseChaptersAPI(courseId)
         courseData.chapters = chaptersRes.data || []
       } catch (error) {
-        console.warn('获取章节数据失败:', error)
         courseData.chapters = []
       }
     }

@@ -72,7 +72,6 @@ export function useCourse() {
         ...options
       }
 
-      console.log('请求课程列表参数:', params)
 
       const response = await getCourseListAPI(params)
 
@@ -80,7 +79,6 @@ export function useCourse() {
         courses.value = response.data.content || []
         pagination.total = response.data.totalElements || 0
 
-        console.log('课程列表加载成功:', {
           总数: pagination.total,
           当前页: pagination.current,
           课程数: courses.value.length
@@ -92,7 +90,6 @@ export function useCourse() {
         return null
       }
     } catch (error) {
-      console.error('获取课程列表失败:', error)
       ElMessage.error('获取课程列表失败，请检查网络连接')
       return null
     } finally {
@@ -104,7 +101,6 @@ export function useCourse() {
    * 搜索课程
    */
   const searchCourses = async () => {
-    console.log('执行课程搜索:', filters)
     pagination.current = 1
     return await loadCourses()
   }
@@ -113,7 +109,6 @@ export function useCourse() {
    * 重置筛选条件
    */
   const resetFilters = async () => {
-    console.log('重置筛选条件')
     Object.assign(filters, {
       keyword: '',
       category: '',
@@ -131,7 +126,6 @@ export function useCourse() {
    * @param {Number} size - 每页大小
    */
   const handlePagination = async (page, size = null) => {
-    console.log('分页切换:', { page, size })
     pagination.current = page
     if (size && size !== pagination.size) {
       pagination.size = size
@@ -149,7 +143,6 @@ export function useCourse() {
   const createCourse = async (courseData) => {
     try {
       saving.value = true
-      console.log('创建课程:', courseData)
 
       const response = await createCourseAPI(courseData)
 
@@ -162,7 +155,6 @@ export function useCourse() {
         return null
       }
     } catch (error) {
-      console.error('创建课程失败:', error)
       ElMessage.error('创建课程失败，请重试')
       return null
     } finally {
@@ -178,7 +170,6 @@ export function useCourse() {
   const updateCourse = async (courseId, courseData) => {
     try {
       saving.value = true
-      console.log('更新课程:', { courseId, courseData })
 
       const response = await updateCourseAPI(courseId, courseData)
 
@@ -191,7 +182,6 @@ export function useCourse() {
         return null
       }
     } catch (error) {
-      console.error('更新课程失败:', error)
       ElMessage.error('更新课程失败，请重试')
       return null
     } finally {
@@ -217,7 +207,6 @@ export function useCourse() {
         }
       )
 
-      console.log('删除课程:', { courseId, courseName })
 
       const response = await deleteCourseAPI(courseId)
 
@@ -237,7 +226,6 @@ export function useCourse() {
       }
     } catch (error) {
       if (error !== 'cancel') {
-        console.error('删除课程失败:', error)
         ElMessage.error('删除课程失败，请重试')
       }
       return false
@@ -251,7 +239,6 @@ export function useCourse() {
    */
   const publishCourse = async (courseId, courseName = '') => {
     try {
-      console.log('发布课程:', { courseId, courseName })
 
       const response = await publishCourseAPI(courseId)
 
@@ -264,7 +251,6 @@ export function useCourse() {
         return false
       }
     } catch (error) {
-      console.error('发布课程失败:', error)
       ElMessage.error('发布课程失败，请重试')
       return false
     }
@@ -287,7 +273,6 @@ export function useCourse() {
         }
       )
 
-      console.log('下架课程:', { courseId, courseName })
 
       const response = await unpublishCourseAPI(courseId)
 
@@ -301,7 +286,6 @@ export function useCourse() {
       }
     } catch (error) {
       if (error !== 'cancel') {
-        console.error('下架课程失败:', error)
         ElMessage.error('下架课程失败，请重试')
       }
       return false
@@ -324,7 +308,6 @@ export function useCourse() {
         }
       )
 
-      console.log('批量删除课程:', courseIds)
 
       const deletePromises = courseIds.map(id => deleteCourseAPI(id))
       const results = await Promise.allSettled(deletePromises)
@@ -345,7 +328,6 @@ export function useCourse() {
       return { successCount, failCount }
     } catch (error) {
       if (error !== 'cancel') {
-        console.error('批量删除课程失败:', error)
         ElMessage.error('批量删除失败，请重试')
       }
       return { successCount: 0, failCount: courseIds.length }
@@ -368,7 +350,6 @@ export function useCourse() {
         day: '2-digit'
       })
     } catch (error) {
-      console.error('日期格式化失败:', error)
       return '--'
     }
   }
@@ -389,7 +370,6 @@ export function useCourse() {
         minute: '2-digit'
       })
     } catch (error) {
-      console.error('时间格式化失败:', error)
       return '--'
     }
   }
@@ -531,7 +511,6 @@ export function useCourse() {
 
       ElMessage.success('课程数据导出成功')
     } catch (error) {
-      console.error('导出课程数据失败:', error)
       ElMessage.error('导出失败，请重试')
     }
   }
@@ -594,20 +573,17 @@ export function useCourseChapter() {
   const loadChapters = async (courseId, status = null) => {
     try {
       loading.value = true
-      console.log('加载课程章节:', { courseId, status })
 
       const response = await getCourseChaptersAPI(courseId, status)
 
       if (response.code === 200) {
         chapters.value = response.data || []
-        console.log('章节列表加载成功:', chapters.value.length)
         return response.data
       } else {
         ElMessage.error(response.message || '获取章节列表失败')
         return []
       }
     } catch (error) {
-      console.error('获取章节列表失败:', error)
       ElMessage.error('获取章节列表失败，请检查网络连接')
       return []
     } finally {
@@ -623,7 +599,6 @@ export function useCourseChapter() {
   const createChapter = async (courseId, chapterData) => {
     try {
       saving.value = true
-      console.log('创建章节:', { courseId, chapterData })
 
       const response = await createChapterAPI(courseId, chapterData)
 
@@ -636,7 +611,6 @@ export function useCourseChapter() {
         return null
       }
     } catch (error) {
-      console.error('创建章节失败:', error)
       ElMessage.error('创建章节失败，请重试')
       return null
     } finally {
@@ -653,7 +627,6 @@ export function useCourseChapter() {
   const updateChapter = async (courseId, chapterId, chapterData) => {
     try {
       saving.value = true
-      console.log('更新章节:', { courseId, chapterId, chapterData })
 
       const response = await updateChapterAPI(courseId, chapterId, chapterData)
 
@@ -666,7 +639,6 @@ export function useCourseChapter() {
         return null
       }
     } catch (error) {
-      console.error('更新章节失败:', error)
       ElMessage.error('更新章节失败，请重试')
       return null
     } finally {
@@ -692,7 +664,6 @@ export function useCourseChapter() {
         }
       )
 
-      console.log('删除章节:', { courseId, chapterId, chapterTitle })
 
       const response = await deleteChapterAPI(courseId, chapterId)
 
@@ -706,7 +677,6 @@ export function useCourseChapter() {
       }
     } catch (error) {
       if (error !== 'cancel') {
-        console.error('删除章节失败:', error)
         ElMessage.error('删除章节失败，请重试')
       }
       return false

@@ -44,11 +44,9 @@ export function useVideoPlayer() {
   }
 
   const toggleSubtitles = () => {
-    console.log('字幕功能切换')
   }
 
   const toggleFullscreen = () => {
-    console.log('全屏模式切换')
   }
 
   const formatTime = (seconds) => {

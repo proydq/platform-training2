@@ -187,7 +187,6 @@ const loadExamResult = async () => {
       router.push('/exams')
     }
   } catch (error) {
-    console.error('获取考试结果失败:', error)
     ElMessage.error('获取考试结果失败')
     router.push('/exams')
   } finally {
