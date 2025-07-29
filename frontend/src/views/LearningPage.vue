@@ -105,8 +105,8 @@
                 您的浏览器不支持视频播放
               </video>
               <iframe
-                v-else-if="isDocument && resolvedMediaUrl"
-                :src="resolvedMediaUrl"
+                v-else-if="isDocument && documentViewerUrl"
+                :src="documentViewerUrl"
                 class="media-viewer"
                 style="height: 100%; width: 100%; border: none"
               ></iframe>
@@ -216,7 +216,11 @@ const resolveMediaUrl = (url) => {
     finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
   } else if (path.startsWith('/api/v1/files/course/video/')) {
     finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
+  } else if (path.startsWith('/api/v1/files/course/documents/')) {
+    finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/documents/', '/api/v1/media/document/')}`
   } else if (path.startsWith('/api/v1/media/video/')) {
+    finalUrl = `${API_BASE}${path}`
+  } else if (path.startsWith('/api/v1/media/document/')) {
     finalUrl = `${API_BASE}${path}`
   } else if (path.startsWith('/')) {
     finalUrl = `${API_BASE}${path}`
@@ -261,6 +265,13 @@ const currentLessonData = computed(() => {
 const resolvedMediaUrl = computed(() => getVideoUrl(currentLessonData.value))
 const isVideo = computed(() => isVideoFile(resolvedMediaUrl.value))
 const isDocument = computed(() => isDocumentFile(resolvedMediaUrl.value))
+const documentViewerUrl = computed(() => {
+  if (isDocument.value && resolvedMediaUrl.value) {
+    const encoded = encodeURIComponent(resolvedMediaUrl.value)
+    return `https://docs.google.com/gview?embedded=1&url=${encoded}`
+  }
+  return ''
+})
 
 // 监听视频地址变化，强制重新加载播放器
 watch(
