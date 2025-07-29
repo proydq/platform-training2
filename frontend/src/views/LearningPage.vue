@@ -46,11 +46,11 @@
                 }"
                 @click="selectLesson(chapter.id, lesson.id)"
               >
-                <span class="lesson-icon">🎥</span>
+                <span class="lesson-icon">{{ getlessonIcon(lesson) }}</span>
                 <div class="lesson-info">
                   <div class="lesson-title">{{ lesson.title }}</div>
                   <div class="lesson-meta">
-                    <span>🎥 视频课程</span>
+                    <span>{{ getlessonTypeText(lesson) }}</span>
                     <span v-if="lesson.duration">• {{ lesson.duration }}</span>
                   </div>
                 </div>
@@ -63,80 +63,84 @@
 
       <!-- 主要内容区域 -->
       <div class="learning-main">
-        <!-- 课程标题区域 -->
         <div class="lesson-header">
-          <div class="lesson-info">
-            <h1 class="lesson-title">{{ currentLessonData.title }}</h1>
-            <div class="lesson-meta">
-              <span class="lesson-type">🎥 视频课程</span>
-              <span v-if="currentLessonData.duration">⏱️ {{ currentLessonData.duration }}</span>
-              <span v-if="currentLessonData.updateDate">📅 更新于 {{ currentLessonData.updateDate }}</span>
+          <h1 class="lesson-title">{{ currentLessonData.title }}</h1>
+          <div class="lesson-meta">
+            <span class="meta-item">⏱️ {{ currentLessonData.duration }}</span>
+            <span class="meta-item">📅 更新时间：{{ currentLessonData.updateDate }}</span>
+            <span v-if="currentLessonData.completed" class="completed-mark">✅ 已完成</span>
+          </div>
+        </div>
+
+        <div class="content-area">
+          <!-- 视频播放器 -->
+          <div v-if="isVideo" class="video-container">
+            <div class="video-player">
+              <video
+                ref="videoElement"
+                :src="resolvedMediaUrl"
+                controls
+                controlsList="nodownload"
+                @play="isPlaying = true"
+                @pause="isPlaying = false"
+                @ended="handleVideoEnd"
+              >
+                您的浏览器不支持视频播放。
+              </video>
+            </div>
+          </div>
+
+          <!-- 文档查看器 -->
+          <div v-else-if="isDocument" class="document-container">
+            <DocumentViewer
+              :url="resolvedMediaUrl"
+              :file-name="currentLessonData.title || '文档'"
+            />
+          </div>
+
+          <!-- 音频播放器 -->
+          <div v-else-if="isAudio" class="audio-container">
+            <div class="audio-player">
+              <audio
+                ref="audioElement"
+                :src="resolvedMediaUrl"
+                controls
+                controlsList="nodownload"
+                @play="isPlaying = true"
+                @pause="isPlaying = false"
+                @ended="handleAudioEnd"
+              >
+                您的浏览器不支持音频播放。
+              </audio>
+            </div>
+          </div>
+
+          <!-- 其他类型或无内容 -->
+          <div v-else class="content-placeholder">
+            <div class="placeholder-content">
+              <span class="placeholder-icon">📚</span>
+              <p>请选择一个章节开始学习</p>
             </div>
           </div>
         </div>
 
-        <!-- 学习进度 -->
+        <!-- 进度条 -->
         <div class="progress-container">
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: courseProgress + '%' }"></div>
           </div>
           <div class="progress-text">
-            学习进度：{{ courseProgress }}% ({{ completedLessons }}/{{ totalLessons }} 章节已完成)
-          </div>
-        </div>
-
-        <!-- 视频播放器区域 - 默认显示 -->
-        <div class="content-area">
-          <div class="video-container">
-            <div class="video-player">
-              <!-- 直接显示视频播放器 -->
-              <video
-                v-if="isVideo && resolvedMediaUrl"
-                ref="videoElement"
-                :src="resolvedMediaUrl"
-                controls
-                preload="metadata"
-                @play="onVideoPlay"
-                @pause="onVideoPause"
-                @loadstart="onVideoLoadStart"
-                @error="onVideoError"
-                @loadedmetadata="onVideoLoadedMetadata"
-              >
-                您的浏览器不支持视频播放
-              </video>
-              <iframe
-                v-else-if="isDocument && documentViewerUrl"
-                :src="documentViewerUrl"
-                class="media-viewer"
-                style="height: 100%; width: 100%; border: none"
-              ></iframe>
-              <!-- 当没有视频URL时显示提示信息 -->
-              <div v-else class="video-placeholder">
-                <div class="info-icon">📹</div>
-                <h3 style="margin-bottom: 10px">{{ currentLessonData.title }}</h3>
-                <p style="opacity: 0.8">视频正在准备中，请稍后...</p>
-                <div style="margin-top: 20px; font-size: 12px; opacity: 0.6;">
-                  <p>如果视频长时间无法加载，请联系管理员</p>
-                </div>
-              </div>
-            </div>
+            课程进度：{{ completedLessons }}/{{ totalLessons }} ({{ courseProgress }}%)
           </div>
         </div>
 
         <!-- 底部工具栏 -->
         <div class="lesson-toolbar">
           <div class="toolbar-left">
-            <button
-              class="btn btn-secondary"
-              @click="previousLesson"
-              :disabled="!hasPreviousLesson"
-            >
+            <button class="btn btn-secondary" @click="previousLesson" :disabled="!hasPreviousLesson">
               ← 上一节
             </button>
-            <button
-              class="btn btn-primary"
-              @click="togglePlayPause"
-            >
+            <button v-if="isVideo || isAudio" class="btn btn-secondary" @click="togglePlayPause">
               {{ isPlaying ? '⏸️ 暂停' : '▶️ 播放' }}
             </button>
           </div>
@@ -158,6 +162,8 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
 import { ElMessage } from 'element-plus'
+import DocumentViewer from '@/components/DocumentViewer.vue'
+
 // 路由相关
 const route = useRoute()
 
@@ -168,14 +174,15 @@ const getVideoUrl = (lessonData) => {
     return ''
   }
 
-  console.log('🔍 尝试获取视频URL，课程数据:', lessonData)
+  console.log('🔍 尝试获取资源URL，课程数据:', lessonData)
 
-  // 按优先级尝试获取视频URL
+  // 按优先级尝试获取资源URL
   const possibleUrls = [
     lessonData.videoUrl,
     lessonData.contentUrl,
     lessonData.content,
-    lessonData.audioUrl
+    lessonData.audioUrl,
+    lessonData.documentUrl
   ]
 
   console.log('🔍 可能的URL列表:', possibleUrls)
@@ -187,11 +194,10 @@ const getVideoUrl = (lessonData) => {
     }
   }
 
-  console.warn('⚠️ 没有找到有效的视频URL')
+  console.warn('⚠️ 没有找到有效的资源URL')
   return ''
 }
 
-// URL处理函数
 // URL处理函数
 const resolveMediaUrl = (url) => {
   console.log('🔗 原始URL:', url)
@@ -212,6 +218,7 @@ const resolveMediaUrl = (url) => {
 
   let finalUrl = ''
 
+  // 处理不同类型的URL路径
   if (path.startsWith('/api/v1/files/course/videos/')) {
     finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
   } else if (path.startsWith('/api/v1/files/course/video/')) {
@@ -225,16 +232,25 @@ const resolveMediaUrl = (url) => {
   } else if (path.startsWith('/')) {
     finalUrl = `${API_BASE}${path}`
   } else {
-    finalUrl = `${API_BASE}/api/v1/media/video/${path}`
+    // 根据文件扩展名判断类型
+    const ext = path.split('.').pop().toLowerCase()
+    if (isVideoFile(`.${ext}`)) {
+      finalUrl = `${API_BASE}/api/v1/media/video/${path}`
+    } else if (isDocumentFile(`.${ext}`)) {
+      finalUrl = `${API_BASE}/api/v1/media/document/${path}`
+    } else {
+      finalUrl = `${API_BASE}/api/v1/media/video/${path}`
+    }
   }
 
   console.log('🔗 最终URL:', finalUrl)
   return finalUrl
 }
 
-// 判断资源类型
-const isVideoFile = (url) => /\.(mp4|mov|webm)$/i.test(url || '')
-const isDocumentFile = (url) => /\.(pdf|docx?|pptx?)$/i.test(url || '')
+// 判断资源类型 - 扩展支持更多类型
+const isVideoFile = (url) => /\.(mp4|mov|webm|avi|mkv)$/i.test(url || '')
+const isAudioFile = (url) => /\.(mp3|wav|ogg|m4a)$/i.test(url || '')
+const isDocumentFile = (url) => /\.(pdf|docx?|xlsx?|pptx?|txt|md|csv|json|xml)$/i.test(url || '')
 
 // 响应式数据
 const currentChapter = ref(1)
@@ -242,6 +258,7 @@ const currentLesson = ref(null)
 const expandedChapters = ref([])
 const isPlaying = ref(false)
 const videoElement = ref(null)
+const audioElement = ref(null)
 
 // 课程数据
 const courseData = ref({
@@ -264,38 +281,42 @@ const currentLessonData = computed(() => {
 // 当前章节资源URL
 const resolvedMediaUrl = computed(() => getVideoUrl(currentLessonData.value))
 const isVideo = computed(() => isVideoFile(resolvedMediaUrl.value))
+const isAudio = computed(() => isAudioFile(resolvedMediaUrl.value))
 const isDocument = computed(() => isDocumentFile(resolvedMediaUrl.value))
-const documentViewerUrl = computed(() => {
-  if (isDocument.value && resolvedMediaUrl.value) {
-    const encoded = encodeURIComponent(resolvedMediaUrl.value)
-    return `https://docs.google.com/gview?embedded=1&url=${encoded}`
-  }
-  return ''
-})
 
-// 监听视频地址变化，强制重新加载播放器
+// 监听资源地址变化，强制重新加载播放器
 watch(
   resolvedMediaUrl,
   async (newUrl, oldUrl) => {
-    if (isVideo.value && videoElement.value && newUrl && newUrl !== oldUrl) {
+    if (newUrl && newUrl !== oldUrl) {
       await nextTick()
-      videoElement.value.load()
-      try {
-        await videoElement.value.play()
-      } catch (e) {
-        // autoplay may be blocked
+      if (isVideo.value && videoElement.value) {
+        videoElement.value.load()
+        try {
+          await videoElement.value.play()
+        } catch (e) {
+          // autoplay may be blocked
+        }
+      } else if (isAudio.value && audioElement.value) {
+        audioElement.value.load()
+        try {
+          await audioElement.value.play()
+        } catch (e) {
+          // autoplay may be blocked
+        }
       }
     }
   },
 )
 
+// 进度计算
 const courseProgress = computed(() => {
   const total = courseData.value.chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0)
   const completed = courseData.value.chapters.reduce(
     (sum, chapter) => sum + chapter.lessons.filter((lesson) => lesson.completed).length,
     0,
   )
-  return Math.round((completed / total) * 100)
+  return total > 0 ? Math.round((completed / total) * 100) : 0
 })
 
 const completedLessons = computed(() => {
@@ -309,80 +330,29 @@ const totalLessons = computed(() => {
   return courseData.value.chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0)
 })
 
+// 导航计算
 const hasPreviousLesson = computed(() => {
-  const chapterIndex = courseData.value.chapters.findIndex((c) => c.id === currentChapter.value)
-  if (chapterIndex === -1) return false
-  const lessonIndex = courseData.value.chapters[chapterIndex].lessons.findIndex(
-    (l) => l.id === currentLesson.value,
-  )
-  if (lessonIndex > 0) return true
-  return chapterIndex > 0
+  const firstChapter = courseData.value.chapters[0]
+  if (!firstChapter) return false
+  return !(currentChapter.value === firstChapter.id && currentLesson.value === firstChapter.lessons[0]?.id)
 })
 
 const hasNextLesson = computed(() => {
-  const chapter = courseData.value.chapters.find((c) => c.id === currentChapter.value)
-  if (!chapter) return false
-
-  const currentLessonIndex = chapter.lessons.findIndex((l) => l.id === currentLesson.value)
-  if (currentLessonIndex < chapter.lessons.length - 1) return true
-
-  return currentChapter.value < courseData.value.chapters.length
+  const lastChapter = courseData.value.chapters[courseData.value.chapters.length - 1]
+  if (!lastChapter) return false
+  const lastLesson = lastChapter.lessons[lastChapter.lessons.length - 1]
+  return !(currentChapter.value === lastChapter.id && currentLesson.value === lastLesson?.id)
 })
 
-// 视频相关方法
-const onVideoPlay = () => {
-  console.log('▶️ 视频开始播放')
-  isPlaying.value = true
-}
-
-const onVideoPause = () => {
-  console.log('⏸️ 视频暂停')
+// 视频控制方法
+const handleVideoEnd = () => {
   isPlaying.value = false
+  ElMessage.success('视频播放完成')
 }
 
-const onVideoLoadStart = () => {
-  console.log('🔄 视频开始加载，URL:', videoElement.value?.src)
-}
-
-const onVideoError = (error) => {
-  console.error('❌ 视频加载失败，错误事件:', error)
-
-  if (videoElement.value) {
-    const videoError = videoElement.value.error
-    console.error('❌ 视频错误详情:', {
-      错误代码: videoError?.code,
-      错误消息: videoError?.message,
-      视频源: videoElement.value.src,
-      网络状态: videoElement.value.networkState,
-      就绪状态: videoElement.value.readyState
-    })
-
-    // 错误代码说明
-    switch (videoError?.code) {
-      case 1:
-        console.error('❌ MEDIA_ERR_ABORTED - 用户中止了视频播放')
-        break
-      case 2:
-        console.error('❌ MEDIA_ERR_NETWORK - 网络错误')
-        break
-      case 3:
-        console.error('❌ MEDIA_ERR_DECODE - 视频解码错误')
-        break
-      case 4:
-        console.error('❌ MEDIA_ERR_SRC_NOT_SUPPORTED - 视频格式不支持或URL无效')
-        break
-    }
-  }
-
-  ElMessage.error(`视频加载失败: ${videoElement.value?.src || '无URL'}`)
-}
-
-const onVideoLoadedMetadata = () => {
-  console.log('✅ 视频元数据加载完成:', {
-    时长: videoElement.value?.duration,
-    宽度: videoElement.value?.videoWidth,
-    高度: videoElement.value?.videoHeight
-  })
+const handleAudioEnd = () => {
+  isPlaying.value = false
+  ElMessage.success('音频播放完成')
 }
 
 const togglePlayPause = () => {
@@ -391,6 +361,12 @@ const togglePlayPause = () => {
       videoElement.value.pause()
     } else {
       videoElement.value.play()
+    }
+  } else if (isAudio.value && audioElement.value) {
+    if (isPlaying.value) {
+      audioElement.value.pause()
+    } else {
+      audioElement.value.play()
     }
   }
 }
@@ -419,7 +395,8 @@ const selectLesson = async (chapterId, lessonId) => {
     videoUrl: lesson?.videoUrl,
     contentUrl: lesson?.contentUrl,
     content: lesson?.content,
-    audioUrl: lesson?.audioUrl
+    audioUrl: lesson?.audioUrl,
+    documentUrl: lesson?.documentUrl
   })
 
   const mediaUrl = getVideoUrl(lesson)
@@ -430,6 +407,12 @@ const selectLesson = async (chapterId, lessonId) => {
     if (videoElement.value) {
       videoElement.value.src = mediaUrl
       videoElement.value.load()
+    }
+  } else if (isAudioFile(mediaUrl)) {
+    await nextTick()
+    if (audioElement.value) {
+      audioElement.value.src = mediaUrl
+      audioElement.value.load()
     }
   }
 }
@@ -479,12 +462,28 @@ const markComplete = () => {
     const lesson = chapter.lessons.find((l) => l.id === currentLesson.value)
     if (lesson) {
       lesson.completed = true
+      ElMessage.success('已标记为完成')
     }
   }
 }
 
-// 数据格式化函数 - 强制所有内容为视频类型
-// 数据格式化函数 - 增强调试版本
+// 获取课程图标
+const getlessonIcon = (lesson) => {
+  if (lesson.type === 'video') return '🎥'
+  if (lesson.type === 'document') return '📄'
+  if (lesson.type === 'audio') return '🎵'
+  return '📚'
+}
+
+// 获取课程类型文本
+const getlessonTypeText = (lesson) => {
+  if (lesson.type === 'video') return '视频课程'
+  if (lesson.type === 'document') return '文档资料'
+  if (lesson.type === 'audio') return '音频课程'
+  return '学习资料'
+}
+
+// 数据格式化函数
 const formatCourse = (courseData) => {
   console.log('🔄 开始格式化课程数据，原始数据:', courseData)
 
@@ -498,14 +497,27 @@ const formatCourse = (courseData) => {
       console.log(`🔄 格式化章节 ${chapterIndex + 1}:`, ch)
 
       // 尝试获取章节资源URL
-      const possibleVideoUrl = ch.contentUrl || ch.videoUrl || ch.mediaUrl || ch.content
-      console.log(`🎥 章节${chapterIndex + 1}的视频URL候选:`, {
+      const possibleUrl = ch.contentUrl || ch.videoUrl || ch.mediaUrl || ch.content || ch.documentUrl
+      console.log(`🎥 章节${chapterIndex + 1}的资源URL候选:`, {
         contentUrl: ch.contentUrl,
         videoUrl: ch.videoUrl,
         mediaUrl: ch.mediaUrl,
         content: ch.content,
-        最终选择: possibleVideoUrl
+        documentUrl: ch.documentUrl,
+        最终选择: possibleUrl
       })
+
+      // 判断资源类型
+      let resourceType = 'unknown'
+      if (possibleUrl) {
+        if (isVideoFile(possibleUrl)) {
+          resourceType = 'video'
+        } else if (isDocumentFile(possibleUrl)) {
+          resourceType = 'document'
+        } else if (isAudioFile(possibleUrl)) {
+          resourceType = 'audio'
+        }
+      }
 
       const formattedChapter = {
         id: ch.id || chapterIndex + 1,
@@ -514,14 +526,16 @@ const formatCourse = (courseData) => {
           {
             id: ch.id || chapterIndex + 1,
             title: ch.title || `第${chapterIndex + 1}节`,
-            type: isVideoFile(possibleVideoUrl) ? 'video' : (isDocumentFile(possibleVideoUrl) ? 'document' : 'unknown'),
+            type: resourceType,
             duration: ch.duration ? `${ch.duration}分钟` : '未知',
             completed: ch.status === 1,
             updateDate: ch.updateDate || '未知',
             // 统一处理所有可能的资源URL字段
-            videoUrl: possibleVideoUrl,
-            contentUrl: possibleVideoUrl,
-            content: possibleVideoUrl,
+            videoUrl: possibleUrl,
+            contentUrl: possibleUrl,
+            content: possibleUrl,
+            audioUrl: possibleUrl,
+            documentUrl: possibleUrl,
             description: ch.description,
             // 保留原始数据用于调试
             _originalData: ch
@@ -539,7 +553,6 @@ const formatCourse = (courseData) => {
 }
 
 // 生命周期
-// 生命周期 - 增强调试版本
 onMounted(async () => {
   console.log('🚀 LearningPage 组件已挂载')
   console.log('📍 当前路由参数:', route.params)
@@ -574,7 +587,8 @@ onMounted(async () => {
             videoUrl: chapter.videoUrl,
             mediaUrl: chapter.mediaUrl,
             content: chapter.content,
-            allFields: chapter // 查看所有字段
+            documentUrl: chapter.documentUrl,
+            allFields: chapter
           })
         })
       } else {
@@ -597,13 +611,14 @@ onMounted(async () => {
           课程数据: formatted.chapters[0].lessons[0]
         })
 
-        // 立即检查第一个视频URL
+        // 立即检查第一个资源URL
         const firstLesson = formatted.chapters[0].lessons[0]
-        const videoUrl = getVideoUrl(firstLesson)
-        console.log('🎬 第一个视频最终URL:', videoUrl)
+        const mediaUrl = getVideoUrl(firstLesson)
+        console.log('🎬 第一个资源最终URL:', mediaUrl)
       }
     } else {
       console.error('❌ API响应错误:', res)
+      ElMessage.error('课程加载失败')
     }
   } catch (e) {
     console.error('❌ 请求失败:', e)
@@ -612,6 +627,7 @@ onMounted(async () => {
       response: e.response,
       stack: e.stack
     })
+    ElMessage.error('网络错误，请稍后重试')
   } finally {
     loading.value = false
     console.log('✅ 加载完成，loading状态:', loading.value)
@@ -844,37 +860,58 @@ onMounted(async () => {
   background: #000;
 }
 
-/* 占位符样式 */
-.video-placeholder {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+/* 文档容器样式 */
+.document-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 音频容器样式 */
+.audio-container {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 40px;
-  min-height: 400px;
 }
 
-.info-icon {
-  font-size: 48px;
+.audio-player {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 600px;
+}
+
+.audio-player audio {
+  width: 100%;
+}
+
+/* 占位符样式 */
+.content-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+}
+
+.placeholder-content {
+  text-align: center;
+  color: #666;
+}
+
+.placeholder-icon {
+  font-size: 64px;
+  display: block;
   margin-bottom: 20px;
-  opacity: 0.8;
-}
-
-.video-placeholder h3 {
-  color: white;
-  margin-bottom: 10px;
-  font-size: 20px;
-}
-
-.video-placeholder p {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 16px;
-  line-height: 1.5;
+  opacity: 0.5;
 }
 
 /* 学习进度条 */

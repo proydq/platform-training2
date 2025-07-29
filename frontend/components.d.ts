@@ -15,6 +15,7 @@ declare module 'vue' {
     CourseHeader: typeof import('./src/components/learning/CourseHeader.vue')['default']
     CourseIntro: typeof import('./src/components/learning/CourseIntro.vue')['default']
     CourseSidebar: typeof import('./src/components/learning/CourseSidebar.vue')['default']
+    DocumentViewer: typeof import('./src/components/DocumentViewer.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
     ElCheckbox: typeof import('element-plus/es')['ElCheckbox']

@@ -44,7 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/health",               // 健康检查
             "/api/error",                 // 错误页面
             "/api/v1/files/",  // 添加这一行，允许文件访问不需要认证
-            "/api/v1/media/video/"        // ✅ 视频播放白名单
+            "/api/v1/media/video/",        // ✅ 视频播放白名单
+            "/api/v1/media/document/" // 文档播放白名单
     );
 
     @Override
