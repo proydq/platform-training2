@@ -219,7 +219,7 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, View, Close } from '@element-plus/icons-vue'
-import { uploadCourseMaterialAPI } from '@/api/course'
+import { uploadCourseMaterialAPI, uploadCourseVideoAPI } from '@/api/course'
 
 // Props
 const props = defineProps({
@@ -531,7 +531,7 @@ const addSupplementary = () => {
 }
 
 // 文件处理方法
-const handleVideoSelect = (file) => {
+const handleVideoSelect = async (file) => {
   // 验证文件大小（最大500MB）
   const maxSize = 500 * 1024 * 1024
   if (file.size > maxSize) {
@@ -551,9 +551,10 @@ const handleVideoSelect = (file) => {
     URL.revokeObjectURL(form.value.videoUrl)
   }
 
-  // 设置文件
+  // 设置文件并预览
   form.value.videoFile = file
-  form.value.videoUrl = URL.createObjectURL(file)
+  const localUrl = URL.createObjectURL(file)
+  form.value.videoUrl = localUrl
 
   // 获取视频时长
   const video = document.createElement('video')
@@ -562,12 +563,24 @@ const handleVideoSelect = (file) => {
     form.value.duration = Math.ceil(video.duration / 60) // 转换为分钟
     URL.revokeObjectURL(video.src)
   }
-  video.src = form.value.videoUrl
+  video.src = localUrl
+
+  try {
+    const res = await uploadCourseVideoAPI(file)
+    const url = res.data?.url
+    if (url) {
+      form.value.videoUrl = url
+      URL.revokeObjectURL(localUrl)
+    }
+  } catch (error) {
+    console.error('视频上传失败', error)
+    ElMessage.error('视频上传失败')
+  }
 
   ElMessage.success('视频文件已选择')
 }
 
-const handleDocumentSelect = (file) => {
+const handleDocumentSelect = async (file) => {
   // 验证文件大小（最大50MB）
   const maxSize = 50 * 1024 * 1024
   if (file.size > maxSize) {
@@ -588,14 +601,27 @@ const handleDocumentSelect = (file) => {
     URL.revokeObjectURL(form.value.documentUrl)
   }
 
-  // 设置文件
+  // 设置文件并预览
   form.value.documentFile = file
-  form.value.documentUrl = URL.createObjectURL(file)
+  const localUrl = URL.createObjectURL(file)
+  form.value.documentUrl = localUrl
+
+  try {
+    const res = await uploadCourseMaterialAPI(file)
+    const url = res.data?.url
+    if (url) {
+      form.value.documentUrl = url
+      URL.revokeObjectURL(localUrl)
+    }
+  } catch (error) {
+    console.error('文档上传失败', error)
+    ElMessage.error('文档上传失败')
+  }
 
   ElMessage.success('文档文件已选择')
 }
 
-const handleAudioSelect = (file) => {
+const handleAudioSelect = async (file) => {
   // 验证文件大小（最大100MB）
   const maxSize = 100 * 1024 * 1024
   if (file.size > maxSize) {
@@ -615,9 +641,10 @@ const handleAudioSelect = (file) => {
     URL.revokeObjectURL(form.value.audioUrl)
   }
 
-  // 设置文件
+  // 设置文件并预览
   form.value.audioFile = file
-  form.value.audioUrl = URL.createObjectURL(file)
+  const localUrl = URL.createObjectURL(file)
+  form.value.audioUrl = localUrl
 
   // 获取音频时长
   const audio = document.createElement('audio')
@@ -625,7 +652,19 @@ const handleAudioSelect = (file) => {
     form.value.duration = Math.ceil(audio.duration / 60) // 转换为分钟
     URL.revokeObjectURL(audio.src)
   }
-  audio.src = form.value.audioUrl
+  audio.src = localUrl
+
+  try {
+    const res = await uploadCourseMaterialAPI(file)
+    const url = res.data?.url
+    if (url) {
+      form.value.audioUrl = url
+      URL.revokeObjectURL(localUrl)
+    }
+  } catch (error) {
+    console.error('音频上传失败', error)
+    ElMessage.error('音频上传失败')
+  }
 
   ElMessage.success('音频文件已选择')
 }
@@ -713,7 +752,7 @@ const handleSave = async () => {
 
   saving.value = true
   try {
-    // 构建要保存的数据，只包含当前内容类型相关的文件
+    // 构建要保存的数据，只包含已上传的文件URL
     const chapterData = {
       id: props.chapterData?.id,
       title: form.value.title,
@@ -727,28 +766,24 @@ const handleSave = async () => {
         .join(',')
     }
 
-    // 根据内容类型添加相应的文件
+    // 根据内容类型设置URL字段
     switch (contentType) {
       case 'video':
-        chapterData.videoFile = form.value.videoFile
         chapterData.videoUrl = form.value.videoUrl
+        chapterData.contentUrl = form.value.videoUrl
         break
       case 'document':
-        chapterData.documentFile = form.value.documentFile
-        chapterData.documentUrl = form.value.documentUrl
+        chapterData.contentUrl = form.value.documentUrl
         break
       case 'audio':
-        chapterData.audioFile = form.value.audioFile
-        chapterData.audioUrl = form.value.audioUrl
+        chapterData.contentUrl = form.value.audioUrl
         break
       case 'mixed':
-        if (form.value.videoFile) {
-          chapterData.videoFile = form.value.videoFile
+        if (form.value.videoUrl) {
           chapterData.videoUrl = form.value.videoUrl
         }
-        if (form.value.documentFile) {
-          chapterData.documentFile = form.value.documentFile
-          chapterData.documentUrl = form.value.documentUrl
+        if (form.value.documentUrl) {
+          chapterData.contentUrl = form.value.documentUrl
         }
         break
     }
