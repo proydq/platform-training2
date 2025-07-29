@@ -148,7 +148,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getCourseDetailAPI as getCourseDetail } from '@/api/course'
 
@@ -186,6 +186,10 @@ const resolveMediaUrl = (url) => {
   if (url.includes('/api/v1/files/course/videos/')) {
     return `http://localhost:3000${url.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
   }
+  // 兼容旧的单数 video 路径
+  if (url.includes('/api/v1/files/course/video/')) {
+    return `http://localhost:3000${url.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
+  }
 
   // 如果是相对路径，添加服务器地址
   if (url.startsWith('/')) {
@@ -220,6 +224,22 @@ const currentLessonData = computed(() => {
   const lesson = chapter.lessons.find((l) => l.id === currentLesson.value)
   return lesson || {}
 })
+
+// 监听视频地址变化，强制重新加载播放器
+watch(
+  () => getVideoUrl(currentLessonData.value),
+  async (newUrl, oldUrl) => {
+    if (videoElement.value && newUrl && newUrl !== oldUrl) {
+      await nextTick()
+      videoElement.value.load()
+      try {
+        await videoElement.value.play()
+      } catch (e) {
+        // autoplay may be blocked
+      }
+    }
+  },
+)
 
 const courseProgress = computed(() => {
   const total = courseData.value.chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0)
