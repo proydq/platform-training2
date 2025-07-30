@@ -4,7 +4,7 @@ import request from '@/utils/request'
 // 登录接口
 export function loginAPI(data) {
   return request({
-    url: '/api/v1/auth/login',
+    url: '/auth/login',
     method: 'POST',
     data: {
       username: data.username,
@@ -16,7 +16,7 @@ export function loginAPI(data) {
 // 获取用户信息
 export function getUserInfoAPI() {
   return request({
-    url: '/api/v1/auth/userinfo',
+    url: '/auth/userinfo',
     method: 'GET'
   })
 }
@@ -24,7 +24,7 @@ export function getUserInfoAPI() {
 // 退出登录
 export function logoutAPI() {
   return request({
-    url: '/api/v1/auth/logout',
+    url: '/auth/logout',
     method: 'POST'
   })
 }
@@ -32,7 +32,7 @@ export function logoutAPI() {
 // 健康检查（测试后端连接）
 export function healthCheckAPI() {
   return request({
-    url: '/api/v1/health',
+    url: '/health',
     method: 'GET'
   })
 }

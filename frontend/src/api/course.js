@@ -46,7 +46,7 @@ export function getCourseStatusText(status) {
 // 获取课程列表（分页）
 export function getCourseListAPI(params = {}) {
   return request({
-    url: '/api/v1/courses',
+    url: '/courses',
     method: 'GET',
     params: {
       page: params.page || 0,
@@ -66,7 +66,7 @@ export function getCourseListAPI(params = {}) {
 // 获取课程详情（增强版，用于学习页面）
 export function getCourseDetailAPI(courseId) {
   return request({
-    url: `/api/v1/courses/${courseId}`,
+    url: `/courses/${courseId}`,
     method: 'GET',
   }).then(async (response) => {
     // 确保响应数据格式正确
@@ -157,7 +157,7 @@ export function createCourseAPI(data) {
   }
 
   return request({
-    url: '/api/v1/courses',
+    url: '/courses',
     method: 'POST',
     data: requestData,
   })
@@ -227,7 +227,7 @@ export function updateCourseAPI(courseId, data) {
   }
 
   return request({
-    url: `/api/v1/courses/${courseId}`,
+    url: `/courses/${courseId}`,
     method: 'PUT',
     data: requestData,
   })
@@ -236,7 +236,7 @@ export function updateCourseAPI(courseId, data) {
 // 删除课程
 export function deleteCourseAPI(courseId) {
   return request({
-    url: `/api/v1/courses/${courseId}`,
+    url: `/courses/${courseId}`,
     method: 'DELETE',
   })
 }
@@ -244,7 +244,7 @@ export function deleteCourseAPI(courseId) {
 // 发布课程
 export function publishCourseAPI(courseId) {
   return request({
-    url: `/api/v1/courses/${courseId}/publish`,
+    url: `/courses/${courseId}/publish`,
     method: 'PUT',
     rawResponse: true
   })
@@ -253,7 +253,7 @@ export function publishCourseAPI(courseId) {
 // 下架课程
 export function unpublishCourseAPI(courseId) {
   return request({
-    url: `/api/v1/courses/${courseId}/unpublish`,
+    url: `/courses/${courseId}/unpublish`,
     method: 'PUT',
     rawResponse: true
   })
@@ -266,7 +266,7 @@ export function unpublishCourseAPI(courseId) {
 // 获取课程章节列表
 export function getCourseChaptersAPI(courseId, status = null) {
   return request({
-    url: `/api/v1/courses/${courseId}/chapters`,
+    url: `/courses/${courseId}/chapters`,
     method: 'GET',
     params: status ? { status } : {},
   })
@@ -275,7 +275,7 @@ export function getCourseChaptersAPI(courseId, status = null) {
 // 获取章节详情
 export function getChapterDetailAPI(courseId, chapterId) {
   return request({
-    url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
+    url: `/courses/${courseId}/chapters/${chapterId}`,
     method: 'GET',
   })
 }
@@ -283,7 +283,7 @@ export function getChapterDetailAPI(courseId, chapterId) {
 // 创建章节
 export function createChapterAPI(courseId, data) {
   return request({
-    url: `/api/v1/courses/${courseId}/chapters`,
+    url: `/courses/${courseId}/chapters`,
     method: 'POST',
     data: {
       title: data.title,
@@ -309,7 +309,7 @@ export function createChapterAPI(courseId, data) {
 // 更新章节
 export function updateChapterAPI(courseId, chapterId, data) {
   return request({
-    url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
+    url: `/courses/${courseId}/chapters/${chapterId}`,
     method: 'PUT',
     data: {
       title: data.title,
@@ -335,7 +335,7 @@ export function updateChapterAPI(courseId, chapterId, data) {
 // 删除章节
 export function deleteChapterAPI(courseId, chapterId) {
   return request({
-    url: `/api/v1/courses/${courseId}/chapters/${chapterId}`,
+    url: `/courses/${courseId}/chapters/${chapterId}`,
     method: 'DELETE',
   })
 }
@@ -343,7 +343,7 @@ export function deleteChapterAPI(courseId, chapterId) {
 // 调整章节顺序
 export function reorderChaptersAPI(courseId, chapterOrders) {
   return request({
-    url: `/api/v1/courses/${courseId}/chapters/reorder`,
+    url: `/courses/${courseId}/chapters/reorder`,
     method: 'POST',
     data: {
       chapterOrders: chapterOrders.map((item) => ({
@@ -366,7 +366,7 @@ export function uploadCourseCoverAPI(file) {
   formData.append('type', 'cover')
 
   return request({
-    url: '/api/v1/upload',
+    url: '/upload',
     method: 'POST',
     data: formData,
     headers: {
@@ -383,7 +383,7 @@ export function uploadCourseMaterialAPI(file) {
   formData.append('type', 'material')
 
   return request({
-    url: '/api/v1/upload',
+    url: '/upload',
     method: 'POST',
     data: formData,
     headers: {
@@ -400,7 +400,7 @@ export function uploadCourseVideoAPI(file, onProgress) {
   formData.append('type', 'video')
 
   return request({
-    url: '/api/v1/upload',
+    url: '/upload',
     method: 'POST',
     data: formData,
     headers: {
@@ -417,7 +417,7 @@ export function uploadCourseVideoAPI(file, onProgress) {
 // 搜索课程
 export function searchCoursesAPI(params) {
   return request({
-    url: '/api/v1/courses/search',
+    url: '/courses/search',
     method: 'GET',
     params,
   })
@@ -426,7 +426,7 @@ export function searchCoursesAPI(params) {
 // 获取推荐课程
 export function getRecommendedCoursesAPI(page = 0, size = 10) {
   return request({
-    url: '/api/v1/courses/recommended',
+    url: '/courses/recommended',
     method: 'GET',
     params: { page, size },
   })
@@ -435,7 +435,7 @@ export function getRecommendedCoursesAPI(page = 0, size = 10) {
 // 获取热门课程
 export function getPopularCoursesAPI(page = 0, size = 10) {
   return request({
-    url: '/api/v1/courses/popular',
+    url: '/courses/popular',
     method: 'GET',
     params: { page, size },
   })
@@ -444,7 +444,7 @@ export function getPopularCoursesAPI(page = 0, size = 10) {
 // 获取最新课程
 export function getLatestCoursesAPI(page = 0, size = 10) {
   return request({
-    url: '/api/v1/courses/latest',
+    url: '/courses/latest',
     method: 'GET',
     params: { page, size },
   })
@@ -457,7 +457,7 @@ export function getLatestCoursesAPI(page = 0, size = 10) {
 // 获取课程统计
 export function getCourseStatsAPI() {
   return request({
-    url: '/api/v1/courses/stats',
+    url: '/courses/stats',
     method: 'GET',
   })
 }
@@ -465,7 +465,7 @@ export function getCourseStatsAPI() {
 // 获取讲师课程统计
 export function getInstructorStatsAPI(instructorId) {
   return request({
-    url: `/api/v1/courses/instructor/${instructorId}/stats`,
+    url: `/courses/instructor/${instructorId}/stats`,
     method: 'GET',
   })
 }
@@ -477,7 +477,7 @@ export function getInstructorStatsAPI(instructorId) {
 // 更新学习进度
 export function updateStudyProgressAPI(data) {
   return request({
-    url: '/api/v1/study-progress/update',
+    url: '/study-progress/update',
     method: 'POST',
     data: {
       courseId: data.courseId,
@@ -491,7 +491,7 @@ export function updateStudyProgressAPI(data) {
 // 获取课程资料
 export function getCourseMaterialsAPI(courseId, lessonId) {
   return request({
-    url: `/api/v1/courses/${courseId}/lessons/${lessonId}/materials`,
+    url: `/courses/${courseId}/lessons/${lessonId}/materials`,
     method: 'GET'
   })
 }
@@ -499,7 +499,7 @@ export function getCourseMaterialsAPI(courseId, lessonId) {
 // 保存学习笔记
 export function saveLessonNotesAPI(data) {
   return request({
-    url: '/api/v1/study-notes/save',
+    url: '/study-notes/save',
     method: 'POST',
     data: {
       courseId: data.courseId,
@@ -512,7 +512,7 @@ export function saveLessonNotesAPI(data) {
 // 获取学习笔记
 export function getLessonNotesAPI(courseId, lessonId) {
   return request({
-    url: `/api/v1/study-notes/${courseId}/${lessonId}`,
+    url: `/study-notes/${courseId}/${lessonId}`,
     method: 'GET'
   })
 }
@@ -520,7 +520,7 @@ export function getLessonNotesAPI(courseId, lessonId) {
 // 标记课程完成
 export function markLessonCompleteAPI(courseId, lessonId) {
   return request({
-    url: `/api/v1/courses/${courseId}/lessons/${lessonId}/complete`,
+    url: `/courses/${courseId}/lessons/${lessonId}/complete`,
     method: 'POST'
   })
 }

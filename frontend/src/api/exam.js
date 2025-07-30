@@ -8,7 +8,7 @@ import request from '@/utils/request'
 // 获取考试列表（分页）
 export function getExamListAPI(params = {}) {
   return request({
-    url: '/api/v1/exams',
+    url: '/exams',
     method: 'GET',
     params: {
       page: params.page || 0,
@@ -26,7 +26,7 @@ export function getExamListAPI(params = {}) {
 // 获取我的考试列表
 export function getMyExamsAPI(params = {}) {
   return request({
-    url: '/api/v1/exams/my',
+    url: '/exams/my',
     method: 'GET',
     params: {
       page: params.page || 0,
@@ -57,7 +57,7 @@ export function getExamStatusAPI(examId) {
 // 创建考试
 export function createExamAPI(data) {
   return request({
-    url: '/api/v1/exams',
+    url: '/exams',
     method: 'POST',
     data: {
       title: data.title,
@@ -197,7 +197,7 @@ export function getExamResultDetailAPI(examId, resultId) {
 // 获取用户的所有考试结果
 export function getUserExamResultsAPI(params = {}) {
   return request({
-    url: '/api/v1/exam-results/my',
+    url: '/exam-results/my',
     method: 'GET',
     params: {
       page: params.page || 0,
@@ -346,7 +346,7 @@ export function getExamLeaderboardAPI(examId, params = {}) {
 // 获取用户错题集
 export function getWrongQuestionsAPI(params = {}) {
   return request({
-    url: '/api/v1/wrong-questions/my',
+    url: '/wrong-questions/my',
     method: 'GET',
     params: {
       page: params.page || 0,
@@ -369,7 +369,7 @@ export function markQuestionMasteredAPI(questionId) {
 // 练习错题
 export function practiceWrongQuestionsAPI(params = {}) {
   return request({
-    url: '/api/v1/wrong-questions/practice',
+    url: '/wrong-questions/practice',
     method: 'POST',
     data: {
       examId: params.examId || '',
@@ -387,7 +387,7 @@ export function practiceWrongQuestionsAPI(params = {}) {
 // 创建模拟考试
 export function createMockExamAPI(data) {
   return request({
-    url: '/api/v1/mock-exams',
+    url: '/mock-exams',
     method: 'POST',
     data: {
       title: data.title,
@@ -403,7 +403,7 @@ export function createMockExamAPI(data) {
 // 获取模拟考试列表
 export function getMockExamsAPI(params = {}) {
   return request({
-    url: '/api/v1/mock-exams',
+    url: '/mock-exams',
     method: 'GET',
     params: {
       page: params.page || 0,
@@ -420,7 +420,7 @@ export function getMockExamsAPI(params = {}) {
 // 搜索考试
 export function searchExamsAPI(params) {
   return request({
-    url: '/api/v1/exams/search',
+    url: '/exams/search',
     method: 'GET',
     params
   })
@@ -429,7 +429,7 @@ export function searchExamsAPI(params) {
 // 获取热门考试
 export function getPopularExamsAPI(page = 0, size = 10) {
   return request({
-    url: '/api/v1/exams/popular',
+    url: '/exams/popular',
     method: 'GET',
     params: { page, size }
   })
@@ -438,7 +438,7 @@ export function getPopularExamsAPI(page = 0, size = 10) {
 // 获取推荐考试
 export function getRecommendedExamsAPI(page = 0, size = 10) {
   return request({
-    url: '/api/v1/exams/recommended',
+    url: '/exams/recommended',
     method: 'GET',
     params: { page, size }
   })
@@ -451,7 +451,7 @@ export function getRecommendedExamsAPI(page = 0, size = 10) {
 // 获取考试分类列表
 export function getExamCategoriesAPI() {
   return request({
-    url: '/api/v1/exam-categories',
+    url: '/exam-categories',
     method: 'GET'
   })
 }
