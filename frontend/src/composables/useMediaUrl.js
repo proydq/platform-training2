@@ -24,26 +24,26 @@ export function useMediaUrl() {
 
     let finalUrl = ''
 
-    if (path.startsWith('/api/v1/files/course/videos/')) {
-      finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/videos/', '/api/v1/media/video/')}`
-    } else if (path.startsWith('/api/v1/files/course/video/')) {
-      finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/video/', '/api/v1/media/video/')}`
-    } else if (path.startsWith('/api/v1/files/course/documents/')) {
-      finalUrl = `${API_BASE}${path.replace('/api/v1/files/course/documents/', '/api/v1/media/document/')}`
-    } else if (path.startsWith('/api/v1/media/video/')) {
+    if (path.startsWith('/api/files/course/videos/')) {
+      finalUrl = `${API_BASE}${path.replace('/api/files/course/videos/', '/api/media/video/')}`
+    } else if (path.startsWith('/api/files/course/video/')) {
+      finalUrl = `${API_BASE}${path.replace('/api/files/course/video/', '/api/media/video/')}`
+    } else if (path.startsWith('/api/files/course/documents/')) {
+      finalUrl = `${API_BASE}${path.replace('/api/files/course/documents/', '/api/media/document/')}`
+    } else if (path.startsWith('/api/media/video/')) {
       finalUrl = `${API_BASE}${path}`
-    } else if (path.startsWith('/api/v1/media/document/')) {
+    } else if (path.startsWith('/api/media/document/')) {
       finalUrl = `${API_BASE}${path}`
     } else if (path.startsWith('/')) {
       finalUrl = `${API_BASE}${path}`
     } else {
       const ext = path.split('.').pop().toLowerCase()
       if (isVideoFile(`.${ext}`)) {
-        finalUrl = `${API_BASE}/api/v1/media/video/${path}`
+        finalUrl = `${API_BASE}/api/media/video/${path}`
       } else if (isDocumentFile(`.${ext}`)) {
-        finalUrl = `${API_BASE}/api/v1/media/document/${path}`
+        finalUrl = `${API_BASE}/api/media/document/${path}`
       } else {
-        finalUrl = `${API_BASE}/api/v1/media/video/${path}`
+        finalUrl = `${API_BASE}/api/media/video/${path}`
       }
     }
 

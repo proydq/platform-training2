@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function getMyCourses() {
   return request({
-    url: '/user-study/my-courses',
+    url: '/api/v1/user-study/my-courses',
     method: 'GET'
   })
 }

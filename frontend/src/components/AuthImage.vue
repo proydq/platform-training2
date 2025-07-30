@@ -115,7 +115,7 @@ watch(() => props.src, (newSrc) => {
   cleanup()
   if (newSrc) {
     // 检查是否是需要认证的URL
-    if (newSrc.startsWith('/api/v1/files/') || newSrc.includes('/api/v1/files/')) {
+    if (newSrc.startsWith('/api/files/') || newSrc.includes('/api/files/')) {
       fetchAuthImage(newSrc)
     } else {
       // 普通图片直接使用

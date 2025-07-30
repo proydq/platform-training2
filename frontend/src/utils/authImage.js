@@ -22,7 +22,7 @@ const getAuthToken = () => {
     }
   
     // 如果不是需要认证的图片，直接返回
-    if (!imageUrl.includes('/api/v1/files/')) {
+    if (!imageUrl.includes('/api/files/')) {
       return imageUrl
     }
   
@@ -82,5 +82,5 @@ const getAuthToken = () => {
    * @returns {boolean}
    */
   export const isAuthImage = (imageUrl) => {
-    return imageUrl && imageUrl.includes('/api/v1/files/')
+    return imageUrl && imageUrl.includes('/api/files/')
   }
